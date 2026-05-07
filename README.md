@@ -4,7 +4,7 @@ This repository is intended for Power Automate flows triggered by Microsoft Form
 
 ## Purpose
 
-The main use case is to generate a complete task set for each concert of the mixed choir Campanula and assign tasks to specific people.
+The initial target use case is to generate a complete task set for each concert of the mixed choir Campanula and assign tasks to specific people.
 
 ## Planned repository content
 
@@ -50,13 +50,13 @@ The workbook also contains supporting lookup sheets used by `TasksTemplate`:
 
 #### Buckets
 
-- Příprava a plánování
-- Umělci a program
-- Propagace a marketing
-- Produkce a logistika
-- Finance a administrativa
-- Den koncertu
-- Po koncertu
+- Příprava a plánování (Preparation and planning)
+- Umělci a program (Artists and programme)
+- Propagace a marketing (Promotion and marketing)
+- Produkce a logistika (Production and logistics)
+- Finance a administrativa (Finance and administration)
+- Den koncertu (Concert day)
+- Po koncertu (After the concert)
 
 #### Progress
 
@@ -73,12 +73,12 @@ The workbook also contains supporting lookup sheets used by `TasksTemplate`:
 
 #### Labels
 
-- Organizace
-- Umělci
-- Propagace
-- Logistika
-- Finance
-- Administrativa
-- Hudba
-- Provoz
-- IT
+- Organizace (Organisation)
+- Umělci (Artists)
+- Propagace (Promotion)
+- Logistika (Logistics)
+- Finance (Finance)
+- Administrativa (Administration)
+- Hudba (Music)
+- Provoz (Operations)
+- IT (IT)
