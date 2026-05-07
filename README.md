@@ -51,7 +51,7 @@ The workbook also contains supporting lookup sheets used by `TasksTemplate`:
 #### Buckets
 
 - Příprava a plánování (Preparation and planning)
-- Umělci a program (Artists and programme)
+- Umělci a program (Artists and program)
 - Propagace a marketing (Promotion and marketing)
 - Produkce a logistika (Production and logistics)
 - Finance a administrativa (Finance and administration)
