@@ -23,7 +23,7 @@ The solution is based on a single Excel workbook named `PlannerTasksTemplate.xls
 
 ### Main sheet
 
-The main worksheet is `TasksTemplate`, containing table `tbTasksTemplate` with these columns:
+The main worksheet is `TasksTemplate`, containing the Excel table currently named `tbTasksTemplate` with these columns:
 
 - `TemplateType`
 - `TaskId`
@@ -34,7 +34,7 @@ The main worksheet is `TasksTemplate`, containing table `tbTasksTemplate` with t
 - `Bucket`
 - `Progress`
 - `Priority`
-- `Description` - detailed task description using plain text formatting, line breaks, simple bullet lists, and hyperlinks
+- `Description` - detailed task description stored as text with line breaks, simple bullet markers, and hyperlinks
 - `CheckListItems` - semicolon-separated list of checklist values
 - `Labels` - semicolon-separated list of label values
 
