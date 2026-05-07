@@ -1,0 +1,352 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "Creates a Microsoft Planner plan and tasks for a Campanula choir concert based on the PlannerTasksTemplate.xlsx stored in SharePoint."
+  },
+  "triggers": {
+    "manual": {
+      "type": "Request",
+      "kind": "Http",
+      "inputs": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "concertName": {
+              "type": "string",
+              "description": "Name of the concert (used as Planner Plan title)"
+            },
+            "concertDate": {
+              "type": "string",
+              "format": "date",
+              "description": "Date of the concert (ISO 8601, e.g. 2025-12-20)"
+            },
+            "groupId": {
+              "type": "string",
+              "description": "Microsoft 365 Group ID to create the Planner Plan in"
+            },
+            "templateType": {
+              "type": "string",
+              "description": "TemplateType filter value (e.g. Concert). Leave empty to include all tasks."
+            }
+          },
+          "required": ["concertName", "concertDate", "groupId"]
+        }
+      }
+    }
+  },
+  "actions": {
+    "Initialize_ConcertName": {
+      "type": "InitializeVariable",
+      "inputs": {
+        "variables": [
+          {
+            "name": "ConcertName",
+            "type": "string",
+            "value": "@triggerBody()?['concertName']"
+          }
+        ]
+      },
+      "runAfter": {}
+    },
+    "Initialize_ConcertDate": {
+      "type": "InitializeVariable",
+      "inputs": {
+        "variables": [
+          {
+            "name": "ConcertDate",
+            "type": "string",
+            "value": "@triggerBody()?['concertDate']"
+          }
+        ]
+      },
+      "runAfter": {
+        "Initialize_ConcertName": ["Succeeded"]
+      }
+    },
+    "Initialize_GroupId": {
+      "type": "InitializeVariable",
+      "inputs": {
+        "variables": [
+          {
+            "name": "GroupId",
+            "type": "string",
+            "value": "@triggerBody()?['groupId']"
+          }
+        ]
+      },
+      "runAfter": {
+        "Initialize_ConcertDate": ["Succeeded"]
+      }
+    },
+    "Initialize_TemplateType": {
+      "type": "InitializeVariable",
+      "inputs": {
+        "variables": [
+          {
+            "name": "TemplateType",
+            "type": "string",
+            "value": "@coalesce(triggerBody()?['templateType'], 'Concert')"
+          }
+        ]
+      },
+      "runAfter": {
+        "Initialize_GroupId": ["Succeeded"]
+      }
+    },
+    "Initialize_PlanId": {
+      "type": "InitializeVariable",
+      "inputs": {
+        "variables": [
+          {
+            "name": "PlanId",
+            "type": "string",
+            "value": ""
+          }
+        ]
+      },
+      "runAfter": {
+        "Initialize_TemplateType": ["Succeeded"]
+      }
+    },
+    "Initialize_BucketMap": {
+      "type": "InitializeVariable",
+      "inputs": {
+        "variables": [
+          {
+            "name": "BucketMap",
+            "type": "object",
+            "value": {}
+          }
+        ]
+      },
+      "runAfter": {
+        "Initialize_PlanId": ["Succeeded"]
+      }
+    },
+    "Initialize_ChecklistObject": {
+      "type": "InitializeVariable",
+      "inputs": {
+        "variables": [
+          {
+            "name": "ChecklistObject",
+            "type": "object",
+            "value": {}
+          }
+        ]
+      },
+      "runAfter": {
+        "Initialize_BucketMap": ["Succeeded"]
+      }
+    },
+    "Get_Excel_Template_from_SharePoint": {
+      "type": "ApiConnection",
+      "inputs": {
+        "host": {
+          "connection": {
+            "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+          }
+        },
+        "method": "get",
+        "path": "/datasets/@{encodeURIComponent(encodeURIComponent(parameters('SharePointSiteUrl')))}/tables/@{encodeURIComponent(encodeURIComponent('tbTasksTemplate'))}/items",
+        "queries": {
+          "$filter": "TemplateType eq '@{variables('TemplateType')}'"
+        }
+      },
+      "runAfter": {
+        "Initialize_ChecklistObject": ["Succeeded"]
+      }
+    },
+    "Get_Buckets_from_Excel": {
+      "type": "ApiConnection",
+      "inputs": {
+        "host": {
+          "connection": {
+            "name": "@parameters('$connections')['sharepointonline']['connectionId']"
+          }
+        },
+        "method": "get",
+        "path": "/datasets/@{encodeURIComponent(encodeURIComponent(parameters('SharePointSiteUrl')))}/tables/@{encodeURIComponent(encodeURIComponent('tbBuckets'))}/items"
+      },
+      "runAfter": {
+        "Get_Excel_Template_from_SharePoint": ["Succeeded"]
+      }
+    },
+    "Create_Planner_Plan": {
+      "type": "ApiConnection",
+      "inputs": {
+        "host": {
+          "connection": {
+            "name": "@parameters('$connections')['planner']['connectionId']"
+          }
+        },
+        "method": "post",
+        "path": "/plans",
+        "body": {
+          "owner": "@variables('GroupId')",
+          "title": "@variables('ConcertName')"
+        }
+      },
+      "runAfter": {
+        "Get_Buckets_from_Excel": ["Succeeded"]
+      }
+    },
+    "Set_PlanId": {
+      "type": "SetVariable",
+      "inputs": {
+        "name": "PlanId",
+        "value": "@body('Create_Planner_Plan')?['id']"
+      },
+      "runAfter": {
+        "Create_Planner_Plan": ["Succeeded"]
+      }
+    },
+    "Create_Buckets": {
+      "type": "Foreach",
+      "foreach": "@body('Get_Buckets_from_Excel')?['value']",
+      "actions": {
+        "Create_Bucket": {
+          "type": "ApiConnection",
+          "inputs": {
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['planner']['connectionId']"
+              }
+            },
+            "method": "post",
+            "path": "/buckets",
+            "body": {
+              "planId": "@variables('PlanId')",
+              "name": "@items('Create_Buckets')?['BucketName']",
+              "orderHint": " !"
+            }
+          }
+        },
+        "Add_Bucket_to_Map": {
+          "type": "SetVariable",
+          "inputs": {
+            "name": "BucketMap",
+            "value": "@union(variables('BucketMap'), createObject(items('Create_Buckets')?['BucketName'], body('Create_Bucket')?['id']))"
+          },
+          "runAfter": {
+            "Create_Bucket": ["Succeeded"]
+          }
+        }
+      },
+      "runAfter": {
+        "Set_PlanId": ["Succeeded"]
+      }
+    },
+    "Create_Tasks": {
+      "type": "Foreach",
+      "foreach": "@body('Get_Excel_Template_from_SharePoint')?['value']",
+      "actions": {
+        "Calculate_DueDate": {
+          "type": "Compose",
+          "inputs": "@formatDateTime(addDays(variables('ConcertDate'), int(items('Create_Tasks')?['DaysFromEvent'])), 'yyyy-MM-ddTHH:mm:ssZ')"
+        },
+        "Reset_ChecklistObject": {
+          "type": "SetVariable",
+          "inputs": {
+            "name": "ChecklistObject",
+            "value": "@json('{}')"
+          },
+          "runAfter": {
+            "Calculate_DueDate": ["Succeeded"]
+          }
+        },
+        "Build_Checklist_Items": {
+          "type": "Foreach",
+          "foreach": "@split(items('Create_Tasks')?['CheckListItems'], ';')",
+          "actions": {
+            "Append_Checklist_Item": {
+              "type": "SetVariable",
+              "inputs": {
+                "name": "ChecklistObject",
+                "value": "@setProperty(variables('ChecklistObject'), guid(), createObject('isChecked', false, 'title', trim(items('Build_Checklist_Items'))))"
+              }
+            }
+          },
+          "runAfter": {
+            "Reset_ChecklistObject": ["Succeeded"]
+          }
+        },
+        "Create_Task": {
+          "type": "ApiConnection",
+          "inputs": {
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['planner']['connectionId']"
+              }
+            },
+            "method": "post",
+            "path": "/tasks",
+            "body": {
+              "planId": "@variables('PlanId')",
+              "bucketId": "@variables('BucketMap')?[items('Create_Tasks')?['Bucket']]",
+              "title": "@items('Create_Tasks')?['TaskName']",
+              "dueDateTime": "@outputs('Calculate_DueDate')",
+              "priority": "@if(equals(items('Create_Tasks')?['Priority'], 'Urgent'), 1, if(equals(items('Create_Tasks')?['Priority'], 'Important'), 3, if(equals(items('Create_Tasks')?['Priority'], 'Medium'), 5, 9)))"
+            }
+          },
+          "runAfter": {
+            "Build_Checklist_Items": ["Succeeded"]
+          }
+        },
+        "Update_Task_Details": {
+          "type": "ApiConnection",
+          "inputs": {
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['planner']['connectionId']"
+              }
+            },
+            "method": "patch",
+            "path": "/tasks/@{body('Create_Task')?['id']}/details",
+            "headers": {
+              "If-Match": "@body('Create_Task')?['@odata.etag']"
+            },
+            "body": {
+              "description": "@items('Create_Tasks')?['Description']",
+              "checklist": "@if(empty(items('Create_Tasks')?['CheckListItems']), json('{}'), variables('ChecklistObject'))"
+            }
+          },
+          "runAfter": {
+            "Create_Task": ["Succeeded"]
+          }
+        }
+      },
+      "runAfter": {
+        "Create_Buckets": ["Succeeded"]
+      }
+    },
+    "Respond_Success": {
+      "type": "Response",
+      "inputs": {
+        "statusCode": 200,
+        "body": {
+          "planId": "@variables('PlanId')",
+          "planTitle": "@variables('ConcertName')",
+          "message": "Planner plan and tasks created successfully."
+        }
+      },
+      "runAfter": {
+        "Create_Tasks": ["Succeeded"]
+      }
+    }
+  },
+  "parameters": {
+    "$connections": {
+      "type": "Object",
+      "defaultValue": {}
+    },
+    "SharePointSiteUrl": {
+      "type": "String",
+      "defaultValue": "https://yourorg.sharepoint.com/sites/Campanula",
+      "metadata": {
+        "description": "URL of the SharePoint site where PlannerTasksTemplate.xlsx is stored."
+      }
+    }
+  },
+  "outputs": {}
+}

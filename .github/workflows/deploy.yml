@@ -1,0 +1,56 @@
+name: Deploy Power Platform Solution
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Pack & Import Solution
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Power Platform CLI
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - name: Authenticate with Power Platform
+        run: |
+          pac auth create \
+            --environment   "${{ secrets.PP_ENVIRONMENT_URL }}" \
+            --applicationId "${{ secrets.PP_APP_ID }}" \
+            --clientSecret  "${{ secrets.PP_CLIENT_SECRET }}" \
+            --tenant        "${{ secrets.PP_TENANT_ID }}"
+
+      - name: Pack solution
+        run: |
+          mkdir -p out
+          pac solution pack \
+            --zipfile     out/CampanulaTasksFlow.zip \
+            --folder      src/CampanulaTasksFlow \
+            --packagetype Unmanaged
+
+      - name: Upload packed solution as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CampanulaTasksFlow
+          path: out/CampanulaTasksFlow.zip
+          retention-days: 30
+
+      - name: Import solution to Power Platform
+        uses: microsoft/powerplatform-actions/import-solution@v1
+        with:
+          environment-url:  ${{ secrets.PP_ENVIRONMENT_URL }}
+          app-id:           ${{ secrets.PP_APP_ID }}
+          client-secret:    ${{ secrets.PP_CLIENT_SECRET }}
+          tenant-id:        ${{ secrets.PP_TENANT_ID }}
+          solution-file:    out/CampanulaTasksFlow.zip
+          force-overwrite:  true
+          publish-changes:  true
