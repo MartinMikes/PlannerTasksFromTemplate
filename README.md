@@ -23,7 +23,7 @@ The solution is based on a single Excel workbook named `PlannerTasksTemplate.xls
 
 ### Main sheet
 
-The main worksheet is `TasksTemplate`, containing the Excel table currently named `tbTasksTemplate` with these columns:
+The main worksheet is `TasksTemplate`, containing the Excel table `tbTasksTemplate` with these columns:
 
 - `TemplateType`
 - `TaskId`
