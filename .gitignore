@@ -55,3 +55,21 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Environment / secrets
+.env
+
+# Power Platform CLI
+out/
+downloads/
+pac-profile.json
+.pac/
+
+# Power Platform solution zip packages (generated artifacts)
+*.zip
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
