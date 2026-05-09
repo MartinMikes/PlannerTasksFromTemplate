@@ -1,0 +1,38 @@
+{
+  "skill_name": "martix-markdown",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I ran `npx --yes markdownlint-cli2 \"skills/martix-markdown/**/*.md\"` after editing `src\\skills\\martix-markdown\\README.md`, and the remaining findings are a mix of MD013 around long install commands, MD031 around fenced PowerShell examples, and pressure to suppress the warnings globally. Walk me through whether each issue belongs in the Markdown content, `src\\skills\\martix-markdown\\.markdownlint.json`, or a narrow exception, then show the smallest safe fix path.",
+      "expected_output": "Routes through the foundation and validation guidance, triages content versus config instead of flattening everything into blanket suppression, preserves command examples when they should stay intact, and points to the package-local files that should change.",
+      "files": [
+        "README.md",
+        ".markdownlint.json",
+        "rules\\foundation-configuration.md",
+        "references\\config-and-validation-map.md"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "A contributor wants to treat our repo-local documentation rules as if they were built-in markdownlint defaults. Compare upstream markdownlint behavior with `.github\\instructions\\markdown.instructions.md` and `.github\\instructions\\markdown-accessibility.instructions.md`, then tell me what belongs in content edits, config, or bridge guidance for `src\\skills\\martix-markdown\\references\\instruction-bridge.md`. Call out front matter fields, plain-language advice, emoji guidance, and accessibility checks that markdownlint does not enforce directly.",
+      "expected_output": "Separates upstream markdownlint rules from repo-local overlays, identifies which requirements are human-review or bridge-only concerns, and references the bridge or map files that should absorb comparison guidance instead of mislabeling repo policy as a markdownlint default.",
+      "files": [
+        "..\\..\\..\\.github\\instructions\\markdown.instructions.md",
+        "..\\..\\..\\.github\\instructions\\markdown-accessibility.instructions.md",
+        "references\\instruction-bridge.md",
+        "references\\doc-source-index.md"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "The markdownlint pass is already clean for `src\\skills\\martix-markdown\\README.md`, but I still need an accessibility-aware documentation review before release. Use the package guidance to check what markdownlint already covers versus what still needs human review for descriptive links, image alt text, heading hierarchy, tables, and plain-language cleanup, and give me a prioritized review route.",
+      "expected_output": "Explains that a clean markdownlint run is not the end of review, distinguishes MD045 and MD059 style checks from broader accessibility guidance, and routes the user to the links/images rule plus the accessibility review map with a prioritized checklist.",
+      "files": [
+        "README.md",
+        "rules\\links-images-accessibility.md",
+        "references\\accessibility-review-map.md",
+        "..\\..\\..\\.github\\instructions\\markdown-accessibility.instructions.md"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "conventional-commit": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/conventional-commit/SKILL.md",
+      "computedHash": "f29c9486cede6c7b2df0cfb0a2e4aa67446552b991bcf17d1b309e903171f03d"
+    },
+    "flowstudio-power-automate-build": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/flowstudio-power-automate-build/SKILL.md",
+      "computedHash": "0c9a0df94b57d8a5507dde59495852ca1ec4e6599df542243221714e5e46ba27"
+    },
+    "flowstudio-power-automate-debug": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/flowstudio-power-automate-debug/SKILL.md",
+      "computedHash": "b7aa7c40581cb7bd108dcd3c42895623f97ee0f265450ae6f3f39dd0c01f73da"
+    },
+    "flowstudio-power-automate-mcp": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/flowstudio-power-automate-mcp/SKILL.md",
+      "computedHash": "c6dd3a763fa524c28b94db7ea33b3998330a6ce9a2afe6d43d2d7509ad9c4f70"
+    },
+    "martix-markdown": {
+      "source": "MartiXDev/skills",
+      "sourceType": "github",
+      "skillPath": "skills/martix-markdown/SKILL.md",
+      "computedHash": "deeb5807bd98f94a1ce051f00293fb0994806aabc7b18abcf25ced24b525f344"
+    }
+  }
+}
