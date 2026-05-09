@@ -1,0 +1,19 @@
+{
+  "name": "martix-markdown",
+  "description": "Standalone Markdown skill package for markdownlint authoring, lint repair, config-versus-content decisions, grouped rule routing, custom rules, Prettier coexistence, and accessibility-aware review.",
+  "version": "0.1.0-preview.1",
+  "author": {
+    "name": "MartiXDev"
+  },
+  "license": "MIT",
+  "keywords": [
+    "martix",
+    "markdown",
+    "markdownlint",
+    "markdownlint-cli2",
+    "accessibility",
+    "documentation"
+  ],
+  "repository": "https://github.com/MartiXDev/skills",
+  "skills": "skills/"
+}
