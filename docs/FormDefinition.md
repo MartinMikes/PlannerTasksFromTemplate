@@ -4,6 +4,12 @@
 
 Tento formulář slouží jako vstupní bod pro vytvoření sady nových úkolů pro organizaci koncertu.
 
+Formulář je funkční specifikací pro
+`CampanulaCreateConcertPlanFromTemplate`. Složka
+`src\CampanulaCreateConcertPlanFromTemplateSolution` slouží jako reference
+struktury rozbaleného Power Platform solution balíčku; produkční zdroj pro CI/CD
+je `src\CampanulaCreateConcertPlanFromTemplate`.
+
 Zde jsou ukázkové či doporučené vstupní hodnoty:
 
 - Název koncertu: Postní (Jarní/Podzimní/Vánoční) koncert 2026
@@ -31,6 +37,12 @@ Každá šablona obsahuje větší či menší množství úkolů, Velký je vho
 Výběr jedné z hodnot: Ignác, Jakub, Kříž, Gotika, Jinde
 
 Volbou konkrétního místa vyfiltrujeme v šabloně konkrétní úkoly vztahující se k danému místu. Navíc se Místo v závorkách použije i pro název plánu v Planneru.
+
+Ve Flow se tato hodnota používá jako druhá filtrovací hodnota pro stejný
+sloupec `tbTasksTemplate[TemplateType]` jako `Typ šablony`. Výsledný Planner plán
+tedy obsahuje řádky, kde `TemplateType` odpovídá zvolenému typu koncertu
+(`Velký` nebo `Malý`), a zároveň řádky, kde `TemplateType` odpovídá zvolenému
+místu (`Ignác`, `Jakub`, `Kříž`, `Gotika` nebo `Jinde`).
 
 ### Datum koncertu
 

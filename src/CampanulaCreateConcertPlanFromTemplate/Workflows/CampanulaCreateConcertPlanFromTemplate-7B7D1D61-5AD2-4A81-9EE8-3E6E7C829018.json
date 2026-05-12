@@ -1,0 +1,514 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_microsoftforms": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "camp_sharedmicrosoftforms_createconcertplan"
+        },
+        "api": {
+          "name": "shared_microsoftforms"
+        }
+      },
+      "shared_excelonlinebusiness": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "camp_sharedexcelonlinebusiness_createconcertplan"
+        },
+        "api": {
+          "name": "shared_excelonlinebusiness"
+        }
+      },
+      "shared_planner": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "camp_sharedplanner_createconcertplan"
+        },
+        "api": {
+          "name": "shared_planner"
+        }
+      },
+      "shared_sendmail": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "camp_sharedsendmail_createconcertplan"
+        },
+        "api": {
+          "name": "shared_sendmail"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "formId": {
+          "type": "String",
+          "defaultValue": "REPLACE_WITH_MICROSOFT_FORM_ID"
+        },
+        "questionConcertName": {
+          "type": "String",
+          "defaultValue": "REPLACE_WITH_QUESTION_ID_NAZEV_KONCERTU"
+        },
+        "questionTemplateType": {
+          "type": "String",
+          "defaultValue": "REPLACE_WITH_QUESTION_ID_TYP_SABLONY"
+        },
+        "questionLocation": {
+          "type": "String",
+          "defaultValue": "REPLACE_WITH_QUESTION_ID_MISTO_KONANI"
+        },
+        "questionConcertDate": {
+          "type": "String",
+          "defaultValue": "REPLACE_WITH_QUESTION_ID_DATUM_KONCERTU"
+        },
+        "plannerGroupId": {
+          "type": "String",
+          "defaultValue": "REPLACE_WITH_MICROSOFT_365_GROUP_ID"
+        },
+        "excelSource": {
+          "type": "String",
+          "defaultValue": "sites"
+        },
+        "excelDrive": {
+          "type": "String",
+          "defaultValue": "REPLACE_WITH_SHAREPOINT_DOCUMENT_LIBRARY_OR_DRIVE_ID"
+        },
+        "excelFile": {
+          "type": "String",
+          "defaultValue": "REPLACE_WITH_PLANNERTASKSTEMPLATE_XLSX_FILE_ID"
+        },
+        "tasksTable": {
+          "type": "String",
+          "defaultValue": "tbTasksTemplate"
+        },
+        "bucketsTable": {
+          "type": "String",
+          "defaultValue": "tbBuckets"
+        },
+        "notificationTo": {
+          "type": "String",
+          "defaultValue": "REPLACE_WITH_NOTIFICATION_RECIPIENT"
+        }
+      },
+      "triggers": {
+        "When_a_new_response_is_submitted": {
+          "splitOn": "@triggerOutputs()?['body/value']",
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "parameters": {
+              "form_id": "@parameters('formId')"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftforms",
+              "connectionName": "shared_microsoftforms",
+              "operationId": "CreateFormWebhook"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "Get_response_details": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "form_id": "@parameters('formId')",
+              "response_id": "@triggerOutputs()?['body/resourceData/responseId']"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftforms",
+              "connectionName": "shared_microsoftforms",
+              "operationId": "GetFormResponseById"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Compose_ConcertName": {
+          "runAfter": {
+            "Get_response_details": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@trim(string(body('Get_response_details')?[parameters('questionConcertName')]))"
+        },
+        "Compose_TemplateType": {
+          "runAfter": {
+            "Compose_ConcertName": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@trim(string(body('Get_response_details')?[parameters('questionTemplateType')]))"
+        },
+        "Compose_Location": {
+          "runAfter": {
+            "Compose_TemplateType": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@trim(string(body('Get_response_details')?[parameters('questionLocation')]))"
+        },
+        "Compose_ConcertDate": {
+          "runAfter": {
+            "Compose_Location": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@body('Get_response_details')?[parameters('questionConcertDate')]"
+        },
+        "Compose_PlannerPlanName": {
+          "runAfter": {
+            "Compose_ConcertDate": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@concat(outputs('Compose_ConcertName'), ' (', outputs('Compose_Location'), ')')"
+        },
+        "Initialize_TemplateTypeFilters": {
+          "runAfter": {
+            "Compose_PlannerPlanName": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "templateTypeFilters",
+                "type": "Array",
+                "value": "@createArray(outputs('Compose_TemplateType'), outputs('Compose_Location'))"
+              }
+            ]
+          }
+        },
+        "Initialize_BucketMap": {
+          "runAfter": {
+            "Initialize_TemplateTypeFilters": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "bucketMap",
+                "type": "Object",
+                "value": {}
+              }
+            ]
+          }
+        },
+        "Initialize_CreatedTaskCount": {
+          "runAfter": {
+            "Initialize_BucketMap": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "createdTaskCount",
+                "type": "Integer",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "Create_Planner_Plan": {
+          "runAfter": {
+            "Initialize_CreatedTaskCount": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "body/owner": "@parameters('plannerGroupId')",
+              "body/title": "@outputs('Compose_PlannerPlanName')"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
+              "connectionName": "shared_planner",
+              "operationId": "CreatePlan"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "List_rows_present_in_a_table_-_Buckets": {
+          "runAfter": {
+            "Create_Planner_Plan": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "source": "@parameters('excelSource')",
+              "drive": "@parameters('excelDrive')",
+              "file": "@parameters('excelFile')",
+              "table": "@parameters('bucketsTable')"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness",
+              "connectionName": "shared_excelonlinebusiness",
+              "operationId": "GetItems"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runtimeConfiguration": {
+            "paginationPolicy": {
+              "minimumItemCount": 5000
+            }
+          }
+        },
+        "Apply_to_each_bucket": {
+          "runAfter": {
+            "List_rows_present_in_a_table_-_Buckets": [
+              "Succeeded"
+            ]
+          },
+          "type": "Foreach",
+          "foreach": "@outputs('List_rows_present_in_a_table_-_Buckets')?['body/value']",
+          "operationOptions": "Sequential",
+          "actions": {
+            "Create_Planner_Bucket": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "body/name": "@item()?['Bucket']",
+                  "body/planId": "@body('Create_Planner_Plan')?['id']",
+                  "body/orderHint": " !"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
+                  "connectionName": "shared_planner",
+                  "operationId": "CreateBucket"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Set_BucketMap": {
+              "runAfter": {
+                "Create_Planner_Bucket": [
+                  "Succeeded"
+                ]
+              },
+              "type": "SetVariable",
+              "inputs": {
+                "name": "bucketMap",
+                "value": "@setProperty(variables('bucketMap'), item()?['Bucket'], body('Create_Planner_Bucket')?['id'])"
+              }
+            }
+          }
+        },
+        "List_rows_present_in_a_table_-_TasksTemplate": {
+          "runAfter": {
+            "Apply_to_each_bucket": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "source": "@parameters('excelSource')",
+              "drive": "@parameters('excelDrive')",
+              "file": "@parameters('excelFile')",
+              "table": "@parameters('tasksTable')"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness",
+              "connectionName": "shared_excelonlinebusiness",
+              "operationId": "GetItems"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runtimeConfiguration": {
+            "paginationPolicy": {
+              "minimumItemCount": 5000
+            }
+          }
+        },
+        "Filter_rows_by_TemplateType": {
+          "runAfter": {
+            "List_rows_present_in_a_table_-_TasksTemplate": [
+              "Succeeded"
+            ]
+          },
+          "type": "Query",
+          "inputs": {
+            "from": "@outputs('List_rows_present_in_a_table_-_TasksTemplate')?['body/value']",
+            "where": "@and(contains(variables('templateTypeFilters'), item()?['TemplateType']), greater(length(trim(coalesce(string(item()?['TaskName']), ''))), 0))"
+          }
+        },
+        "Apply_to_each_template_task": {
+          "runAfter": {
+            "Filter_rows_by_TemplateType": [
+              "Succeeded"
+            ]
+          },
+          "type": "Foreach",
+          "foreach": "@body('Filter_rows_by_TemplateType')",
+          "operationOptions": "Sequential",
+          "actions": {
+            "Compose_TaskDueDate": {
+              "runAfter": {},
+              "type": "Compose",
+              "inputs": "@addDays(outputs('Compose_ConcertDate'), int(coalesce(item()?['DaysFromEvent'], 0)))"
+            },
+            "Compose_PlannerPriority": {
+              "runAfter": {
+                "Compose_TaskDueDate": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Compose",
+              "inputs": "@if(equals(item()?['Priority'], 'Urgent'), 1, if(equals(item()?['Priority'], 'Important'), 3, if(equals(item()?['Priority'], 'Low'), 9, 5)))"
+            },
+            "Create_Planner_Task": {
+              "runAfter": {
+                "Compose_PlannerPriority": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "body/planId": "@body('Create_Planner_Plan')?['id']",
+                  "body/bucketId": "@variables('bucketMap')?[item()?['Bucket']]",
+                  "body/title": "@item()?['TaskName']",
+                  "body/dueDateTime": "@outputs('Compose_TaskDueDate')",
+                  "body/priority": "@outputs('Compose_PlannerPriority')"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
+                  "connectionName": "shared_planner",
+                  "operationId": "CreateTask_V2"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Update_Planner_Task_Details": {
+              "runAfter": {
+                "Create_Planner_Task": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "id": "@body('Create_Planner_Task')?['id']",
+                  "body/description": "@coalesce(item()?['Description'], '')"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
+                  "connectionName": "shared_planner",
+                  "operationId": "UpdateTaskDetails_V2"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Apply_to_each_checklist_item": {
+              "runAfter": {
+                "Update_Planner_Task_Details": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Foreach",
+              "foreach": "@split(coalesce(item()?['CheckListItems'], ''), ';')",
+              "operationOptions": "Sequential",
+              "actions": {
+                "Add_Checklist_Item": {
+                  "runAfter": {},
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "greater": [
+                          "@length(trim(item()))",
+                          0
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Append_Checklist_Item_To_Task": {
+                      "runAfter": {},
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "id": "@body('Create_Planner_Task')?['id']",
+                          "body/title": "@trim(item())"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
+                          "connectionName": "shared_planner",
+                          "operationId": "CreateChecklistItem"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  }
+                }
+              }
+            },
+            "Increment_CreatedTaskCount": {
+              "runAfter": {
+                "Apply_to_each_checklist_item": [
+                  "Succeeded"
+                ]
+              },
+              "type": "IncrementVariable",
+              "inputs": {
+                "name": "createdTaskCount",
+                "value": 1
+              }
+            }
+          }
+        },
+        "Send_summary_notification": {
+          "runAfter": {
+            "Apply_to_each_template_task": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "request/to": "@parameters('notificationTo')",
+              "request/subject": "@concat('Planner plan created: ', outputs('Compose_PlannerPlanName'))",
+              "request/text": "@concat('<p>Planner plan <strong>', outputs('Compose_PlannerPlanName'), '</strong> was created.</p><p>Created tasks: ', string(variables('createdTaskCount')), '</p>')"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sendmail",
+              "connectionName": "shared_sendmail",
+              "operationId": "SendEmailV3"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": "CampanulaCreateConcertPlanFromTemplate"
+  },
+  "schemaVersion": "1.0.0.0"
+}

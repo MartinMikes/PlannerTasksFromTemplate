@@ -9,6 +9,11 @@ on:
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
+env:
+  SOLUTION_NAME: CampanulaCreateConcertPlanFromTemplate
+  SOLUTION_FOLDER: src/CampanulaCreateConcertPlanFromTemplate
+  SOLUTION_ZIP: out/CampanulaCreateConcertPlanFromTemplate.zip
+
 jobs:
   build-and-deploy:
     name: Pack & Import Solution
@@ -29,19 +34,19 @@ jobs:
             --clientSecret  "${{ secrets.PP_CLIENT_SECRET }}" \
             --tenant        "${{ secrets.PP_TENANT_ID }}"
 
-      - name: Pack solution
+      - name: Create solution zip
         run: |
           mkdir -p out
-          pac solution pack \
-            --zipfile     out/CampanulaTasksFlow.zip \
-            --folder      src/CampanulaTasksFlow \
-            --packagetype Unmanaged
+          (
+            cd "${{ env.SOLUTION_FOLDER }}"
+            zip -r "../../${{ env.SOLUTION_ZIP }}" .
+          )
 
       - name: Upload packed solution as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CampanulaTasksFlow
-          path: out/CampanulaTasksFlow.zip
+          name: ${{ env.SOLUTION_NAME }}
+          path: ${{ env.SOLUTION_ZIP }}
           retention-days: 30
 
       - name: Import solution to Power Platform
@@ -51,6 +56,6 @@ jobs:
           app-id:           ${{ secrets.PP_APP_ID }}
           client-secret:    ${{ secrets.PP_CLIENT_SECRET }}
           tenant-id:        ${{ secrets.PP_TENANT_ID }}
-          solution-file:    out/CampanulaTasksFlow.zip
+          solution-file:    ${{ env.SOLUTION_ZIP }}
           force-overwrite:  true
           publish-changes:  true

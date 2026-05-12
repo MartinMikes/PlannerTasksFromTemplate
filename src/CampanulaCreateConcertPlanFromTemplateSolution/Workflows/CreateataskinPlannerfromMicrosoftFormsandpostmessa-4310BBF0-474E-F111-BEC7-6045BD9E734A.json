@@ -1,0 +1,138 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_microsoftforms": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "martix_sharedmicrosoftforms_14cd8"
+        },
+        "api": {
+          "name": "shared_microsoftforms"
+        }
+      },
+      "shared_planner": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "martix_sharedplanner_09991"
+        },
+        "api": {
+          "name": "shared_planner"
+        }
+      },
+      "shared_sendmail-1": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "martix_sharedsendmail_1ca02"
+        },
+        "api": {
+          "name": "shared_sendmail"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "When_a_new_response_is_submitted": {
+          "splitOn": "@triggerOutputs()?['body/value']",
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "parameters": {
+              "form_id": "QnA1U4ewHkaFGbEXpOOnuo_rYRjTnhRFgqo6fAHG9wpUMTg3Nko5R1VaUVdXMEdGRzk5QTc3R0FXVy4u"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftforms",
+              "connectionName": "shared_microsoftforms",
+              "operationId": "CreateFormWebhook"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "Get_response_details": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "form_id": "QnA1U4ewHkaFGbEXpOOnuo_rYRjTnhRFgqo6fAHG9wpUMTg3Nko5R1VaUVdXMEdGRzk5QTc3R0FXVy4u",
+              "response_id": "@{triggerOutputs()?['body/resourceData/responseId']}"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftforms",
+              "connectionName": "shared_microsoftforms",
+              "operationId": "GetFormResponseById"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Create_a_task": {
+          "runAfter": {
+            "Get_response_details": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "body/planId": "6lLwTReQUEyuOt1hgp0cEJgAGXjx",
+              "body/title": "New Plan Title",
+              "body/assignments": ""
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
+              "connectionName": "shared_planner",
+              "operationId": "CreateTask_V2"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Terminate": {
+          "runAfter": {
+            "Create_a_task": [
+              "Failed"
+            ]
+          },
+          "type": "Terminate",
+          "inputs": {
+            "runStatus": "Failed"
+          }
+        },
+        "Send_an_email_notification_(V3)": {
+          "runAfter": {
+            "Create_a_task": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "request/to": "martin.mikes@campanulajihlava.cz",
+              "request/subject": "Plán s úkoly vytvořen",
+              "request/text": "<p class=\"editor-paragraph\">Test...</p>"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sendmail",
+              "connectionName": "shared_sendmail-1",
+              "operationId": "SendEmailV3"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": "f06e6f8fbd3e49d5984858b3b54709b2"
+  },
+  "schemaVersion": "1.0.0.0"
+}
