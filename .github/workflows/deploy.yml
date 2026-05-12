@@ -28,7 +28,8 @@ jobs:
 
       - name: Authenticate with Power Platform
         run: |
-          pac auth create \
+          "$POWERPLATFORMTOOLS_PACPATH" --version
+          "$POWERPLATFORMTOOLS_PACPATH" auth create \
             --environment   "${{ secrets.PP_ENVIRONMENT_URL }}" \
             --applicationId "${{ secrets.PP_APP_ID }}" \
             --clientSecret  "${{ secrets.PP_CLIENT_SECRET }}" \
