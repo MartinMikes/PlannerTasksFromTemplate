@@ -141,11 +141,11 @@ After changing `templates/PlannerTasksTemplate.xlsx`:
 
 ## Microsoft Form Update
 
-`docs\FormDefinition.md` is the source of truth for the Czech Microsoft Form used by colleagues. When changing form questions or choices:
+`docs/FormDefinition.md` is the source of truth for the Czech Microsoft Form used by colleagues. When changing form questions or choices:
 
 1. Keep Czech user-facing labels understandable for form users.
 2. Keep English Flow and Excel identifiers unchanged where automation references them, for example `concertName`, `templateType`, `concertDate`, `TemplateType`, and `DaysFromEvent`.
-3. Keep `Typ šablony` choices aligned with `TasksTemplate[TemplateType]` values.
+3. Keep `Typ šablony` choices aligned with `tbTasksTemplate[TemplateType]` values.
 4. Keep `Místo konání` choices aligned with the Flow/template location-filtering logic.
 5. Export and unpack the updated Flow if the form schema or mappings changed in Power Automate.
 
