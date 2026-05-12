@@ -30,6 +30,12 @@
       "sourceType": "github",
       "skillPath": "skills/martix-markdown/SKILL.md",
       "computedHash": "deeb5807bd98f94a1ce051f00293fb0994806aabc7b18abcf25ced24b525f344"
+    },
+    "xlsx": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/xlsx/SKILL.md",
+      "computedHash": "44c304933fd3393e6db12ee591d75a11670bab4616b7b9f34d4ce1a17f632bc8"
     }
   }
 }
