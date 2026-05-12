@@ -193,7 +193,7 @@ Excel Table: **`tbLabels`**
 | `Label8` | `Provoz` | `Lime` | |
 | `Label9` | `IT` | `Aqua` | |
 
-Use values from the `Name` column in `TasksTemplate[Labels]`. Separate multiple labels with semicolons, for example `Finance;Administrativa`.
+Use values from the `Name` column in `tbTasksTemplate[Labels]`. Separate multiple labels with semicolons, for example `Finance;Administrativa`.
 
 The table also reserves additional Planner colors without assigned label names. Add a `Label` and `Name` before using those colors in task rows.
 
