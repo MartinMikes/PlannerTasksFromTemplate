@@ -102,7 +102,7 @@ Excel Table: **`tbGroups`**
 
 | Column | Description |
 | --- | --- |
-| `GroupName` | Group name used from `TasksTemplate[GroupName]`. |
+| `GroupName` | Group name used from `tbTasksTemplate[GroupName]`. |
 | `AssignedToEmails` | Semicolon-separated Microsoft 365 e-mail addresses for the group. |
 
 Current groups:
