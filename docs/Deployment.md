@@ -12,7 +12,7 @@ This repository uses two complementary deployment mechanisms:
 ## Prerequisites
 
 | Tool | Version | Install |
-|---|---|---|
+| --- | --- | --- |
 | Power Platform CLI | ≥ 1.30 | `winget install Microsoft.PowerPlatformCLI` or [download](https://aka.ms/PowerPlatformCLI) |
 | Git | any | [git-scm.com](https://git-scm.com) |
 
@@ -87,7 +87,7 @@ The workflow file `.github/workflows/deploy.yml` automates packing and importing
 Go to **Settings → Secrets and variables → Actions** in this repository and add:
 
 | Secret | Description |
-|---|---|
+| --- | --- |
 | `PP_ENVIRONMENT_URL` | Power Platform environment URL, e.g. `https://org.crm4.dynamics.com/` |
 | `PP_APP_ID` | Azure AD Application (client) ID of the service principal |
 | `PP_CLIENT_SECRET` | Client secret of the service principal |
@@ -102,7 +102,7 @@ Go to **Settings → Secrets and variables → Actions** in this repository and 
 ### Trigger
 
 | Event | Action |
-|---|---|
+| --- | --- |
 | Push to `main` | Automatic deploy to the configured Power Platform environment |
 | `workflow_dispatch` | Manual trigger from the GitHub Actions UI |
 
@@ -110,7 +110,7 @@ Go to **Settings → Secrets and variables → Actions** in this repository and 
 
 ## Solution Folder Structure
 
-```
+```text
 src/CampanulaTasksFlow/
 ├── solution.xml            # Solution manifest (publisher, version)
 ├── [Content_Types].xml     # Package content types
@@ -119,6 +119,7 @@ src/CampanulaTasksFlow/
 ```
 
 When editing a Flow in the Power Platform maker portal:
+
 1. Export the solution as **Unmanaged**.
 2. Unpack with `pac solution unpack` (see step 3 above).
 3. Commit the updated files to a feature branch and open a pull request.
@@ -135,6 +136,18 @@ After changing `templates/PlannerTasksTemplate.xlsx`:
 
 > The Flow reads the **SharePoint copy** at runtime, not the file in this repository.  
 > Keeping both in sync is the responsibility of the maintainer.
+
+---
+
+## Microsoft Form Update
+
+`docs\FormDefinition.md` is the source of truth for the Czech Microsoft Form used by colleagues. When changing form questions or choices:
+
+1. Keep Czech user-facing labels understandable for form users.
+2. Keep English Flow and Excel identifiers unchanged where automation references them, for example `concertName`, `templateType`, `concertDate`, `TemplateType`, and `DaysFromEvent`.
+3. Keep `Typ šablony` choices aligned with `TasksTemplate[TemplateType]` values.
+4. Keep `Místo konání` choices aligned with the Flow/template location-filtering logic.
+5. Export and unpack the updated Flow if the form schema or mappings changed in Power Automate.
 
 ---
 
