@@ -8,6 +8,11 @@
 > The Flow reads from a **copy** of this file uploaded to a SharePoint document library.  
 > Always update the repository version first, then upload the new version to SharePoint.
 
+This workbook is part of the functional specification for
+`CampanulaCreateConcertPlanFromTemplate`. Keep the English sheet, table, and
+column identifiers stable because Power Platform expressions reference them
+directly.
+
 ---
 
 ## Workbook structure
@@ -28,7 +33,8 @@
 
 The `Návod` sheet contains the in-workbook maintenance guide. It explains that maintainers should:
 
-- choose a `TemplateType` for each task template row;
+- choose a `TemplateType` for each task template row, using either a concert type
+  or a location value;
 - fill a short, clear `TaskName`;
 - select `GroupName`, which fills `AssignedToEmails` from `Groups`;
 - set `DaysFromEvent` to the relative due-date offset;
@@ -43,20 +49,23 @@ The `Návod` sheet contains the in-workbook maintenance guide. It explains that 
 
 Excel Table: **`tbTasksTemplate`**
 
-Only populated rows with the selected `TemplateType` are read by the current Flow. Blank reserved rows should remain ignored by automation.
+Only populated rows with matching `TemplateType` values are read by the current
+Flow. For the Microsoft Form workflow, the Flow matches both the selected
+concert type and the selected location against the same `TemplateType` column.
+Blank reserved rows should remain ignored by automation.
 
 The Microsoft Form is Czech for end users, but this sheet keeps English technical column names for Flow compatibility. Use the mapping in [FormDefinition.md](FormDefinition.md) when connecting form answers to workbook filters:
 
 | Czech form label | Workbook / Flow identifier | Notes |
 | --- | --- | --- |
 | `Název koncertu` | `ConcertName` / `concertName` | Used for the Planner plan name, not stored in `tbTasksTemplate`. |
-| `Typ šablony` | `TemplateType` / `templateType` | Form choices are `Velký` and `Malý`; matching task rows should use the same `TemplateType` values. |
-| `Místo konání` | Location/venue filtering | Form choices are `Ignác`, `Jakub`, `Kříž`, `Gotika`, and `Jinde`; use this value only in the intended Flow/template filtering logic, without renaming English workbook columns. |
+| `Typ šablony` | `TemplateType` / `templateType` | Form choices are `Velký` and `Malý`; generic concert-type task rows should use these `TemplateType` values. |
+| `Místo konání` | `TemplateType` / `location` | Form choices are `Ignác`, `Jakub`, `Kříž`, `Gotika`, and `Jinde`; location-specific task rows should use these `TemplateType` values. |
 | `Datum koncertu` | `ConcertDate` / `concertDate` | Used with `DaysFromEvent` to calculate task due dates. |
 
 | Column | Type | Description | Default |
 | --- | --- | --- | --- |
-| `TemplateType` | Text | Template variant used by the Flow filter. For concert planning from the Microsoft Form, use Czech form values such as `Velký` or `Malý` while keeping the column name `TemplateType`. Fill this for every task that should be created for that variant. | _(required)_ |
+| `TemplateType` | Text | Template variant used by the Flow filter. For concert planning from the Microsoft Form, use either concert-type values such as `Velký` or `Malý`, or location values such as `Ignác`, `Jakub`, `Kříž`, `Gotika`, or `Jinde`, while keeping the column name `TemplateType`. Fill this for every task that should be created for that variant. | _(required)_ |
 | `TaskId` | Text | Stable task identifier. Treat as text because current values use hierarchical IDs such as `4.3.1`. | _(optional)_ |
 | `TaskName` | Text | Name of the Planner task. Keep it unique enough to distinguish the task within a plan. | _(required)_ |
 | `GroupName` | Text | Responsible group. Must match a value in `tbGroups[GroupName]`. | _(required)_ |
@@ -77,7 +86,12 @@ The Microsoft Form is Czech for end users, but this sheet keeps English technica
 | `Dramaturgický plán` | `Dramaturgie koncertů v příštím roce` |
 | `Velký v kostele` | `KOBB - Komorní orchestr Bohumila Boudy`, `Zamluvit kostel`, `Smlouva o pronájmu kostela` |
 
-For the Microsoft Form workflow, align task-row `TemplateType` values with the form choices `Velký` and `Malý`. Existing or administrative template types can remain as separate values if they are triggered by a different Flow path.
+For the Microsoft Form workflow, align task-row `TemplateType` values with either
+the `Typ šablony` choices (`Velký`, `Malý`) or the `Místo konání` choices
+(`Ignác`, `Jakub`, `Kříž`, `Gotika`, `Jinde`). The Flow creates tasks from both
+matching sets: rows for the selected concert type and rows for the selected
+location. Existing or administrative template types can remain as separate values
+if they are triggered by a different Flow path.
 
 ### Example row
 
@@ -88,7 +102,7 @@ For the Microsoft Form workflow, align task-row `TemplateType` values with the f
 ### Data quality notes
 
 - Rows intended for Flow creation should have `TemplateType`, `TaskName`, `GroupName`, `DaysFromEvent`, `Bucket`, and `Priority` populated.
-- The current Flow filters with `TemplateType eq '<selected template>'`; rows with blank `TemplateType` are not selected unless the runtime template type is blank.
+- The production Flow filters with `TemplateType` equal to the selected concert type or selected location; rows with blank `TemplateType` are not selected.
 - Keep Czech form choice values and English workbook identifiers distinct: form users see `Typ šablony`, but automation references `TemplateType`.
 - `Datum koncertu` should use the earliest considered concert date when the final date is not known yet; this keeps `DaysFromEvent` deadlines early enough.
 - `TaskId` is useful for maintainers but is not currently used by the Flow when creating Planner tasks.
@@ -204,6 +218,8 @@ The table also reserves additional Planner colors without assigned label names. 
 1. Open `templates\PlannerTasksTemplate.xlsx`.
 2. In the **TasksTemplate** sheet, add a row to the `tbTasksTemplate` table.
 3. Fill `TemplateType`, `TaskId`, `TaskName`, `GroupName`, `DaysFromEvent`, `Bucket`, and `Priority`.
+   Use a concert type for generic tasks (`Velký` or `Malý`) or a location for
+   venue-specific tasks (`Ignác`, `Jakub`, `Kříž`, `Gotika`, or `Jinde`).
 4. Select lookup-backed values from the workbook lists where possible.
 5. Let `AssignedToEmails` fill from the `GroupName` lookup.
 6. Add detailed `Description`, optional `CheckListItems`, and optional `Labels`.
@@ -216,4 +232,4 @@ The table also reserves additional Planner colors without assigned label names. 
 - To add a label, open **Labels**, assign a `Label` slot, and fill `Name` and `Color`.
 - To change allowed progress or priority values, update **Progress** or **Priority** and update the Flow mapping if those values are used by automation.
 
-After changing lookup column names, label mapping, priority mapping, bucket ordering, `TemplateType` values, or location-filtering values, refresh the Flow connector schema and update any expressions that reference those columns or form choices. Do not rename English sheet, table, or column names just because the Microsoft Form labels are Czech.
+After changing lookup column names, label mapping, priority mapping, bucket ordering, or `TemplateType` values, refresh the Flow connector schema and update any expressions that reference those columns or form choices. Do not rename English sheet, table, or column names just because the Microsoft Form labels are Czech.

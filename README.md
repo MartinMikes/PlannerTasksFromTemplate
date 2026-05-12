@@ -1,41 +1,86 @@
 # PlannerTasksFromTemplate
 
-Power Automate Flows to create a new Microsoft Planner Plan with a predefined set of tasks taken from an Excel template.  
-Designed for the mixed choir **Campanula** to generate and assign tasks for every concert.
+Power Automate assets for creating a Microsoft Planner plan with predefined
+concert-organization tasks from an Excel template. The repository is designed
+for the mixed choir **Campanula**.
 
 ## Overview
 
-Each time a new concert is planned, a Power Automate Flow is triggered (e.g. from Microsoft Forms or manually).  
-The flow reads task definitions from `PlannerTasksTemplate.xlsx` stored in a SharePoint document library, creates a new Planner Plan, adds all buckets, tasks, assignments and checklists automatically.
+Colleagues start the process from the Czech Microsoft Form documented in
+[`docs\FormDefinition.md`](docs\FormDefinition.md). The production Flow
+`CampanulaCreateConcertPlanFromTemplate` will map those form answers to stable
+English technical identifiers, read task definitions from
+`PlannerTasksTemplate.xlsx` in SharePoint, then create the Planner plan,
+buckets, tasks, assignments, checklists, and notifications.
 
-## Repository Structure
+## Repository structure
 
-```
+```text
 .
-├── .github/
-│   └── workflows/
-│       └── deploy.yml          # GitHub Actions – CI/CD for Power Platform solution
-├── docs/
-│   ├── Overview.md             # Architecture and flow description
-│   ├── ExcelTemplate.md        # Excel template structure documentation
-│   └── Deployment.md           # Deployment guide (pac CLI + GitHub Actions)
-├── src/
-│   └── CampanulaTasksFlow/     # Power Platform solution (unmanaged, pac-unpacked)
-│       ├── solution.xml
-│       ├── [Content_Types].xml
-│       └── Workflows/          # Flow definitions (JSON)
-├── templates/
-│   └── PlannerTasksTemplate.xlsx  # Excel task template (source of truth)
-├── .env.example                # Environment variables template for pac CLI
+├── .github\
+│   └── workflows\
+│       └── deploy.yml
+├── docs\
+│   ├── Overview.md
+│   ├── FormDefinition.md
+│   ├── ExcelTemplate.md
+│   └── Deployment.md
+├── src\
+│   ├── CampanulaCreateConcertPlanFromTemplate\
+│   │   ├── [Content_Types].xml
+│   │   ├── customizations.xml
+│   │   ├── solution.xml
+│   │   └── Workflows\
+│   ├── CampanulaCreateConcertPlanFromTemplateSolution\
+│   │   ├── customizations.xml
+│   │   ├── solution.xml
+│   │   └── Workflows\
+│   ├── CampanulaCreateConcertPlanFromTemplateDemo\
+│   │   ├── manifest.json
+│   │   └── Microsoft.Flow\
+│   └── CampanulaTasksFlow\
+├── templates\
+│   └── PlannerTasksTemplate.xlsx
+├── .env.example
 └── README.md
 ```
 
-## Quick Start
+## Source folders
+
+| Folder | Role |
+| --- | --- |
+| `src\CampanulaCreateConcertPlanFromTemplate` | Deployable unpacked Power Platform solution source packed by GitHub Actions. This solution can contain multiple flows later; currently it prepares the first Flow. |
+| `src\CampanulaCreateConcertPlanFromTemplateSolution` | Exported and unpacked solution sample; use only as a solution folder/file structure reference. Do not copy or migrate its content into the production folder. |
+| `src\CampanulaCreateConcertPlanFromTemplateDemo` | Older manually downloaded Flow package reference; useful only for package-format comparison, not for solution-based ALM. |
+| `src\CampanulaTasksFlow` | Legacy Copilot-generated prototype from repository initialization; do not use it as an implementation source for the production Flow. |
+
+## Input form
+
+[`docs\FormDefinition.md`](docs\FormDefinition.md) is the source of truth for
+the Czech Microsoft Form. Keep the form labels user-facing, and map them to the
+English technical identifiers used by the Flow and Excel template.
+
+| Czech form label | Technical concept | Purpose |
+| --- | --- | --- |
+| `Název koncertu` | `concertName` / `ConcertName` | Base Planner plan name. |
+| `Typ šablony` | `templateType` / `TemplateType` | Selects generic concert-type task rows. |
+| `Místo konání` | `location` / `TemplateType` | Selects location-specific task rows and plan naming. |
+| `Datum koncertu` | `concertDate` / `ConcertDate` | Anchors `DaysFromEvent` due-date calculations. |
+
+`Typ šablony` and `Místo konání` both filter the same Excel column,
+`tbTasksTemplate[TemplateType]`. The Flow creates tasks from rows where
+`TemplateType` equals the selected concert type (`Velký` or `Malý`) and from rows
+where `TemplateType` equals the selected location (`Ignác`, `Jakub`, `Kříž`,
+`Gotika`, or `Jinde`).
+
+## Quick start
 
 ### Prerequisites
 
 - [Power Platform CLI (`pac`)](https://learn.microsoft.com/power-platform/developer/cli/introduction)
-- Access to a Power Platform environment with Microsoft Planner and SharePoint connectors
+- Power Platform Tools extension for VS Code
+- Access to a Power Platform environment with Microsoft Forms, Excel Online,
+  Planner, SharePoint, and notification connectors
 - Microsoft 365 account with sufficient permissions
 
 ### 1. Configure environment
@@ -55,48 +100,67 @@ pac auth create \
   --tenant "$PP_TENANT_ID"
 ```
 
-### 3. Pack and import the solution
+### 3. Review the Microsoft Form definition
+
+Use [`docs\FormDefinition.md`](docs/FormDefinition.md) as the source of truth
+for the Czech Microsoft Form used by colleagues. Its answers define the input
+data that `CampanulaCreateConcertPlanFromTemplate` maps to the Flow and Excel
+technical identifiers.
+
+### 4. Prepare the production solution source
+
+Build `CampanulaCreateConcertPlanFromTemplate` from
+[`docs\Overview.md`](docs/Overview.md),
+[`docs\FormDefinition.md`](docs/FormDefinition.md), and
+[`docs\ExcelTemplate.md`](docs/ExcelTemplate.md). Keep the deployable unpacked
+solution source in `src\CampanulaCreateConcertPlanFromTemplate`. Use
+`src\CampanulaCreateConcertPlanFromTemplateSolution` only as a reference for the
+unpacked solution folder structure.
+
+Create a solution zip from the production source folder contents and import it:
 
 ```bash
-pac solution pack \
-  --zipfile out/CampanulaTasksFlow.zip \
-  --folder src/CampanulaTasksFlow \
-  --packagetype Unmanaged
+mkdir -p out
+(
+  cd src/CampanulaCreateConcertPlanFromTemplate
+  zip -r ../../out/CampanulaCreateConcertPlanFromTemplate.zip .
+)
 
 pac solution import \
-  --path out/CampanulaTasksFlow.zip \
+  --path out/CampanulaCreateConcertPlanFromTemplate.zip \
   --environment "$PP_ENVIRONMENT_URL"
 ```
 
-### 4. Upload the Excel template to SharePoint
+### 5. Upload the Excel template to SharePoint
 
-Upload `templates/PlannerTasksTemplate.xlsx` to your SharePoint document library.  
-Update the SharePoint site URL and library path in the Flow connection references.
+Upload `templates\PlannerTasksTemplate.xlsx` to the SharePoint document library
+configured in the Flow. The repository workbook is the source of truth; the
+Flow reads the SharePoint copy at runtime.
 
-## Excel Template
+## Excel template
 
-The template `templates/PlannerTasksTemplate.xlsx` contains:
+The template `templates\PlannerTasksTemplate.xlsx` contains:
 
 | Sheet | Table | Purpose |
-|---|---|---|
-| TasksTemplate | tbTasksTemplate | Main task definitions |
-| Buckets | tbBuckets | Bucket names |
-| Progress | tbProgress | Progress values |
-| Priority | tbPriority | Priority values |
-| Labels | tbLabels | Label names |
-| Groups | tbGroups | Group names and member e-mails |
+| --- | --- | --- |
+| `TasksTemplate` | `tbTasksTemplate` | Main task definitions. |
+| `Groups` | `tbGroups` | Group names and assignee e-mail addresses. |
+| `Buckets` | `tbBuckets` | Planner bucket names. |
+| `Progress` | `tbProgress` | Progress values. |
+| `Priority` | `tbPriority` | Priority values. |
+| `Labels` | `tbLabels` | Label names and colors. |
 
-See [docs/ExcelTemplate.md](docs/ExcelTemplate.md) for full column descriptions.
-
-## Deployment
-
-See [docs/Deployment.md](docs/Deployment.md) for the full CI/CD pipeline description using **GitHub Actions** and **Power Platform CLI**.
+See [`docs\ExcelTemplate.md`](docs/ExcelTemplate.md) for full column
+descriptions.
 
 ## Documentation
 
-- [docs/Overview.md](docs/Overview.md) – Architecture overview
-- [docs/ExcelTemplate.md](docs/ExcelTemplate.md) – Excel template reference
-- [docs/Deployment.md](docs/Deployment.md) – Deployment guide
+- [`docs\Overview.md`](docs/Overview.md) – architecture and Flow behavior
+- [`docs\FormDefinition.md`](docs/FormDefinition.md) – Czech Microsoft Form
+  source definition
+- [`docs\ExcelTemplate.md`](docs/ExcelTemplate.md) – Excel template reference
+- [`docs\Deployment.md`](docs/Deployment.md) – package preparation and
+  deployment guide
 
 ## License
 

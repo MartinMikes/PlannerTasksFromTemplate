@@ -15,7 +15,7 @@ Every concert requires a consistent and repeatable set of tasks (preparation, lo
          │
          ▼
 ┌─────────────────────┐
-│  Power Automate     │  CampanulaTasksFlow
+│  Power Automate     │  CampanulaCreateConcertPlanFromTemplate
 │  Flow               │
 └────────┬────────────┘
          │  reads task definitions filtered by input values
@@ -39,21 +39,45 @@ The form is Czech for non-English-speaking colleagues, while the workbook and Fl
 | Czech form label | Technical name / concept | Used for |
 | --- | --- | --- |
 | `Název koncertu` | `ConcertName` / `concertName` | Base Planner plan name. |
-| `Typ šablony` | `TemplateType` / `templateType` | Selects the task template variant, currently `Velký` or `Malý`. |
-| `Místo konání` | Location/venue filter | Selects location-specific tasks and is appended to the Planner plan name in parentheses. |
+| `Typ šablony` | `TemplateType` / `templateType` | Selects generic concert-type rows, currently `Velký` or `Malý`. |
+| `Místo konání` | `TemplateType` / `location` | Selects location-specific rows and is appended to the Planner plan name in parentheses. |
 | `Datum koncertu` | `ConcertDate` / `concertDate` | Event date used to calculate due dates from `DaysFromEvent`. |
 
 If the exact concert date is not known yet, use the earliest considered date in `Datum koncertu` so preparation deadlines are not missed.
+
+Both `Typ šablony` and `Místo konání` filter the same Excel column,
+`tbTasksTemplate[TemplateType]`. The Flow includes rows where `TemplateType`
+equals the selected concert type and rows where `TemplateType` equals the
+selected location, then creates one Planner plan containing both task sets.
+
+## Source folder roles
+
+The `src\` folder contains the production solution source and supporting references:
+
+| Folder | Role | Use for |
+| --- | --- | --- |
+| `CampanulaCreateConcertPlanFromTemplate` | Deployable unpacked Power Platform solution source. | Pack and import this folder in CI/CD. It can contain multiple flows later; currently it contains the first Flow implementation. |
+| `CampanulaCreateConcertPlanFromTemplateSolution` | Exported and unpacked solution sample. | Use only as a structure reference for solution files such as `solution.xml`, `customizations.xml`, and `Workflows\`. |
+| `CampanulaCreateConcertPlanFromTemplateDemo` | Older manually downloaded Power Automate package. | Use only for package-format comparison; it is not the solution ALM reference. |
+
+`src\CampanulaTasksFlow` is a legacy Copilot-generated prototype from repository
+initialization. Do not use it as an implementation source for
+`CampanulaCreateConcertPlanFromTemplate`.
+
+When creating or packaging `CampanulaCreateConcertPlanFromTemplate`, use
+`src\CampanulaCreateConcertPlanFromTemplateSolution` as the closest in-repo
+example of an unpacked Power Platform solution structure. Do not migrate its
+content into the production folder.
 
 ## Flow description
 
 The Flow performs the following steps:
 
 1. **Receive Microsoft Form response** – collects `Název koncertu`, `Typ šablony`, `Místo konání`, and `Datum koncertu`.
-2. **Prepare Flow inputs** – maps Czech form answers to English technical fields such as `concertName`, `templateType`, and `concertDate`.
+2. **Prepare Flow inputs** – maps Czech form answers to English technical fields such as `concertName`, `templateType`, `location`, and `concertDate`.
 3. **Create Planner Plan** – named after the concert, with `Místo konání` added in parentheses.
 4. **Create Buckets** – iterates the `tbBuckets` table from the Excel template and creates each bucket in the new plan.
-5. **Create Tasks** – for each matching row in `tbTasksTemplate`:
+5. **Create Tasks** – for each row in `tbTasksTemplate` whose `TemplateType` matches the selected concert type or selected location:
    - Calculates the **due date** from `DaysFromEvent` relative to the concert date.
    - Resolves **assignees** from `AssignedToEmails` (semicolon-separated list of e-mail addresses).
    - Sets **progress**, **priority**, **bucket** and **labels**.
@@ -61,23 +85,13 @@ The Flow performs the following steps:
    - Sets **description** (rich text preserved as plain text with line breaks and bullet points).
 6. **Notify** – sends a summary notification (Teams message or e-mail) to the organising team.
 
-## Multiple Flow Variants
-
-The `src/` folder may contain multiple Flow variants:
-
-| Folder | Description |
-| --- | --- |
-| `CampanulaTasksFlow` | Main Flow – creates a full concert plan from the Excel template |
-
-Additional variants (e.g. a lightweight version for small events) can be added as separate solution folders under `src/`.
-
 ## Data Flow
 
 ```text
 Microsoft Form response
   └── Název koncertu    ──► concertName / ConcertName
-  └── Typ šablony       ──► templateType / TemplateType
-  └── Místo konání      ──► location-specific filtering + plan-name suffix
+  └── Typ šablony       ──► templateType / TemplateType filter value
+  └── Místo konání      ──► location / TemplateType filter value + plan-name suffix
   └── Datum koncertu    ──► concertDate / ConcertDate
           │
           ▼
@@ -93,7 +107,10 @@ Excel Template (SharePoint copy)
   └── tbLabels          ──► Allowed label values
 ```
 
-The `AssignedToEmails` column is computed in Excel using a FILTER/TEXTJOIN formula referencing `tbGroups`, so changing group membership in the Excel automatically updates task assignments. Keep Excel sheet, table, and column names in English because Flow expressions reference those identifiers directly.
+The `AssignedToEmails` column is computed in Excel using a FILTER/TEXTJOIN
+formula referencing `tbGroups`, so changing group membership in the Excel
+automatically updates task assignments. Keep Excel sheet, table, and column
+names in English because Flow expressions reference those identifiers directly.
 
 ## Security Considerations
 
