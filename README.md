@@ -7,7 +7,7 @@ for the mixed choir **Campanula**.
 ## Overview
 
 Colleagues start the process from the Czech Microsoft Form documented in
-[`docs\FormDefinition.md`](docs\FormDefinition.md). The production Flow
+[`docs/FormDefinition.md`](docs/FormDefinition.md). The production Flow
 `CampanulaCreateConcertPlanFromTemplate` will map those form answers to stable
 English technical identifiers, read task definitions from
 `PlannerTasksTemplate.xlsx` in SharePoint, then create the Planner plan,
