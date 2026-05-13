@@ -3,8 +3,9 @@
   <Entities></Entities>
   <Roles></Roles>
   <Workflows>
-    <Workflow WorkflowId="{7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018}" Name="CampanulaCreateConcertPlanFromTemplate">
-      <JsonFileName>/Workflows/CampanulaCreateConcertPlanFromTemplate-7B7D1D61-5AD2-4A81-9EE8-3E6E7C829018.json</JsonFileName>
+    <Workflow WorkflowId="{7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018}"
+      Name="CampanulaCreateConcertPlanFromTemplate">
+      <JsonFileName>/Workflows/CampanulaCreateConcertPlanFromTemplate.json</JsonFileName>
       <Type>1</Type>
       <Subprocess>0</Subprocess>
       <Category>5</Category>
@@ -26,7 +27,10 @@
       <ModernFlowType>0</ModernFlowType>
       <PrimaryEntity>none</PrimaryEntity>
       <LocalizedNames>
-        <LocalizedName languagecode="1033" description="CampanulaCreateConcertPlanFromTemplate" />
+        <LocalizedName languagecode="1033"
+          description="Create a concert plan in Planner from Microsoft Forms" />
+        <LocalizedName languagecode="1029"
+          description="Vytvořit koncertní plán v aplikaci Planner z Microsoft Forms" />
       </LocalizedNames>
     </Workflow>
   </Workflows>
@@ -39,7 +43,8 @@
   <CustomControls />
   <EntityDataProviders />
   <connectionreferences>
-    <connectionreference connectionreferencelogicalname="camp_sharedmicrosoftforms_createconcertplan">
+    <connectionreference
+      connectionreferencelogicalname="campa_sharedmicrosoftforms_createconcertplan">
       <connectionreferencedisplayname>Microsoft Forms - CampanulaCreateConcertPlanFromTemplate</connectionreferencedisplayname>
       <connectorid>/providers/Microsoft.PowerApps/apis/shared_microsoftforms</connectorid>
       <iscustomizable>1</iscustomizable>
@@ -47,7 +52,8 @@
       <statecode>0</statecode>
       <statuscode>1</statuscode>
     </connectionreference>
-    <connectionreference connectionreferencelogicalname="camp_sharedexcelonlinebusiness_createconcertplan">
+    <connectionreference
+      connectionreferencelogicalname="campa_sharedexcelonlinebusiness_createconcertplan">
       <connectionreferencedisplayname>Excel Online Business - CampanulaCreateConcertPlanFromTemplate</connectionreferencedisplayname>
       <connectorid>/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness</connectorid>
       <iscustomizable>1</iscustomizable>
@@ -55,7 +61,7 @@
       <statecode>0</statecode>
       <statuscode>1</statuscode>
     </connectionreference>
-    <connectionreference connectionreferencelogicalname="camp_sharedplanner_createconcertplan">
+    <connectionreference connectionreferencelogicalname="campa_sharedplanner_createconcertplan">
       <connectionreferencedisplayname>Planner - CampanulaCreateConcertPlanFromTemplate</connectionreferencedisplayname>
       <connectorid>/providers/Microsoft.PowerApps/apis/shared_planner</connectorid>
       <iscustomizable>1</iscustomizable>
@@ -63,7 +69,7 @@
       <statecode>0</statecode>
       <statuscode>1</statuscode>
     </connectionreference>
-    <connectionreference connectionreferencelogicalname="camp_sharedsendmail_createconcertplan">
+    <connectionreference connectionreferencelogicalname="campa_sharedsendmail_createconcertplan">
       <connectionreferencedisplayname>Mail - CampanulaCreateConcertPlanFromTemplate</connectionreferencedisplayname>
       <connectorid>/providers/Microsoft.PowerApps/apis/shared_sendmail</connectorid>
       <iscustomizable>1</iscustomizable>
@@ -74,5 +80,6 @@
   </connectionreferences>
   <Languages>
     <Language>1033</Language>
+    <Language>1029</Language>
   </Languages>
 </ImportExportXml>

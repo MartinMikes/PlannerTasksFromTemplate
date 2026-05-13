@@ -56,18 +56,14 @@ The `src\` folder contains the production solution source and supporting referen
 
 | Folder | Role | Use for |
 | --- | --- | --- |
-| `CampanulaCreateConcertPlanFromTemplate` | Deployable unpacked Power Platform solution source. | Pack and import this folder in CI/CD. It can contain multiple flows later; currently it contains the first Flow implementation. |
-| `CampanulaCreateConcertPlanFromTemplateSolution` | Exported and unpacked solution sample. | Use only as a structure reference for solution files such as `solution.xml`, `customizations.xml`, and `Workflows\`. |
-| `CampanulaCreateConcertPlanFromTemplateDemo` | Older manually downloaded Power Automate package. | Use only for package-format comparison; it is not the solution ALM reference. |
+| `CampanulaPlannerFlows` | Deployable unpacked Power Platform solution source. | Pack and import this folder in CI/CD. It can contain multiple flows later; currently it contains the first Flow implementation. |
+| `exported\CampanulaCreateConcertPlanFromTemplateSolution` | Exported and unpacked solution sample. | Use only as a structure reference for solution files such as `solution.xml`, `customizations.xml`, and `Workflows\`. |
+| `exported\CampanulaCreateConcertPlanFromTemplateDemo` | Older manually downloaded Power Automate package. | Use only for package-format comparison; it is not the solution ALM reference. |
 
-`src\CampanulaTasksFlow` is a legacy Copilot-generated prototype from repository
-initialization. Do not use it as an implementation source for
-`CampanulaCreateConcertPlanFromTemplate`.
-
-When creating or packaging `CampanulaCreateConcertPlanFromTemplate`, use
-`src\CampanulaCreateConcertPlanFromTemplateSolution` as the closest in-repo
-example of an unpacked Power Platform solution structure. Do not migrate its
-content into the production folder.
+When creating or packaging `CampanulaPlannerFlows`, use
+`src\exported\CampanulaCreateConcertPlanFromTemplateSolution` as the closest
+in-repo example of an unpacked Power Platform solution structure. Do not migrate
+its content into the production folder.
 
 ## Flow description
 

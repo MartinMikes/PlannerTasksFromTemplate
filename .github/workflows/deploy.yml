@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
 
 env:
-  SOLUTION_NAME: CampanulaCreateConcertPlanFromTemplate
-  SOLUTION_FOLDER: src/CampanulaCreateConcertPlanFromTemplate
-  SOLUTION_ZIP: out/CampanulaCreateConcertPlanFromTemplate.zip
+  SOLUTION_NAME: CampanulaPlannerFlows
+  SOLUTION_FOLDER: src/CampanulaPlannerFlows
+  SOLUTION_ZIP: out/CampanulaPlannerFlows.zip
 
 jobs:
   build-and-deploy:

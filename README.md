@@ -7,8 +7,9 @@ for the mixed choir **Campanula**.
 ## Overview
 
 Colleagues start the process from the Czech Microsoft Form documented in
-[`docs/FormDefinition.md`](docs/FormDefinition.md). The production Flow
-`CampanulaCreateConcertPlanFromTemplate` will map those form answers to stable
+[`docs\FormDefinition.md`](docs\FormDefinition.md). The first production Flow,
+`CampanulaCreateConcertPlanFromTemplate`, is stored in the
+`CampanulaPlannerFlows` solution. It will map those form answers to stable
 English technical identifiers, read task definitions from
 `PlannerTasksTemplate.xlsx` in SharePoint, then create the Planner plan,
 buckets, tasks, assignments, checklists, and notifications.
@@ -26,19 +27,14 @@ buckets, tasks, assignments, checklists, and notifications.
 │   ├── ExcelTemplate.md
 │   └── Deployment.md
 ├── src\
-│   ├── CampanulaCreateConcertPlanFromTemplate\
+│   ├── CampanulaPlannerFlows\
 │   │   ├── [Content_Types].xml
 │   │   ├── customizations.xml
 │   │   ├── solution.xml
 │   │   └── Workflows\
-│   ├── CampanulaCreateConcertPlanFromTemplateSolution\
-│   │   ├── customizations.xml
-│   │   ├── solution.xml
-│   │   └── Workflows\
-│   ├── CampanulaCreateConcertPlanFromTemplateDemo\
-│   │   ├── manifest.json
-│   │   └── Microsoft.Flow\
-│   └── CampanulaTasksFlow\
+│   ├── exported\
+│   │   ├── CampanulaCreateConcertPlanFromTemplateSolution\
+│   │   └── CampanulaCreateConcertPlanFromTemplateDemo\
 ├── templates\
 │   └── PlannerTasksTemplate.xlsx
 ├── .env.example
@@ -49,10 +45,9 @@ buckets, tasks, assignments, checklists, and notifications.
 
 | Folder | Role |
 | --- | --- |
-| `src\CampanulaCreateConcertPlanFromTemplate` | Deployable unpacked Power Platform solution source packed by GitHub Actions. This solution can contain multiple flows later; currently it prepares the first Flow. |
-| `src\CampanulaCreateConcertPlanFromTemplateSolution` | Exported and unpacked solution sample; use only as a solution folder/file structure reference. Do not copy or migrate its content into the production folder. |
-| `src\CampanulaCreateConcertPlanFromTemplateDemo` | Older manually downloaded Flow package reference; useful only for package-format comparison, not for solution-based ALM. |
-| `src\CampanulaTasksFlow` | Legacy Copilot-generated prototype from repository initialization; do not use it as an implementation source for the production Flow. |
+| `src\CampanulaPlannerFlows` | Deployable unpacked Power Platform solution source packed by GitHub Actions. This solution can contain multiple flows later; currently it prepares the first Flow. |
+| `src\exported\CampanulaCreateConcertPlanFromTemplateSolution` | Exported and unpacked solution sample; use only as a solution folder/file structure reference. Do not copy or migrate its content into the production folder. |
+| `src\exported\CampanulaCreateConcertPlanFromTemplateDemo` | Older manually downloaded Flow package reference; useful only for package-format comparison, not for solution-based ALM. |
 
 ## Input form
 
@@ -102,32 +97,33 @@ pac auth create \
 
 ### 3. Review the Microsoft Form definition
 
-Use [`docs\FormDefinition.md`](docs/FormDefinition.md) as the source of truth
+Use [`docs\FormDefinition.md`](docs\FormDefinition.md) as the source of truth
 for the Czech Microsoft Form used by colleagues. Its answers define the input
 data that `CampanulaCreateConcertPlanFromTemplate` maps to the Flow and Excel
 technical identifiers.
 
 ### 4. Prepare the production solution source
 
-Build `CampanulaCreateConcertPlanFromTemplate` from
+Build the `CampanulaCreateConcertPlanFromTemplate` Flow in the
+`CampanulaPlannerFlows` solution from
 [`docs\Overview.md`](docs/Overview.md),
 [`docs\FormDefinition.md`](docs/FormDefinition.md), and
 [`docs\ExcelTemplate.md`](docs/ExcelTemplate.md). Keep the deployable unpacked
-solution source in `src\CampanulaCreateConcertPlanFromTemplate`. Use
-`src\CampanulaCreateConcertPlanFromTemplateSolution` only as a reference for the
-unpacked solution folder structure.
+solution source in `src\CampanulaPlannerFlows`. Use
+`src\exported\CampanulaCreateConcertPlanFromTemplateSolution` only as a
+reference for the unpacked solution folder structure.
 
 Create a solution zip from the production source folder contents and import it:
 
 ```bash
 mkdir -p out
 (
-  cd src/CampanulaCreateConcertPlanFromTemplate
-  zip -r ../../out/CampanulaCreateConcertPlanFromTemplate.zip .
+  cd src/CampanulaPlannerFlows
+  zip -r ../../out/CampanulaPlannerFlows.zip .
 )
 
 pac solution import \
-  --path out/CampanulaCreateConcertPlanFromTemplate.zip \
+  --path out/CampanulaPlannerFlows.zip \
   --environment "$PP_ENVIRONMENT_URL"
 ```
 

@@ -4,7 +4,7 @@
       "shared_microsoftforms": {
         "runtimeSource": "embedded",
         "connection": {
-          "connectionReferenceLogicalName": "camp_sharedmicrosoftforms_createconcertplan"
+          "connectionReferenceLogicalName": "campa_sharedmicrosoftforms_createconcertplan"
         },
         "api": {
           "name": "shared_microsoftforms"
@@ -13,7 +13,7 @@
       "shared_excelonlinebusiness": {
         "runtimeSource": "embedded",
         "connection": {
-          "connectionReferenceLogicalName": "camp_sharedexcelonlinebusiness_createconcertplan"
+          "connectionReferenceLogicalName": "campa_sharedexcelonlinebusiness_createconcertplan"
         },
         "api": {
           "name": "shared_excelonlinebusiness"
@@ -22,7 +22,7 @@
       "shared_planner": {
         "runtimeSource": "embedded",
         "connection": {
-          "connectionReferenceLogicalName": "camp_sharedplanner_createconcertplan"
+          "connectionReferenceLogicalName": "campa_sharedplanner_createconcertplan"
         },
         "api": {
           "name": "shared_planner"
@@ -31,7 +31,7 @@
       "shared_sendmail": {
         "runtimeSource": "embedded",
         "connection": {
-          "connectionReferenceLogicalName": "camp_sharedsendmail_createconcertplan"
+          "connectionReferenceLogicalName": "campa_sharedsendmail_createconcertplan"
         },
         "api": {
           "name": "shared_sendmail"

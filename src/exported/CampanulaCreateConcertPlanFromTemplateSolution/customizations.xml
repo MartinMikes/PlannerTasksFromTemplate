@@ -26,6 +26,7 @@
       <PrimaryEntity>none</PrimaryEntity>
       <LocalizedNames>
         <LocalizedName languagecode="1033" description="Create a task in Planner from Microsoft Forms and post message in Teams" />
+        <LocalizedName languagecode="1029" description="Vytvořit úkol v aplikaci Planner z Microsoft Forms a odeslat zprávu do Teams" />
       </LocalizedNames>
     </Workflow>
   </Workflows>
@@ -65,5 +66,6 @@
   </connectionreferences>
   <Languages>
     <Language>1033</Language>
+    <Language>1029</Language>
   </Languages>
 </ImportExportXml>
