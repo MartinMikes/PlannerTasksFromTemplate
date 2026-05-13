@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImportExportXml version="9.2.0.0" SolutionPackageVersion="9.2" languagecode="1033"
+  generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SolutionManifest>
+    <UniqueName>CampanulaPlannerFlows</UniqueName>
+    <LocalizedNames>
+      <LocalizedName description="Campanula Planner Flows" languagecode="1033" />
+      <LocalizedName description="Campanula Planner Flows" languagecode="1029" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description
+        description="Power Automate solution for creating Planner concert plans and tasks from the Campanula Microsoft Form and Excel template."
+        languagecode="1033" />
+      <Description
+        description="Řešení Power Automate pro vytváření plánů a úkolů v aplikaci Planner z formuláře Campanula Microsoft Form a šablony Excel."
+        languagecode="1029" />
+    </Descriptions>
+    <Version>1.0.0.0</Version>
+    <Managed>0</Managed>
+    <Publisher>
+      <UniqueName>MartiX</UniqueName>
+      <LocalizedNames>
+        <LocalizedName description="MartiX" languagecode="1033" />
+        <LocalizedName description="MartiX" languagecode="1029" />
+      </LocalizedNames>
+      <Descriptions />
+      <EMailAddress>info@martix.dev</EMailAddress>
+      <SupportingWebsiteUrl>https://martix.dev</SupportingWebsiteUrl>
+      <CustomizationPrefix>campa</CustomizationPrefix>
+      <CustomizationOptionValuePrefix>12345</CustomizationOptionValuePrefix>
+      <Addresses>
+        <Address>
+          <AddressNumber>1</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City>Jihlava</City>
+          <County xsi:nil="true"></County>
+          <Country>Česko</Country>
+          <Fax />
+          <FreightTermsCode xsi:nil="true" />
+          <ImportSequenceNumber xsi:nil="true" />
+          <Latitude xsi:nil="true" />
+          <Line1>Srázná 4306/4</Line1>
+          <Line2 />
+          <Line3 />
+          <Longitude xsi:nil="true" />
+          <Name />
+          <PostalCode>58601</PostalCode>
+          <PostOfficeBox />
+          <PrimaryContactName>Martin Mikeš</PrimaryContactName>
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince>Vysočina</StateOrProvince>
+          <Telephone1>+420724917905</Telephone1>
+          <Telephone2 />
+          <Telephone3 />
+          <TimeZoneRuleVersionNumber xsi:nil="true" />
+          <UPSZone />
+          <UTCOffset xsi:nil="true" />
+          <WebSiteURL />
+        </Address>
+      </Addresses>
+    </Publisher>
+    <RootComponents>
+      <RootComponent type="29" id="{7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018}" behavior="0" />
+    </RootComponents>
+    <MissingDependencies />
+  </SolutionManifest>
+</ImportExportXml>

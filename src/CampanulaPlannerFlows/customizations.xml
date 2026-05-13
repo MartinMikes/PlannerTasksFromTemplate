@@ -1,9 +1,11 @@
-<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26042.165" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26042.00165">
+<?xml version="1.0" encoding="utf-8"?>
+<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Entities></Entities>
   <Roles></Roles>
   <Workflows>
-    <Workflow WorkflowId="{4310bbf0-474e-f111-bec7-6045bd9e734a}" Name="Create a task in Planner from Microsoft Forms and post message in Teams">
-      <JsonFileName>/Workflows/CreateataskinPlannerfromMicrosoftFormsandpostmessa-4310BBF0-474E-F111-BEC7-6045BD9E734A.json</JsonFileName>
+    <Workflow WorkflowId="{7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018}"
+      Name="CampanulaCreateConcertPlanFromTemplate">
+      <JsonFileName>/Workflows/CampanulaCreateConcertPlanFromTemplate.json</JsonFileName>
       <Type>1</Type>
       <Subprocess>0</Subprocess>
       <Category>5</Category>
@@ -25,7 +27,10 @@
       <ModernFlowType>0</ModernFlowType>
       <PrimaryEntity>none</PrimaryEntity>
       <LocalizedNames>
-        <LocalizedName languagecode="1033" description="Create a task in Planner from Microsoft Forms and post message in Teams" />
+        <LocalizedName languagecode="1033"
+          description="Create a concert plan in Planner from Microsoft Forms" />
+        <LocalizedName languagecode="1029"
+          description="Vytvořit koncertní plán v aplikaci Planner z Microsoft Forms" />
       </LocalizedNames>
     </Workflow>
   </Workflows>
@@ -38,24 +43,34 @@
   <CustomControls />
   <EntityDataProviders />
   <connectionreferences>
-    <connectionreference connectionreferencelogicalname="martix_sharedmicrosoftforms_14cd8">
-      <connectionreferencedisplayname>Microsoft Forms CampanulaCreateConcertPlanFromTemplateSolution-14cd8</connectionreferencedisplayname>
+    <connectionreference
+      connectionreferencelogicalname="campa_sharedmicrosoftforms_createconcertplan">
+      <connectionreferencedisplayname>Microsoft Forms - CampanulaCreateConcertPlanFromTemplate</connectionreferencedisplayname>
       <connectorid>/providers/Microsoft.PowerApps/apis/shared_microsoftforms</connectorid>
       <iscustomizable>1</iscustomizable>
       <promptingbehavior>0</promptingbehavior>
       <statecode>0</statecode>
       <statuscode>1</statuscode>
     </connectionreference>
-    <connectionreference connectionreferencelogicalname="martix_sharedplanner_09991">
-      <connectionreferencedisplayname>Planner CampanulaCreateConcertPlanFromTemplateSolution-09991</connectionreferencedisplayname>
+    <connectionreference
+      connectionreferencelogicalname="campa_sharedexcelonlinebusiness_createconcertplan">
+      <connectionreferencedisplayname>Excel Online Business - CampanulaCreateConcertPlanFromTemplate</connectionreferencedisplayname>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness</connectorid>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+    <connectionreference connectionreferencelogicalname="campa_sharedplanner_createconcertplan">
+      <connectionreferencedisplayname>Planner - CampanulaCreateConcertPlanFromTemplate</connectionreferencedisplayname>
       <connectorid>/providers/Microsoft.PowerApps/apis/shared_planner</connectorid>
       <iscustomizable>1</iscustomizable>
       <promptingbehavior>0</promptingbehavior>
       <statecode>0</statecode>
       <statuscode>1</statuscode>
     </connectionreference>
-    <connectionreference connectionreferencelogicalname="martix_sharedsendmail_1ca02">
-      <connectionreferencedisplayname>Mail CampanulaCreateConcertPlanFromTemplateSolution-1ca02</connectionreferencedisplayname>
+    <connectionreference connectionreferencelogicalname="campa_sharedsendmail_createconcertplan">
+      <connectionreferencedisplayname>Mail - CampanulaCreateConcertPlanFromTemplate</connectionreferencedisplayname>
       <connectorid>/providers/Microsoft.PowerApps/apis/shared_sendmail</connectorid>
       <iscustomizable>1</iscustomizable>
       <promptingbehavior>0</promptingbehavior>
@@ -65,5 +80,6 @@
   </connectionreferences>
   <Languages>
     <Language>1033</Language>
+    <Language>1029</Language>
   </Languages>
 </ImportExportXml>

@@ -3,6 +3,7 @@
     <UniqueName>CampanulaCreateConcertPlanFromTemplateSolution</UniqueName>
     <LocalizedNames>
       <LocalizedName description=" Campanula - Create Concert Plan From Template Solution" languagecode="1033" />
+      <LocalizedName description="Campanula - řešení pro vytvoření koncertního plánu ze šablony" languagecode="1029" />
     </LocalizedNames>
     <Descriptions />
     <Version>1.0.0.1</Version>
@@ -11,6 +12,7 @@
       <UniqueName>MartiX</UniqueName>
       <LocalizedNames>
         <LocalizedName description="MartiX" languagecode="1033" />
+        <LocalizedName description="MartiX" languagecode="1029" />
       </LocalizedNames>
       <Descriptions />
       <EMailAddress>info@martix.dev</EMailAddress>

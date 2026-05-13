@@ -8,10 +8,10 @@
 > The Flow reads from a **copy** of this file uploaded to a SharePoint document library.  
 > Always update the repository version first, then upload the new version to SharePoint.
 
-This workbook is part of the functional specification for
-`CampanulaCreateConcertPlanFromTemplate`. Keep the English sheet, table, and
-column identifiers stable because Power Platform expressions reference them
-directly.
+This workbook is part of the functional specification for the
+`CampanulaCreateConcertPlanFromTemplate` Flow in the `CampanulaPlannerFlows`
+solution. Keep the English sheet, table, and column identifiers stable because
+Power Platform expressions reference them directly.
 
 ---
 

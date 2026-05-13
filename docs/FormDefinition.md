@@ -5,10 +5,11 @@
 Tento formulář slouží jako vstupní bod pro vytvoření sady nových úkolů pro organizaci koncertu.
 
 Formulář je funkční specifikací pro
-`CampanulaCreateConcertPlanFromTemplate`. Složka
-`src\CampanulaCreateConcertPlanFromTemplateSolution` slouží jako reference
-struktury rozbaleného Power Platform solution balíčku; produkční zdroj pro CI/CD
-je `src\CampanulaCreateConcertPlanFromTemplate`.
+Flow `CampanulaCreateConcertPlanFromTemplate`, který je součástí solution
+`CampanulaPlannerFlows`. Složka
+`src\exported\CampanulaCreateConcertPlanFromTemplateSolution` slouží jako
+reference struktury rozbaleného Power Platform solution balíčku; produkční zdroj
+pro CI/CD je `src\CampanulaPlannerFlows`.
 
 Zde jsou ukázkové či doporučené vstupní hodnoty:
 
