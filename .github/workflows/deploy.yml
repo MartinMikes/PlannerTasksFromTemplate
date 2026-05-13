@@ -28,7 +28,6 @@ jobs:
 
       - name: Authenticate with Power Platform
         run: |
-          "$POWERPLATFORMTOOLS_PACPATH" --version
           "$POWERPLATFORMTOOLS_PACPATH" auth create \
             --environment   "${{ secrets.PP_ENVIRONMENT_URL }}" \
             --applicationId "${{ secrets.PP_APP_ID }}" \
@@ -53,10 +52,10 @@ jobs:
       - name: Import solution to Power Platform
         uses: microsoft/powerplatform-actions/import-solution@v1
         with:
-          environment-url:  ${{ secrets.PP_ENVIRONMENT_URL }}
-          app-id:           ${{ secrets.PP_APP_ID }}
-          client-secret:    ${{ secrets.PP_CLIENT_SECRET }}
-          tenant-id:        ${{ secrets.PP_TENANT_ID }}
-          solution-file:    ${{ env.SOLUTION_ZIP }}
-          force-overwrite:  true
-          publish-changes:  true
+          environment-url: ${{ secrets.PP_ENVIRONMENT_URL }}
+          app-id: ${{ secrets.PP_APP_ID }}
+          client-secret: ${{ secrets.PP_CLIENT_SECRET }}
+          tenant-id: ${{ secrets.PP_TENANT_ID }}
+          solution-file: ${{ env.SOLUTION_ZIP }}
+          force-overwrite: true
+          publish-changes: true
