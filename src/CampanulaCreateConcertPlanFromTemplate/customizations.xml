@@ -3,7 +3,7 @@
   <Entities></Entities>
   <Roles></Roles>
   <Workflows>
-    <Workflow WorkflowId="{7B7D1D61-5AD2-4A81-9EE8-3E6E7C829018}" Name="CampanulaCreateConcertPlanFromTemplate">
+    <Workflow WorkflowId="{7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018}" Name="CampanulaCreateConcertPlanFromTemplate">
       <JsonFileName>/Workflows/CampanulaCreateConcertPlanFromTemplate-7B7D1D61-5AD2-4A81-9EE8-3E6E7C829018.json</JsonFileName>
       <Type>1</Type>
       <Subprocess>0</Subprocess>
