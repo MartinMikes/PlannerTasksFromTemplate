@@ -35,7 +35,6 @@ buckets, tasks, assignments, checklists, and notifications.
 │   ├── exported\
 │   │   ├── CampanulaCreateConcertPlanFromTemplateSolution\
 │   │   └── CampanulaCreateConcertPlanFromTemplateDemo\
-│   └── CampanulaTasksFlow\
 ├── templates\
 │   └── PlannerTasksTemplate.xlsx
 ├── .env.example
@@ -49,7 +48,6 @@ buckets, tasks, assignments, checklists, and notifications.
 | `src\CampanulaPlannerFlows` | Deployable unpacked Power Platform solution source packed by GitHub Actions. This solution can contain multiple flows later; currently it prepares the first Flow. |
 | `src\exported\CampanulaCreateConcertPlanFromTemplateSolution` | Exported and unpacked solution sample; use only as a solution folder/file structure reference. Do not copy or migrate its content into the production folder. |
 | `src\exported\CampanulaCreateConcertPlanFromTemplateDemo` | Older manually downloaded Flow package reference; useful only for package-format comparison, not for solution-based ALM. |
-| `src\CampanulaTasksFlow` | Legacy Copilot-generated prototype from repository initialization; do not use it as an implementation source for the production Flow. |
 
 ## Input form
 

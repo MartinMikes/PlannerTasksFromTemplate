@@ -60,10 +60,6 @@ The `src\` folder contains the production solution source and supporting referen
 | `exported\CampanulaCreateConcertPlanFromTemplateSolution` | Exported and unpacked solution sample. | Use only as a structure reference for solution files such as `solution.xml`, `customizations.xml`, and `Workflows\`. |
 | `exported\CampanulaCreateConcertPlanFromTemplateDemo` | Older manually downloaded Power Automate package. | Use only for package-format comparison; it is not the solution ALM reference. |
 
-`src\CampanulaTasksFlow` is a legacy Copilot-generated prototype from repository
-initialization. Do not use it as an implementation source for
-`CampanulaPlannerFlows`.
-
 When creating or packaging `CampanulaPlannerFlows`, use
 `src\exported\CampanulaCreateConcertPlanFromTemplateSolution` as the closest
 in-repo example of an unpacked Power Platform solution structure. Do not migrate
