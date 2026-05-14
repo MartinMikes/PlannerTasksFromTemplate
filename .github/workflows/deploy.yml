@@ -41,7 +41,7 @@ jobs:
           "$POWERPLATFORMTOOLS_PACPATH" solution pack \
             --zipFile "${{ env.SOLUTION_ZIP }}" \
             --folder "${{ env.SOLUTION_FOLDER }}" \
-            --packageType Unmanaged
+            --packageType Managed
 
       - name: Upload packed solution as artifact
         uses: actions/upload-artifact@v7
@@ -58,6 +58,5 @@ jobs:
           client-secret: ${{ secrets.PP_CLIENT_SECRET }}
           tenant-id: ${{ vars.PP_TENANT_ID }}
           solution-file: ${{ env.SOLUTION_ZIP }}
-          convert-to-managed: true
           force-overwrite: true
           publish-changes: true
