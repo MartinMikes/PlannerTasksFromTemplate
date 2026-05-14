@@ -37,10 +37,10 @@ jobs:
       - name: Create solution zip
         run: |
           mkdir -p out
-          (
-            cd "${{ env.SOLUTION_FOLDER }}"
-            zip -r "../../${{ env.SOLUTION_ZIP }}" .
-          )
+          "$POWERPLATFORMTOOLS_PACPATH" solution pack \
+            --zipFile "${{ env.SOLUTION_ZIP }}" \
+            --folder "${{ env.SOLUTION_FOLDER }}" \
+            --packageType Managed
 
       - name: Upload packed solution as artifact
         uses: actions/upload-artifact@v4
