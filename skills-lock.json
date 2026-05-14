@@ -25,6 +25,12 @@
       "skillPath": "skills/flowstudio-power-automate-mcp/SKILL.md",
       "computedHash": "c6dd3a763fa524c28b94db7ea33b3998330a6ce9a2afe6d43d2d7509ad9c4f70"
     },
+    "github-actions-docs": {
+      "source": "xixu-me/skills",
+      "sourceType": "github",
+      "skillPath": "skills/github-actions-docs/SKILL.md",
+      "computedHash": "ead3fa2aff18e829c468dee593e1dc897aa95dc7a07d9ff8ff9f30c296b19af8"
+    },
     "martix-markdown": {
       "source": "MartiXDev/skills",
       "sourceType": "github",
