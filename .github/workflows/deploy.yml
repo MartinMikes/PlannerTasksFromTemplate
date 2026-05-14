@@ -19,15 +19,37 @@ jobs:
   build-and-deploy:
     name: Pack & Import Solution
     runs-on: ubuntu-latest
+    permissions:
+      contents: write        # create tags and releases
+      issues: write          # comment on released issues
+      pull-requests: write   # comment on merged PRs
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0     # semantic-release needs full history
+
+      - name: Determine release version
+        id: semanticRelease
+        uses: cycjimmy/semantic-release-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Power Platform CLI
+        if: steps.semanticRelease.outputs.new_release_published == 'true'
         uses: microsoft/powerplatform-actions/actions-install@v1
 
+      - name: Set solution version
+        if: steps.semanticRelease.outputs.new_release_published == 'true'
+        run: |
+          VER="${{ steps.semanticRelease.outputs.new_release_version }}.0"
+          sed -i "s|<Version>.*</Version>|<Version>${VER}</Version>|" \
+            "${{ env.SOLUTION_FOLDER }}/Other/Solution.xml"
+          echo "Solution version: ${VER}"
+
       - name: Authenticate with Power Platform
+        if: steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           "$POWERPLATFORMTOOLS_PACPATH" auth create \
             --environment   "${{ vars.PP_ENVIRONMENT_URL }}" \
@@ -36,6 +58,7 @@ jobs:
             --tenant        "${{ vars.PP_TENANT_ID }}"
 
       - name: Create solution zip
+        if: steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           mkdir -p out
           "$POWERPLATFORMTOOLS_PACPATH" solution pack \
@@ -44,13 +67,22 @@ jobs:
             --packageType Managed
 
       - name: Upload packed solution as artifact
+        if: steps.semanticRelease.outputs.new_release_published == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.SOLUTION_NAME }}
           path: ${{ env.SOLUTION_ZIP }}
           retention-days: 30
 
+      - name: Attach solution zip to GitHub release
+        if: steps.semanticRelease.outputs.new_release_published == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.semanticRelease.outputs.new_release_version }}
+          files: ${{ env.SOLUTION_ZIP }}
+
       - name: Import solution to Power Platform
+        if: steps.semanticRelease.outputs.new_release_published == 'true'
         uses: microsoft/powerplatform-actions/import-solution@v1
         with:
           environment-url: ${{ vars.PP_ENVIRONMENT_URL }}

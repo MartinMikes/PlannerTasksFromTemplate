@@ -16,7 +16,7 @@
         languagecode="1029" />
     </Descriptions>
     <Version>1.0.0.0</Version>
-    <Managed>0</Managed>
+    <Managed>1</Managed>
     <Publisher>
       <UniqueName>MartiX</UniqueName>
       <LocalizedNames>
