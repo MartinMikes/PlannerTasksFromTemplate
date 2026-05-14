@@ -116,11 +116,10 @@ reference for the unpacked solution folder structure.
 Create a solution zip from the production source folder contents and import it:
 
 ```bash
-mkdir -p out
-(
-  cd src/CampanulaPlannerFlows
-  zip -r ../../out/CampanulaPlannerFlows.zip .
-)
+pac solution pack \
+  --zipFile out/CampanulaPlannerFlows.zip \
+  --folder src/CampanulaPlannerFlows \
+  --packageType Managed
 
 pac solution import \
   --path out/CampanulaPlannerFlows.zip \
