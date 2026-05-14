@@ -20,15 +20,15 @@ jobs:
     name: Pack & Import Solution
     runs-on: ubuntu-latest
     permissions:
-      contents: write        # create tags and releases
-      issues: write          # comment on released issues
-      pull-requests: write   # comment on merged PRs
+      contents: write # create tags and releases
+      issues: write # comment on released issues
+      pull-requests: write # comment on merged PRs
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0     # semantic-release needs full history
+          fetch-depth: 0 # semantic-release needs full history
 
       - name: Determine release version
         id: semanticRelease
