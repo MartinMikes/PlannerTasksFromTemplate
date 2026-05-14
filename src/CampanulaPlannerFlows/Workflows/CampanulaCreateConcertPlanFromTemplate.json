@@ -52,7 +52,7 @@
         },
         "formId": {
           "type": "String",
-          "defaultValue": "REPLACE_WITH_MICROSOFT_FORM_ID"
+          "defaultValue": "QnA1U4ewHkaFGbEXpOOnuo_rYRjTnhRFgqo6fAHG9wpUMTg3Nko5R1VaUVdXMEdGRzk5QTc3R0FXVy4u"
         },
         "questionConcertName": {
           "type": "String",
@@ -80,11 +80,11 @@
         },
         "excelDrive": {
           "type": "String",
-          "defaultValue": "REPLACE_WITH_SHAREPOINT_DOCUMENT_LIBRARY_OR_DRIVE_ID"
+          "defaultValue": "73c4dfb2-a352-485c-ad73-0b7d0edbff46"
         },
         "excelFile": {
           "type": "String",
-          "defaultValue": "REPLACE_WITH_PLANNERTASKSTEMPLATE_XLSX_FILE_ID"
+          "defaultValue": "{87AD9406-D1CF-45A7-B17D-AD4C0110F5D7}"
         },
         "tasksTable": {
           "type": "String",
