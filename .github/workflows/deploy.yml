@@ -29,10 +29,10 @@ jobs:
       - name: Authenticate with Power Platform
         run: |
           "$POWERPLATFORMTOOLS_PACPATH" auth create \
-            --environment   "${{ secrets.PP_ENVIRONMENT_URL }}" \
-            --applicationId "${{ secrets.PP_APP_ID }}" \
+            --environment   "${{ vars.PP_ENVIRONMENT_URL }}" \
+            --applicationId "${{ vars.PP_APP_ID }}" \
             --clientSecret  "${{ secrets.PP_CLIENT_SECRET }}" \
-            --tenant        "${{ secrets.PP_TENANT_ID }}"
+            --tenant        "${{ vars.PP_TENANT_ID }}"
 
       - name: Create solution zip
         run: |
@@ -52,10 +52,10 @@ jobs:
       - name: Import solution to Power Platform
         uses: microsoft/powerplatform-actions/import-solution@v1
         with:
-          environment-url: ${{ secrets.PP_ENVIRONMENT_URL }}
-          app-id: ${{ secrets.PP_APP_ID }}
+          environment-url: ${{ vars.PP_ENVIRONMENT_URL }}
+          app-id: ${{ vars.PP_APP_ID }}
           client-secret: ${{ secrets.PP_CLIENT_SECRET }}
-          tenant-id: ${{ secrets.PP_TENANT_ID }}
+          tenant-id: ${{ vars.PP_TENANT_ID }}
           solution-file: ${{ env.SOLUTION_ZIP }}
           convert-to-managed: true
           force-overwrite: true
