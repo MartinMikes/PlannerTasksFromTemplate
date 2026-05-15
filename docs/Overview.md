@@ -18,7 +18,8 @@ Every concert requires a consistent and repeatable set of tasks (preparation, lo
 │  Power Automate     │  CampanulaCreateConcertPlanFromTemplate
 │  Flow               │
 └────────┬────────────┘
-         │  reads task definitions filtered by input values
+         │  creates plan through Graph connector,
+         │  then reads task definitions filtered by input values
          ▼
 ┌─────────────────────┐
 │  SharePoint         │  PlannerTasksTemplate.xlsx
@@ -63,8 +64,8 @@ The Flow performs the following steps:
 
 1. **Receive Microsoft Form response** – collects `Název koncertu`, `Typ šablony`, `Místo konání`, and `Datum koncertu`.
 2. **Prepare Flow inputs** – maps Czech form answers to English technical fields such as `concertName`, `templateType`, `location`, and `concertDate`.
-3. **Create Planner Plan** – named after the concert, with `Místo konání` added in parentheses.
-4. **Create Buckets** – iterates the `tbBuckets` table from the Excel template and creates each bucket in the new plan.
+3. **Create Planner Plan** – uses the `Campanula Planner Graph` custom connector to call Microsoft Graph `POST /planner/plans`, naming the plan after the concert with `Místo konání` added in parentheses.
+4. **Create Buckets** – uses the standard Planner connector to iterate the `tbBuckets` table from the Excel template and create each bucket in the new plan.
 5. **Create Tasks** – for each row in `tbTasksTemplate` whose `TemplateType` matches the selected concert type or selected location:
    - Calculates the **due date** from `DaysFromEvent` relative to the concert date.
    - Resolves **assignees** from `AssignedToEmails` (semicolon-separated list of e-mail addresses).
@@ -103,5 +104,6 @@ names in English because Flow expressions reference those identifiers directly.
 ## Security Considerations
 
 - The Flow uses **Connection References** – credentials are stored in Power Platform, not in the repository.
+- The custom `Campanula Planner Graph` connector needs delegated Microsoft Graph permission `Tasks.ReadWrite`.
 - The SharePoint library containing the Excel template should be restricted to authorised editors only.
 - Service principal credentials for CI/CD are stored as **GitHub Secrets** (see [Deployment.md](Deployment.md)).

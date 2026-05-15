@@ -60,7 +60,8 @@
       </Addresses>
     </Publisher>
     <RootComponents>
-      <RootComponent type="29" id="{7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018}" behavior="0" />
+     <RootComponent type="372" id="{aa5c469a-b5dd-4963-917c-66bf35639bb3}" schemaName="campa_planner_graph" behavior="0" />
+     <RootComponent type="29" id="{7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018}" behavior="0" />
     </RootComponents>
     <MissingDependencies />
   </SolutionManifest>

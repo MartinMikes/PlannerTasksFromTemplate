@@ -1,0 +1,185 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Campanula Planner Graph",
+    "description": "Custom connector for Microsoft Graph Planner operations required by CampanulaPlannerFlows.",
+    "contact": {
+      "name": "MartiX",
+      "url": "https://martix.dev",
+      "email": "info@martix.dev"
+    }
+  },
+  "host": "graph.microsoft.com",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1.0/planner/plans": {
+      "post": {
+        "summary": "Create a Planner plan",
+        "description": "Create a Microsoft Planner plan in the specified Microsoft 365 group.",
+        "operationId": "CreatePlan",
+        "x-ms-summary": "Create Planner Plan",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreatePlanRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Planner plan created successfully.",
+            "schema": {
+              "$ref": "#/definitions/PlannerPlan"
+            }
+          },
+          "200": {
+            "description": "Planner plan created successfully.",
+            "schema": {
+              "$ref": "#/definitions/PlannerPlan"
+            }
+          },
+          "default": {
+            "description": "Unexpected error response from Microsoft Graph.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth": []
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "CreatePlanRequest": {
+      "type": "object",
+      "required": [
+        "container",
+        "title"
+      ],
+      "properties": {
+        "container": {
+          "$ref": "#/definitions/PlannerPlanContainer"
+        },
+        "title": {
+          "type": "string",
+          "description": "Planner plan title.",
+          "x-ms-summary": "Title",
+          "x-ms-visibility": "important"
+        }
+      }
+    },
+    "PlannerPlanContainer": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Microsoft Graph URL of the target Microsoft 365 group, for example https://graph.microsoft.com/v1.0/groups/{groupId}.",
+          "x-ms-summary": "Group URL",
+          "x-ms-visibility": "important"
+        },
+        "containerId": {
+          "type": "string",
+          "description": "Optional group identifier returned by Microsoft Graph."
+        },
+        "type": {
+          "type": "string",
+          "description": "Optional container type returned by Microsoft Graph."
+        }
+      }
+    },
+    "PlannerPlan": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Planner plan identifier.",
+          "x-ms-summary": "Plan ID"
+        },
+        "title": {
+          "type": "string",
+          "description": "Planner plan title."
+        },
+        "createdDateTime": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp in UTC."
+        },
+        "container": {
+          "$ref": "#/definitions/PlannerPlanContainer"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "parameters": {},
+  "responses": {},
+  "securityDefinitions": {
+    "oauth2_auth": {
+      "type": "oauth2",
+      "flow": "accessCode",
+      "authorizationUrl": "https://login.microsoftonline.com/common/oauth2/authorize",
+      "tokenUrl": "https://login.microsoftonline.com/common/oauth2/token",
+      "scopes": {}
+    }
+  },
+  "security": [
+    {
+      "oauth2_auth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Planner"
+    }
+  ],
+  "x-ms-connector-metadata": [
+    {
+      "propertyName": "Website",
+      "propertyValue": "https://learn.microsoft.com/en-us/graph/api/resources/plannerplan?view=graph-rest-1.0"
+    },
+    {
+      "propertyName": "Privacy policy",
+      "propertyValue": "https://privacy.microsoft.com/"
+    },
+    {
+      "propertyName": "Categories",
+      "propertyValue": "Productivity"
+    }
+  ]
+}

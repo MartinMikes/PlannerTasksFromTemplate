@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Connector xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <connectorid>aa5c469a-b5dd-4963-917c-66bf35639bb3</connectorid>
+  <description>Create Microsoft Planner plans through Microsoft Graph for CampanulaPlannerFlows.</description>
+  <displayname>Campanula Planner Graph</displayname>
+  <iconbrandcolor>#0078d4</iconbrandcolor>
+  <name>campa_planner_graph</name>
+  <connectortype>1</connectortype>
+  <scriptoperations>[]</scriptoperations>
+  <openapidefinition>/Connector/campa_planner_graph_openapidefinition.json</openapidefinition>
+  <connectionparameters>/Connector/campa_planner_graph_connectionparameters.json</connectionparameters>
+  <policytemplateinstances>/Connector/campa_planner_graph_policytemplateinstances.json</policytemplateinstances>
+</Connector>
