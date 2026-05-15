@@ -27,27 +27,22 @@ buckets, tasks, assignments, checklists, and notifications.
 │   ├── ExcelTemplate.md
 │   └── Deployment.md
 ├── src\
-│   ├── CampanulaPlannerFlows\
+│   └── CampanulaPlannerFlows\
 │   │   ├── [Content_Types].xml
 │   │   ├── customizations.xml
 │   │   ├── solution.xml
 │   │   └── Workflows\
-│   ├── exported\
-│   │   ├── CampanulaCreateConcertPlanFromTemplateSolution\
-│   │   └── CampanulaCreateConcertPlanFromTemplateDemo\
 ├── templates\
 │   └── PlannerTasksTemplate.xlsx
 ├── .env.example
 └── README.md
 ```
 
-## Source folders
+## Source folder
 
 | Folder | Role |
 | --- | --- |
-| `src\CampanulaPlannerFlows` | Deployable unpacked Power Platform solution source packed by GitHub Actions. This solution can contain multiple flows later; currently it prepares the first Flow. |
-| `src\exported\CampanulaCreateConcertPlanFromTemplateSolution` | Exported and unpacked solution sample; use only as a solution folder/file structure reference. Do not copy or migrate its content into the production folder. |
-| `src\exported\CampanulaCreateConcertPlanFromTemplateDemo` | Older manually downloaded Flow package reference; useful only for package-format comparison, not for solution-based ALM. |
+| `src\CampanulaPlannerFlows` | Deployable unpacked Power Platform solution source packed by GitHub Actions as a managed solution. This solution can contain multiple flows later; currently it prepares the first Flow. |
 
 ## Input form
 
@@ -109,9 +104,7 @@ Build the `CampanulaCreateConcertPlanFromTemplate` Flow in the
 [`docs\Overview.md`](docs/Overview.md),
 [`docs\FormDefinition.md`](docs/FormDefinition.md), and
 [`docs\ExcelTemplate.md`](docs/ExcelTemplate.md). Keep the deployable unpacked
-solution source in `src\CampanulaPlannerFlows`. Use
-`src\exported\CampanulaCreateConcertPlanFromTemplateSolution` only as a
-reference for the unpacked solution folder structure.
+solution source in `src\CampanulaPlannerFlows`.
 
 Create a solution zip from the production source folder contents and import it:
 
@@ -119,16 +112,15 @@ Create a solution zip from the production source folder contents and import it:
 pac solution pack \
   --zipFile out/CampanulaPlannerFlows.zip \
   --folder src/CampanulaPlannerFlows \
-  --packageType Unmanaged
+  --packageType Managed
 
 pac solution import \
   --path out/CampanulaPlannerFlows.zip \
   --environment "$PP_ENVIRONMENT_URL"
 ```
 
-Use `--packageType Managed` only when importing into a clean downstream
-environment that does not already contain the unmanaged `CampanulaPlannerFlows`
-solution.
+GitHub Actions uses the same managed package type when importing the solution
+directly into production.
 
 ### 5. Upload the Excel template to SharePoint
 
