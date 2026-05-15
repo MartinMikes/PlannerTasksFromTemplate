@@ -119,12 +119,16 @@ Create a solution zip from the production source folder contents and import it:
 pac solution pack \
   --zipFile out/CampanulaPlannerFlows.zip \
   --folder src/CampanulaPlannerFlows \
-  --packageType Managed
+  --packageType Unmanaged
 
 pac solution import \
   --path out/CampanulaPlannerFlows.zip \
   --environment "$PP_ENVIRONMENT_URL"
 ```
+
+Use `--packageType Managed` only when importing into a clean downstream
+environment that does not already contain the unmanaged `CampanulaPlannerFlows`
+solution.
 
 ### 5. Upload the Excel template to SharePoint
 
