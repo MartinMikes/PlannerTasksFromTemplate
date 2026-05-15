@@ -8,11 +8,22 @@ on:
       - "src/**"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
+    inputs:
+      solution_package_type:
+        description: Solution package type to build and import
+        required: true
+        default: Managed
+        type: choice
+        options:
+          - Managed
+          - Unmanaged
 
 env:
   SOLUTION_NAME: CampanulaPlannerFlows
+  SOLUTION_UNIQUE_NAME: CampanulaPlannerFlows
   SOLUTION_FOLDER: src/CampanulaPlannerFlows
   SOLUTION_ZIP: out/CampanulaPlannerFlows.zip
+  SOLUTION_PACKAGE_TYPE: ${{ github.event_name == 'push' && 'Unmanaged' || inputs.solution_package_type || 'Managed' }}
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -59,6 +70,19 @@ jobs:
             --clientSecret  "${{ secrets.PP_CLIENT_SECRET }}" \
             --tenant        "${{ vars.PP_TENANT_ID }}"
 
+      - name: Check existing solution entries
+        if: steps.semanticRelease.outputs.new_release_published == 'true'
+        run: |
+          echo "Requested package type: ${{ env.SOLUTION_PACKAGE_TYPE }}"
+          if "$POWERPLATFORMTOOLS_PACPATH" solution list | tee /tmp/pac-solution-list.txt | grep -i "${{ env.SOLUTION_UNIQUE_NAME }}"; then
+            echo "Found an existing solution entry matching ${{ env.SOLUTION_UNIQUE_NAME }}."
+            if [ "${{ env.SOLUTION_PACKAGE_TYPE }}" = "Managed" ]; then
+              echo "::warning title=Managed import requires a clean target environment::If the matching solution is unmanaged, Power Platform will reject a managed import. Remove the unmanaged solution first or rerun the workflow with solution_package_type=Unmanaged."
+            fi
+          else
+            echo "No existing solution entry matching ${{ env.SOLUTION_UNIQUE_NAME }} was found."
+          fi
+
       - name: Create solution zip
         if: steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
@@ -66,7 +90,7 @@ jobs:
           "$POWERPLATFORMTOOLS_PACPATH" solution pack \
             --zipFile "${{ env.SOLUTION_ZIP }}" \
             --folder "${{ env.SOLUTION_FOLDER }}" \
-            --packageType Managed
+            --packageType "${{ env.SOLUTION_PACKAGE_TYPE }}"
 
       - name: Upload packed solution as artifact
         if: steps.semanticRelease.outputs.new_release_published == 'true'

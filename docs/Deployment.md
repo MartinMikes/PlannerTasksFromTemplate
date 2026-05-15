@@ -120,7 +120,10 @@ pac solution unpack \
 mkdir -p out
 (
   cd src/CampanulaPlannerFlows
-  zip -r ../../out/CampanulaPlannerFlows.zip .
+  pac solution pack \
+    --zipFile ../../out/CampanulaPlannerFlows.zip \
+    --folder . \
+    --packageType Unmanaged
 )
 ```
 
@@ -132,6 +135,10 @@ pac solution import \
   --environment "$PP_ENVIRONMENT_URL" \
   --activate-plugins
 ```
+
+Use `--packageType Managed` only for a clean downstream environment. Microsoft
+does not allow importing a managed solution into the same environment that still
+contains the originating unmanaged solution.
 
 ### 6. Check solution status
 
@@ -174,16 +181,16 @@ src\CampanulaPlannerFlows
 The solution may contain multiple Flow components later. The current scope is the
 first Flow, `CampanulaCreateConcertPlanFromTemplate`.
 
-### Required GitHub Secrets
+### Required GitHub variables and secrets
 
 Go to **Settings → Secrets and variables → Actions** in this repository and add:
 
-| Secret | Description |
-| --- | --- |
-| `PP_ENVIRONMENT_URL` | Power Platform environment URL, e.g. `https://org.crm4.dynamics.com/` |
-| `PP_APP_ID` | Azure AD Application (client) ID of the service principal |
-| `PP_CLIENT_SECRET` | Client secret of the service principal |
-| `PP_TENANT_ID` | Azure AD tenant ID |
+| Name | Type | Description |
+| --- | --- | --- |
+| `PP_ENVIRONMENT_URL` | Variable | Power Platform environment URL, e.g. `https://org.crm4.dynamics.com/` |
+| `PP_APP_ID` | Variable | Azure AD Application (client) ID of the service principal |
+| `PP_TENANT_ID` | Variable | Azure AD tenant ID |
+| `PP_CLIENT_SECRET` | Secret | Client secret of the service principal |
 
 ### Service Principal Setup
 
@@ -195,8 +202,46 @@ Go to **Settings → Secrets and variables → Actions** in this repository and 
 
 | Event | Action |
 | --- | --- |
-| Push to `main` | Automatic deploy to the configured Power Platform environment |
-| `workflow_dispatch` | Manual trigger from the GitHub Actions UI |
+| Push to `main` | Automatic deploy of an **Unmanaged** package to the configured Power Platform environment |
+| `workflow_dispatch` | Manual trigger from the GitHub Actions UI, with a choice of **Managed** or **Unmanaged** package type |
+
+### Managed vs unmanaged imports
+
+The workflow now defaults the automatic `push` deployment to **Unmanaged**
+because the configured target is currently a Power Platform default environment.
+Use the manual `workflow_dispatch` trigger with
+`solution_package_type=Managed` only when the target environment is a clean
+downstream environment.
+
+According to Microsoft ALM guidance, a managed solution cannot be imported into
+an environment that still contains the originating unmanaged solution. If you
+see the error from issue #18 again, first check whether `CampanulaPlannerFlows`
+already exists as unmanaged:
+
+```bash
+pac solution list --environment "$PP_ENVIRONMENT_URL"
+```
+
+You can also check in the maker portal:
+
+1. Open <https://make.powerapps.com/>.
+2. Switch to the same environment used by `PP_ENVIRONMENT_URL`.
+3. Open **Solutions** and search for `CampanulaPlannerFlows`.
+
+To remove the unmanaged solution record, either delete it in **Solutions** or
+run:
+
+```bash
+pac solution delete \
+  --name CampanulaPlannerFlows \
+  --environment "$PP_ENVIRONMENT_URL"
+```
+
+If you previously deleted the unmanaged solution and still do not see it, note
+that deleting an unmanaged solution removes only the solution container; the
+customizations remain in the Default Solution. The safest path for validating a
+managed import is to use a fresh downstream environment instead of the original
+development/default environment.
 
 ---
 
