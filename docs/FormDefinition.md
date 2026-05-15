@@ -6,10 +6,8 @@ Tento formulář slouží jako vstupní bod pro vytvoření sady nových úkolů
 
 Formulář je funkční specifikací pro
 Flow `CampanulaCreateConcertPlanFromTemplate`, který je součástí solution
-`CampanulaPlannerFlows`. Složka
-`src\exported\CampanulaCreateConcertPlanFromTemplateSolution` slouží jako
-reference struktury rozbaleného Power Platform solution balíčku; produkční zdroj
-pro CI/CD je `src\CampanulaPlannerFlows`.
+`CampanulaPlannerFlows`. Produkční zdroj pro CI/CD je
+`src\CampanulaPlannerFlows`.
 
 Zde jsou ukázkové či doporučené vstupní hodnoty:
 

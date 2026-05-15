@@ -50,20 +50,12 @@ Both `Typ šablony` and `Místo konání` filter the same Excel column,
 equals the selected concert type and rows where `TemplateType` equals the
 selected location, then creates one Planner plan containing both task sets.
 
-## Source folder roles
+## Source folder role
 
-The `src\` folder contains the production solution source and supporting references:
-
-| Folder | Role | Use for |
-| --- | --- | --- |
-| `CampanulaPlannerFlows` | Deployable unpacked Power Platform solution source. | Pack and import this folder in CI/CD. It can contain multiple flows later; currently it contains the first Flow implementation. |
-| `exported\CampanulaCreateConcertPlanFromTemplateSolution` | Exported and unpacked solution sample. | Use only as a structure reference for solution files such as `solution.xml`, `customizations.xml`, and `Workflows\`. |
-| `exported\CampanulaCreateConcertPlanFromTemplateDemo` | Older manually downloaded Power Automate package. | Use only for package-format comparison; it is not the solution ALM reference. |
-
-When creating or packaging `CampanulaPlannerFlows`, use
-`src\exported\CampanulaCreateConcertPlanFromTemplateSolution` as the closest
-in-repo example of an unpacked Power Platform solution structure. Do not migrate
-its content into the production folder.
+`src\CampanulaPlannerFlows` is the deployable unpacked Power Platform solution
+source. GitHub Actions packs and imports this folder as a managed solution. It
+can contain multiple flows later; currently it contains the first Flow
+implementation.
 
 ## Flow description
 
