@@ -235,7 +235,7 @@ run:
 
 ```bash
 pac solution delete \
-  --name CampanulaPlannerFlows \
+  --solution-name CampanulaPlannerFlows \
   --environment "$PP_ENVIRONMENT_URL"
 ```
 
