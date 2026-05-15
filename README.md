@@ -120,7 +120,9 @@ pac solution import \
 ```
 
 GitHub Actions uses the same managed package type when importing the solution
-directly into production.
+directly into production. If a push to `main` does not publish a semantic-release
+release, use the workflow's manual **Run workflow** button for an ad hoc
+production deploy.
 
 ### 5. Upload the Excel template to SharePoint
 
