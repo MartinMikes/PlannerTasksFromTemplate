@@ -8,6 +8,15 @@ on:
       - "src/**"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
+    inputs:
+      reason:
+        description: Reason for ad hoc production deployment
+        required: true
+        type: string
+
+concurrency:
+  group: power-platform-production
+  cancel-in-progress: false
 
 env:
   SOLUTION_NAME: CampanulaPlannerFlows
@@ -31,6 +40,7 @@ jobs:
           fetch-depth: 0 # semantic-release needs full history
 
       - name: Determine release version
+        if: github.event_name == 'push'
         id: semanticRelease
         uses: cycjimmy/semantic-release-action@v6
         with:
@@ -38,8 +48,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Skip deploy when there is no release
+        if: github.event_name == 'push' && steps.semanticRelease.outputs.new_release_published != 'true'
+        run: echo "semantic-release did not publish a release, so automatic deployment is skipped."
+
+      - name: Show ad hoc deploy reason
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          DEPLOY_REASON: ${{ inputs.reason }}
+        run: |
+          echo "Ad hoc production deployment requested by ${{ github.actor }}."
+          echo "Reason: ${DEPLOY_REASON}"
+
       - name: Install Power Platform CLI
-        if: steps.semanticRelease.outputs.new_release_published == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         uses: microsoft/powerplatform-actions/actions-install@v1
 
       - name: Set solution version
@@ -51,7 +73,7 @@ jobs:
           echo "Solution version: ${VER}"
 
       - name: Authenticate with Power Platform
-        if: steps.semanticRelease.outputs.new_release_published == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           "$POWERPLATFORMTOOLS_PACPATH" auth create \
             --environment   "${{ vars.PP_ENVIRONMENT_URL }}" \
@@ -60,7 +82,7 @@ jobs:
             --tenant        "${{ vars.PP_TENANT_ID }}"
 
       - name: Create solution zip
-        if: steps.semanticRelease.outputs.new_release_published == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           mkdir -p out
           "$POWERPLATFORMTOOLS_PACPATH" solution pack \
@@ -69,7 +91,7 @@ jobs:
             --packageType Managed
 
       - name: Upload packed solution as artifact
-        if: steps.semanticRelease.outputs.new_release_published == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.SOLUTION_NAME }}
@@ -84,7 +106,7 @@ jobs:
           files: ${{ env.SOLUTION_ZIP }}
 
       - name: Import solution to Power Platform
-        if: steps.semanticRelease.outputs.new_release_published == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         uses: microsoft/powerplatform-actions/import-solution@v1
         with:
           environment-url: ${{ vars.PP_ENVIRONMENT_URL }}

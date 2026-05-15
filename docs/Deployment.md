@@ -165,8 +165,33 @@ Go to **Settings → Secrets and variables → Actions** in this repository and 
 
 | Event | Action |
 | --- | --- |
-| Push to `main` | Automatic deploy of a **Managed** package to the production Power Platform environment |
-| `workflow_dispatch` | Manual deploy of a **Managed** package to the production Power Platform environment |
+| Push to `main` | Runs semantic-release. If a release is published, GitHub Actions updates the solution version, packs a **Managed** package, attaches it to the GitHub release, and imports it into production. |
+| `workflow_dispatch` | Ad hoc production deploy. GitHub Actions packs the selected ref as a **Managed** package and imports it into production even when semantic-release does not publish a release. |
+
+The workflow allows only one production deployment to run at a time.
+
+### Ad hoc production deploy
+
+Use the manual workflow when production needs the current solution source even
+though the latest commit does not trigger a semantic-release release.
+
+From GitHub:
+
+1. Open **Actions**.
+2. Select **Deploy Power Platform Solution**.
+3. Click **Run workflow**.
+4. Select the branch or tag to deploy, usually `main`.
+5. Enter a short deployment reason and click **Run workflow**.
+
+With GitHub CLI:
+
+```bash
+gh workflow run deploy.yml --ref main -f reason="Ad hoc production deploy"
+```
+
+Manual ad hoc deploys do not create a GitHub release or change the solution
+version in source control. They use the version already present in
+`src\CampanulaPlannerFlows\Other\Solution.xml`.
 
 ---
 
