@@ -20,7 +20,6 @@ on:
 
 env:
   SOLUTION_NAME: CampanulaPlannerFlows
-  SOLUTION_UNIQUE_NAME: CampanulaPlannerFlows
   SOLUTION_FOLDER: src/CampanulaPlannerFlows
   SOLUTION_ZIP: out/CampanulaPlannerFlows.zip
   SOLUTION_PACKAGE_TYPE: ${{ inputs.solution_package_type || 'Unmanaged' }}
@@ -78,7 +77,10 @@ jobs:
           "$POWERPLATFORMTOOLS_PACPATH" solution list --environment "${{ vars.PP_ENVIRONMENT_URL }}"
           echo "::endgroup::"
           if [ "${{ env.SOLUTION_PACKAGE_TYPE }}" = "Managed" ]; then
-            WARNING_MESSAGE="Verify that the solution list above does not contain an unmanaged ${{ env.SOLUTION_UNIQUE_NAME }} entry. If it does, remove it first or rerun the workflow with solution_package_type=Unmanaged."
+            WARNING_MESSAGE="Verify that the solution list above does not contain "
+            WARNING_MESSAGE+="an unmanaged ${{ env.SOLUTION_NAME }} entry. "
+            WARNING_MESSAGE+="If it does, remove it first or rerun the workflow "
+            WARNING_MESSAGE+="with solution_package_type=Unmanaged."
             echo "::warning title=Managed import requires a clean target environment::${WARNING_MESSAGE}"
           fi
 
