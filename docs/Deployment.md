@@ -213,11 +213,12 @@ Use the manual `workflow_dispatch` trigger with
 `solution_package_type=Managed` only when the target environment is a clean
 downstream environment.
 
-According to Microsoft ALM guidance, a managed solution cannot be imported into
-an environment that still contains the originating unmanaged solution. If you
-see the error `The solution is already installed on this system as an
-unmanaged solution`, first check whether `CampanulaPlannerFlows` already exists
-as unmanaged:
+According to Microsoft ALM guidance in
+[Solution concepts with Power Platform](https://learn.microsoft.com/en-us/power-platform/alm/solution-concepts-alm),
+a managed solution cannot be imported into an environment that still contains
+the originating unmanaged solution. If you see the error `The solution is
+already installed on this system as an unmanaged solution`, first check whether
+`CampanulaPlannerFlows` already exists as unmanaged:
 
 ```bash
 pac solution list --environment "$PP_ENVIRONMENT_URL"
