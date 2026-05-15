@@ -208,6 +208,9 @@ Production solution source folder:
 src\CampanulaPlannerFlows
 ├── [Content_Types].xml
 ├── customizations.xml
+├── Connectors\
+│   ├── campa_planner_graph_apiDefinition.swagger.json
+│   └── campa_planner_graph_connectionparameters.json
 ├── solution.xml
 └── Workflows\
     └── CampanulaCreateConcertPlanFromTemplate.json
