@@ -32,6 +32,7 @@ Unpacked solution source structure:
 ```text
 src\CampanulaPlannerFlows
 ├── [Content_Types].xml
+├── Connectors\
 ├── customizations.xml
 ├── solution.xml
 └── Workflows\
@@ -54,7 +55,8 @@ the `CampanulaPlannerFlows` solution:
    names, and lookup values.
 3. Use [Overview.md](Overview.md) for the intended end-to-end Flow behavior.
 4. Build the Flow manually in Power Platform, wiring Microsoft Forms, Excel
-   Online, Planner, and notification actions.
+   Online, the `Campanula Planner Graph` custom connector for plan creation,
+   Planner for bucket and task actions, and notifications.
 5. Add the Flow to the production solution source under
    `src\CampanulaPlannerFlows`.
 6. Commit the updated solution files on a feature branch.
@@ -144,6 +146,9 @@ src\CampanulaPlannerFlows
 The solution may contain multiple Flow components later. The current scope is the
 first Flow, `CampanulaCreateConcertPlanFromTemplate`.
 
+The solution source now also includes the `Campanula Planner Graph` custom
+connector under `src\CampanulaPlannerFlows\Connectors`.
+
 ### Required GitHub variables and secrets
 
 Go to **Settings → Secrets and variables → Actions** in this repository and add:
@@ -211,6 +216,10 @@ src\CampanulaPlannerFlows
 The production folder is zipped by GitHub Actions and imported with Power
 Platform Tools. Resolve environment-specific form, Excel, Planner, and
 notification values before running the Flow in a live environment.
+
+After importing a version that contains the custom connector, open Power
+Platform and create or refresh the `Campanula Planner Graph` connection so the
+Flow can call Microsoft Graph with delegated `Tasks.ReadWrite`.
 
 ## SharePoint Template Update
 

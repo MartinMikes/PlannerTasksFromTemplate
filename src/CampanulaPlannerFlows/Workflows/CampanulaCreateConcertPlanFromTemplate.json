@@ -28,6 +28,15 @@
           "name": "shared_planner"
         }
       },
+      "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "campa_sharedcampanulaplannergraph_createconcertplan"
+        },
+        "api": {
+          "name": "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d"
+        }
+      },
       "shared_sendmail": {
         "runtimeSource": "embedded",
         "connection": {
@@ -178,9 +187,18 @@
           "type": "Compose",
           "inputs": "@concat(outputs('Compose_ConcertName'), ' (', outputs('Compose_Location'), ')')"
         },
-        "Initialize_TemplateTypeFilters": {
+        "Compose_PlannerGroupUrl": {
           "runAfter": {
             "Compose_PlannerPlanName": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@concat('https://graph.microsoft.com/v1.0/groups/', parameters('plannerGroupId'))"
+        },
+        "Initialize_TemplateTypeFilters": {
+          "runAfter": {
+            "Compose_PlannerGroupUrl": [
               "Succeeded"
             ]
           },
@@ -238,12 +256,12 @@
           "type": "OpenApiConnection",
           "inputs": {
             "parameters": {
-              "body/owner": "@parameters('plannerGroupId')",
+              "body/container/url": "@outputs('Compose_PlannerGroupUrl')",
               "body/title": "@outputs('Compose_PlannerPlanName')"
             },
             "host": {
-              "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
-              "connectionName": "shared_planner",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
+              "connectionName": "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
               "operationId": "CreatePlan"
             },
             "authentication": "@parameters('$authentication')"

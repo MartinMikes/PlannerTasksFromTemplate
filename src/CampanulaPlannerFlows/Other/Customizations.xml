@@ -11,6 +11,7 @@
   <optionsets />
   <CustomControls />
   <EntityDataProviders />
+  <Connectors />
   <connectionreferences>
     <connectionreference
       connectionreferencelogicalname="campa_sharedmicrosoftforms_createconcertplan">
@@ -37,6 +38,17 @@
       <promptingbehavior>1</promptingbehavior>
       <statecode>0</statecode>
       <statuscode>1</statuscode>
+    </connectionreference>
+    <connectionreference connectionreferencelogicalname="campa_sharedcampanulaplannergraph_createconcertplan">
+     <connectionreferencedisplayname>Campanula Planner Graph - CampanulaCreateConcertPlanFromTemplate</connectionreferencedisplayname>
+     <connectorid>/providers/Microsoft.PowerApps/apis/shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d</connectorid>
+     <customconnectorid>
+       <connectorid>aa5c469a-b5dd-4963-917c-66bf35639bb3</connectorid>
+     </customconnectorid>
+     <iscustomizable>1</iscustomizable>
+     <promptingbehavior>1</promptingbehavior>
+     <statecode>0</statecode>
+     <statuscode>1</statuscode>
     </connectionreference>
     <connectionreference connectionreferencelogicalname="campa_sharedsendmail_createconcertplan">
       <connectionreferencedisplayname>Mail - CampanulaCreateConcertPlanFromTemplate</connectionreferencedisplayname>

@@ -9,10 +9,11 @@ for the mixed choir **Campanula**.
 Colleagues start the process from the Czech Microsoft Form documented in
 [`docs\FormDefinition.md`](docs\FormDefinition.md). The first production Flow,
 `CampanulaCreateConcertPlanFromTemplate`, is stored in the
-`CampanulaPlannerFlows` solution. It will map those form answers to stable
-English technical identifiers, read task definitions from
-`PlannerTasksTemplate.xlsx` in SharePoint, then create the Planner plan,
-buckets, tasks, assignments, checklists, and notifications.
+`CampanulaPlannerFlows` solution. It maps those form answers to stable English
+technical identifiers, reads task definitions from `PlannerTasksTemplate.xlsx`
+in SharePoint, creates the Planner plan through a Microsoft Graph custom
+connector, then creates buckets, tasks, assignments, checklists, and
+notifications.
 
 ## Repository structure
 
@@ -29,6 +30,7 @@ buckets, tasks, assignments, checklists, and notifications.
 ├── src\
 │   └── CampanulaPlannerFlows\
 │       ├── [Content_Types].xml
+│       ├── Connectors\
 │       ├── customizations.xml
 │       ├── solution.xml
 │       └── Workflows\
@@ -99,8 +101,9 @@ technical identifiers.
 
 ### 4. Prepare the production solution source
 
-Build the `CampanulaCreateConcertPlanFromTemplate` Flow in the
-`CampanulaPlannerFlows` solution from
+Build the `CampanulaCreateConcertPlanFromTemplate` Flow and its
+`Campanula Planner Graph` custom connector in the `CampanulaPlannerFlows`
+solution from
 [`docs\Overview.md`](docs/Overview.md),
 [`docs\FormDefinition.md`](docs/FormDefinition.md), and
 [`docs\ExcelTemplate.md`](docs/ExcelTemplate.md). Keep the deployable unpacked
@@ -123,6 +126,10 @@ GitHub Actions uses the same managed package type when importing the solution
 directly into production. If a push to `main` does not publish a semantic-release
 release, use the workflow's manual **Run workflow** button for an ad hoc
 production deploy.
+
+After the first import, create or refresh the `Campanula Planner Graph`
+connection in Power Platform and grant delegated Microsoft Graph permission
+`Tasks.ReadWrite`.
 
 ### 5. Upload the Excel template to SharePoint
 
