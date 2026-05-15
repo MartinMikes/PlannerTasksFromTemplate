@@ -25,9 +25,7 @@ solution.
 
 ## Current source folder
 
-| Folder | Origin | Notes |
-| --- | --- | --- |
-| `src\CampanulaPlannerFlows` | Production unpacked solution source. | GitHub Actions packs and imports this folder as a managed solution. It can contain multiple Flow components later; currently it contains the first Flow. |
+The `src\CampanulaPlannerFlows` folder is the production unpacked solution source. GitHub Actions packs and imports this folder as a managed solution. It can contain multiple Flow components later; currently it contains the first Flow.
 
 Unpacked solution source structure:
 

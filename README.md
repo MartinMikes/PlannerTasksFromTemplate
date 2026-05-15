@@ -28,10 +28,10 @@ buckets, tasks, assignments, checklists, and notifications.
 │   └── Deployment.md
 ├── src\
 │   └── CampanulaPlannerFlows\
-│   │   ├── [Content_Types].xml
-│   │   ├── customizations.xml
-│   │   ├── solution.xml
-│   │   └── Workflows\
+│       ├── [Content_Types].xml
+│       ├── customizations.xml
+│       ├── solution.xml
+│       └── Workflows\
 ├── templates\
 │   └── PlannerTasksTemplate.xlsx
 ├── .env.example
