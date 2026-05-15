@@ -3,7 +3,7 @@
     "type": "oauthSetting",
     "oAuthSettings": {
       "identityProvider": "aad",
-      "clientId": "REPLACE_WITH_MICROSOFT_ENTRA_APP_ID",
+      "clientId": "${MICROSOFT_ENTRA_APP_ID}",
       "scopes": [],
       "redirectMode": "GlobalPerConnector",
       "redirectUrl": "https://global.consent.azure-apim.net/redirect/campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
