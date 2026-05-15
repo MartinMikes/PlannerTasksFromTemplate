@@ -58,7 +58,10 @@ jobs:
           DEPLOY_REASON: ${{ inputs.reason }}
         run: |
           echo "Ad hoc production deployment requested by ${{ github.actor }}."
+          stop_marker="$(uuidgen)"
+          echo "::stop-commands::${stop_marker}"
           echo "Reason: ${DEPLOY_REASON}"
+          echo "::${stop_marker}::"
 
       - name: Install Power Platform CLI
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
