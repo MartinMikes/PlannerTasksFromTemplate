@@ -78,7 +78,8 @@ jobs:
           "$POWERPLATFORMTOOLS_PACPATH" solution list --environment "${{ vars.PP_ENVIRONMENT_URL }}"
           echo "::endgroup::"
           if [ "${{ env.SOLUTION_PACKAGE_TYPE }}" = "Managed" ]; then
-            echo "::warning title=Managed import requires a clean target environment::Verify that the solution list above does not contain an unmanaged ${{ env.SOLUTION_UNIQUE_NAME }} entry. If it does, remove it first or rerun the workflow with solution_package_type=Unmanaged."
+            WARNING_MESSAGE="Verify that the solution list above does not contain an unmanaged ${{ env.SOLUTION_UNIQUE_NAME }} entry. If it does, remove it first or rerun the workflow with solution_package_type=Unmanaged."
+            echo "::warning title=Managed import requires a clean target environment::${WARNING_MESSAGE}"
           fi
 
       - name: Create solution zip
