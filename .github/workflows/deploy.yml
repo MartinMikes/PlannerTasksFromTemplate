@@ -74,7 +74,7 @@ jobs:
         if: steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           echo "Requested package type: ${{ env.SOLUTION_PACKAGE_TYPE }}"
-          if "$POWERPLATFORMTOOLS_PACPATH" solution list | grep -iw "${{ env.SOLUTION_UNIQUE_NAME }}"; then
+          if "$POWERPLATFORMTOOLS_PACPATH" solution list --environment "${{ vars.PP_ENVIRONMENT_URL }}" | grep -qiw "${{ env.SOLUTION_UNIQUE_NAME }}"; then
             echo "Found an existing solution entry matching ${{ env.SOLUTION_UNIQUE_NAME }}."
             if [ "${{ env.SOLUTION_PACKAGE_TYPE }}" = "Managed" ]; then
               echo "::warning title=Managed import requires a clean target environment::If the matching solution is unmanaged, Power Platform will reject a managed import. Remove the unmanaged solution first or rerun the workflow with solution_package_type=Unmanaged."

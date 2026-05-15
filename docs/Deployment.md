@@ -215,8 +215,9 @@ downstream environment.
 
 According to Microsoft ALM guidance, a managed solution cannot be imported into
 an environment that still contains the originating unmanaged solution. If you
-see the error from issue #18 again, first check whether `CampanulaPlannerFlows`
-already exists as unmanaged:
+see the error `The solution is already installed on this system as an
+unmanaged solution`, first check whether `CampanulaPlannerFlows` already exists
+as unmanaged:
 
 ```bash
 pac solution list --environment "$PP_ENVIRONMENT_URL"
