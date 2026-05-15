@@ -188,8 +188,8 @@ Go to **Settings → Secrets and variables → Actions** in this repository and 
 | Name | Type | Description |
 | --- | --- | --- |
 | `PP_ENVIRONMENT_URL` | Variable | Power Platform environment URL, e.g. `https://org.crm4.dynamics.com/` |
-| `PP_APP_ID` | Variable | Azure AD Application (client) ID of the service principal |
-| `PP_TENANT_ID` | Variable | Azure AD tenant ID |
+| `PP_APP_ID` | Variable | Microsoft Entra ID application (client) ID of the service principal |
+| `PP_TENANT_ID` | Variable | Microsoft Entra ID tenant ID |
 | `PP_CLIENT_SECRET` | Secret | Client secret of the service principal |
 
 ### Service Principal Setup
