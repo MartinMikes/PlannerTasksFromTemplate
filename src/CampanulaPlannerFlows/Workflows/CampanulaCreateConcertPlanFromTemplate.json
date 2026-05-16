@@ -65,35 +65,35 @@
         },
         "questionConcertName": {
           "type": "String",
-          "defaultValue": "REPLACE_WITH_QUESTION_ID_NAZEV_KONCERTU"
+          "defaultValue": "r97d477e4e6b94cf5a7760d3d5a30a9ce"
         },
         "questionTemplateType": {
           "type": "String",
-          "defaultValue": "REPLACE_WITH_QUESTION_ID_TYP_SABLONY"
+          "defaultValue": "r6fd6eb9bdbbf40ea85267b5081ae94b3"
         },
         "questionLocation": {
           "type": "String",
-          "defaultValue": "REPLACE_WITH_QUESTION_ID_MISTO_KONANI"
+          "defaultValue": "r09956447cbca4261a22d193e3ed5a08d"
         },
         "questionConcertDate": {
           "type": "String",
-          "defaultValue": "REPLACE_WITH_QUESTION_ID_DATUM_KONCERTU"
+          "defaultValue": "r919a507d3dcb43108ecab3a41acfb4b5"
         },
         "plannerGroupId": {
           "type": "String",
-          "defaultValue": "REPLACE_WITH_MICROSOFT_365_GROUP_ID"
+          "defaultValue": "a41f5114-a83e-48ae-8f09-6108674e138f"
         },
         "excelSource": {
           "type": "String",
-          "defaultValue": "sites"
+          "defaultValue": "sites/campanulajihlava.sharepoint.com,df20dd14-d2e8-4588-8fd3-68ef6513b004,03cf642e-c1dc-4b21-888a-9e819b1c59f0"
         },
         "excelDrive": {
           "type": "String",
-          "defaultValue": "73c4dfb2-a352-485c-ad73-0b7d0edbff46"
+          "defaultValue": "b!FN0g3-jSiEWP02jvZROwBC5kzwPcwSFLiIqegZscWfCy38RzUqNcSK1zC30O2_9G"
         },
         "excelFile": {
           "type": "String",
-          "defaultValue": "{87AD9406-D1CF-45A7-B17D-AD4C0110F5D7}"
+          "defaultValue": "01YVHKU6IGSSWYPT6RU5C3C7NNJQARB5OX"
         },
         "tasksTable": {
           "type": "String",
@@ -105,7 +105,7 @@
         },
         "notificationTo": {
           "type": "String",
-          "defaultValue": "REPLACE_WITH_NOTIFICATION_RECIPIENT"
+          "defaultValue": "martin.mikes@campanulajihlava.cz"
         }
       },
       "triggers": {
@@ -407,6 +407,7 @@
               "type": "OpenApiConnection",
               "inputs": {
                 "parameters": {
+                  "body/groupId": "@parameters('plannerGroupId')",
                   "body/planId": "@body('Create_Planner_Plan')?['id']",
                   "body/bucketId": "@variables('bucketMap')?[item()?['Bucket']]",
                   "body/title": "@item()?['TaskName']",
@@ -416,7 +417,7 @@
                 "host": {
                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
                   "connectionName": "shared_planner",
-                  "operationId": "CreateTask_V2"
+                  "operationId": "CreateTask_V3"
                 },
                 "authentication": "@parameters('$authentication')"
               }
