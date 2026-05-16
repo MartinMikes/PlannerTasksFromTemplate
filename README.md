@@ -26,7 +26,9 @@ notifications.
 │   ├── Overview.md
 │   ├── FormDefinition.md
 │   ├── ExcelTemplate.md
-│   └── Deployment.md
+│   ├── Deployment.md
+│   ├── References.md
+│   └── PowerAutomateActions\
 ├── src\
 │   └── CampanulaPlannerFlows\
 │       ├── [Content_Types].xml
@@ -170,6 +172,10 @@ descriptions.
 - [`docs\ExcelTemplate.md`](docs/ExcelTemplate.md) – Excel template reference
 - [`docs\Deployment.md`](docs/Deployment.md) – package preparation and
   deployment guide
+- [`docs\References.md`](docs/References.md) – Microsoft source links used for
+  action and connector research
+- [`docs\PowerAutomateActions\`](docs/PowerAutomateActions) – concise Power
+  Automate action references grouped by area
 
 ## License
 

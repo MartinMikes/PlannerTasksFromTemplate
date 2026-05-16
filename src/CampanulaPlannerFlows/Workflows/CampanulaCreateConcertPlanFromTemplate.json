@@ -28,22 +28,22 @@
           "name": "shared_planner"
         }
       },
-      "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d": {
+      "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d": {
         "runtimeSource": "embedded",
         "connection": {
           "connectionReferenceLogicalName": "campa_sharedcampanulaplannergraph_createconcertplan"
         },
         "api": {
-          "name": "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d"
+          "name": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d"
         }
       },
-      "shared_sendmail": {
+      "shared_office365": {
         "runtimeSource": "embedded",
         "connection": {
-          "connectionReferenceLogicalName": "campa_sharedsendmail_createconcertplan"
+          "connectionReferenceLogicalName": "campa_sharedoffice365_createconcertplan"
         },
         "api": {
-          "name": "shared_sendmail"
+          "name": "shared_office365"
         }
       }
     },
@@ -260,8 +260,8 @@
               "body/title": "@outputs('Compose_PlannerPlanName')"
             },
             "host": {
-              "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
-              "connectionName": "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+              "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
               "operationId": "CreatePlan"
             },
             "authentication": "@parameters('$authentication')"
@@ -512,14 +512,15 @@
           "type": "OpenApiConnection",
           "inputs": {
             "parameters": {
-              "request/to": "@parameters('notificationTo')",
-              "request/subject": "@concat('Planner plan created: ', outputs('Compose_PlannerPlanName'))",
-              "request/text": "@concat('<p>Planner plan <strong>', outputs('Compose_PlannerPlanName'), '</strong> was created.</p><p>Created tasks: ', string(variables('createdTaskCount')), '</p>')"
+              "emailMessage/To": "@parameters('notificationTo')",
+              "emailMessage/Subject": "@concat('Planner plan created: ', outputs('Compose_PlannerPlanName'))",
+              "emailMessage/Body": "@concat('<p class=\"editor-paragraph\">Planner plan <strong>', outputs('Compose_PlannerPlanName'), '</strong> was created.</p>', '<p class=\"editor-paragraph\">Concert name: ', outputs('Compose_ConcertName'), '</p>', '<p class=\"editor-paragraph\">Template type: ', outputs('Compose_TemplateType'), '</p>', '<p class=\"editor-paragraph\">Location: ', outputs('Compose_Location'), '</p>', '<p class=\"editor-paragraph\">Concert date: ', string(outputs('Compose_ConcertDate')), '</p>', '<p class=\"editor-paragraph\">Created tasks: ', string(variables('createdTaskCount')), '</p>')",
+              "emailMessage/Importance": "Normal"
             },
             "host": {
-              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sendmail",
-              "connectionName": "shared_sendmail",
-              "operationId": "SendEmailV3"
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+              "connectionName": "shared_office365",
+              "operationId": "SendEmailV2"
             },
             "authentication": "@parameters('$authentication')"
           }
