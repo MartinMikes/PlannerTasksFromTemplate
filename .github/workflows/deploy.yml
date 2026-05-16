@@ -75,6 +75,20 @@ jobs:
             "${{ env.SOLUTION_FOLDER }}/Other/Solution.xml"
           echo "Solution version: ${VER}"
 
+      - name: Commit updated solution version
+        if: steps.semanticRelease.outputs.new_release_published == 'true'
+        run: |
+          VER="${{ steps.semanticRelease.outputs.new_release_version }}.0"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "${{ env.SOLUTION_FOLDER }}/Other/Solution.xml"
+          if git diff --cached --quiet; then
+            echo "Solution.xml already at ${VER}, nothing to commit."
+          else
+            git commit -m "chore: update solution version to ${VER} [skip ci]"
+            git push
+          fi
+
       - name: Authenticate with Power Platform
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
