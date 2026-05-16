@@ -127,9 +127,18 @@ directly into production. If a push to `main` does not publish a semantic-releas
 release, use the workflow's manual **Run workflow** button for an ad hoc
 production deploy.
 
+Before importing or using the custom connector, update the OAuth `clientId`
+in the solution source under `src\CampanulaPlannerFlows` from the placeholder
+value to the real Microsoft Entra app registration (application) ID that the
+connector should use for Microsoft Graph authentication.
+
 After the first import, create or refresh the `Campanula Planner Graph`
-connection in Power Platform and grant delegated Microsoft Graph permission
-`Tasks.ReadWrite`.
+connection in Power Platform. Ensure the Entra app registration used by the
+connector has delegated Microsoft Graph permission `Tasks.ReadWrite`
+configured, and grant consent in the appropriate place: permission setup and
+any admin consent are performed on the app registration, while the Power
+Platform connection creation/refresh flow performs the connection sign-in and
+user consent for that configured app.
 
 ### 5. Upload the Excel template to SharePoint
 
