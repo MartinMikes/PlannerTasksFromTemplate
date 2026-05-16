@@ -224,6 +224,11 @@ After importing a version that contains the custom connector, open Power
 Platform and create or refresh the `Campanula Planner Graph` connection so the
 Flow can call Microsoft Graph with delegated `Tasks.ReadWrite`.
 
+Managed production imports are solution-aware cloud flows. In the target
+environment, expect to find them primarily under **Solutions**. A managed flow
+imported this way might not appear under **My Flows** unless you are also its
+owner or co-owner in that environment.
+
 ## SharePoint Template Update
 
 After changing `templates/PlannerTasksTemplate.xlsx`:
