@@ -98,6 +98,19 @@ jobs:
             --clientSecret  "${{ secrets.PP_CLIENT_SECRET }}" \
             --tenant        "${{ vars.PP_TENANT_ID }}"
 
+      - name: Inject connector app ID
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
+        env:
+          PP_CONNECTOR_APP_ID: ${{ vars.PP_CONNECTOR_APP_ID }}
+        run: |
+          if [ -z "$PP_CONNECTOR_APP_ID" ]; then
+            echo "::error::PP_CONNECTOR_APP_ID variable is not set. Add it under Settings → Secrets and variables → Actions → Variables before deploying."
+            exit 1
+          fi
+          PARAMS_FILE="${{ env.SOLUTION_FOLDER }}/Connectors/campa_planner_graph_connectionparameters.json"
+          sed -i "s|\${MICROSOFT_ENTRA_APP_ID}|${PP_CONNECTOR_APP_ID}|g" "$PARAMS_FILE"
+          echo "Connector app ID injected into ${PARAMS_FILE}."
+
       - name: Create solution zip
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         run: |

@@ -129,10 +129,15 @@ directly into production. If a push to `main` does not publish a semantic-releas
 release, use the workflow's manual **Run workflow** button for an ad hoc
 production deploy.
 
-Before importing or using the custom connector, update the OAuth `clientId`
-in the solution source under `src\CampanulaPlannerFlows` from the placeholder
-value to the real Microsoft Entra app registration (application) ID that the
-connector should use for Microsoft Graph authentication.
+The deployment workflow automatically injects the custom connector OAuth app ID
+into the connector source before packing, so the placeholder value
+`${MICROSOFT_ENTRA_APP_ID}` in
+`src\CampanulaPlannerFlows\Connectors\campa_planner_graph_connectionparameters.json`
+is replaced at deploy time with the value from the `PP_CONNECTOR_APP_ID`
+GitHub Actions variable. Set `PP_CONNECTOR_APP_ID` to the application (client)
+ID of the Entra app registration dedicated to the `Campanula Planner Graph`
+connector. This registration is separate from `PP_APP_ID`, which is used by
+the PAC CLI service principal.
 
 After the first import, create or refresh the `Campanula Planner Graph`
 connection in Power Platform. Ensure the Entra app registration used by the
