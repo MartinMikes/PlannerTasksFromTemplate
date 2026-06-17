@@ -15,7 +15,7 @@
         description="Řešení Power Automate pro vytváření plánů a úkolů v aplikaci Planner z formuláře Campanula Microsoft Form a šablony Excel."
         languagecode="1029" />
     </Descriptions>
-    <Version>1.2.0.0</Version>
+    <Version>1.2.1.0</Version>
     <Managed>1</Managed>
     <Publisher>
       <UniqueName>MartiX</UniqueName>
