@@ -108,7 +108,15 @@ jobs:
             exit 1
           fi
           PARAMS_FILE="${{ env.SOLUTION_FOLDER }}/Connectors/campa_planner_graph_connectionparameters.json"
+          if ! grep -Fq '${MICROSOFT_ENTRA_APP_ID}' "$PARAMS_FILE"; then
+            echo "::error::Expected placeholder \${MICROSOFT_ENTRA_APP_ID} not found in $PARAMS_FILE. Ensure the connector source still contains the placeholder."
+            exit 1
+          fi
           sed -i "s|\${MICROSOFT_ENTRA_APP_ID}|${PP_CONNECTOR_APP_ID}|g" "$PARAMS_FILE"
+          if grep -Fq '${MICROSOFT_ENTRA_APP_ID}' "$PARAMS_FILE" || ! grep -Fq "$PP_CONNECTOR_APP_ID" "$PARAMS_FILE"; then
+            echo "::error::Connector app ID injection did not take effect in $PARAMS_FILE."
+            exit 1
+          fi
           echo "Connector app ID injected into ${PARAMS_FILE}."
 
       - name: Create solution zip

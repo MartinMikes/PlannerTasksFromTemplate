@@ -97,6 +97,8 @@ The connector source contains the placeholder `${MICROSOFT_ENTRA_APP_ID}`.
 Replace it before packing, using the connector app registration ID from `.env`:
 
 ```bash
+: "${PP_CONNECTOR_APP_ID:?PP_CONNECTOR_APP_ID is required}"
+# macOS (BSD sed): use `sed -i '' ...` or install GNU sed (`brew install gnu-sed`) and use `gsed -i ...`.
 sed -i "s|\${MICROSOFT_ENTRA_APP_ID}|${PP_CONNECTOR_APP_ID}|g" \
   src/CampanulaPlannerFlows/Connectors/campa_planner_graph_connectionparameters.json
 
