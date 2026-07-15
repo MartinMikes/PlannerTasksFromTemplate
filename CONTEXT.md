@@ -51,3 +51,15 @@ _Avoid_: Note, comment
 **Planning label**:
 A thematic classification tag used to group tasks for reporting and review.
 _Avoid_: Status, priority
+
+**Processing record**:
+The durable record of how one concert request progresses toward one usable concert plan, including its current outcome and recovery history.
+_Avoid_: Run log, Flow instance
+
+**Processing item**:
+The durable record that relates one template-defined bucket or task to the corresponding item created in a concert plan.
+_Avoid_: Cache row, temporary mapping
+
+**Replacement plan**:
+A new concert plan explicitly authorized by an operator after the preceding concert plan has been abandoned because it cannot be safely completed.
+_Avoid_: Retry plan, duplicate plan
