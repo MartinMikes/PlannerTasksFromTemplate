@@ -91,9 +91,17 @@ pac auth create \
   --tenant        "$PP_TENANT_ID"
 ```
 
-### 3. Create the managed solution zip
+### 3. Inject connector app ID and create the managed solution zip
+
+The connector source contains the placeholder `${MICROSOFT_ENTRA_APP_ID}`.
+Replace it before packing, using the connector app registration ID from `.env`:
 
 ```bash
+: "${PP_CONNECTOR_APP_ID:?PP_CONNECTOR_APP_ID is required}"
+# macOS (BSD sed): use `sed -i '' ...` or install GNU sed (`brew install gnu-sed`) and use `gsed -i ...`.
+sed -i "s|\${MICROSOFT_ENTRA_APP_ID}|${PP_CONNECTOR_APP_ID}|g" \
+  src/CampanulaPlannerFlows/Connectors/campa_planner_graph_connectionparameters.json
+
 mkdir -p out
 (
   cd src/CampanulaPlannerFlows
@@ -103,6 +111,9 @@ mkdir -p out
     --packageType Managed
 )
 ```
+
+> Do not commit `campa_planner_graph_connectionparameters.json` after this substitution.
+> The file is for local pack/import only; revert it afterwards to keep the placeholder in Git.
 
 ### 4. Import the solution
 
@@ -118,6 +129,26 @@ pac solution import \
 ```bash
 pac solution list --environment "$PP_ENVIRONMENT_URL"
 ```
+
+### 6. Create or refresh the connector connection
+
+After importing a version that contains the custom connector for the first time or after any auth change:
+
+1. Open Power Platform and navigate to the `CampanulaPlannerFlows` solution.
+2. Open **Connection References**.
+3. For `Campanula Planner Graph - CampanulaCreateConcertPlanFromTemplate`, create a new connection using the `Campanula Planner Graph` connector.
+4. Sign in with an account that is a member of the Microsoft 365 group used for Planner plan creation.
+5. Confirm the connection reference shows a healthy connection.
+
+### 7. Validate with a temporary test plan
+
+1. Submit a test response from the Microsoft Form with a plan title clearly marked as temporary (e.g. `[TEST DELETE] <ConcertName>`).
+2. Verify:
+   - The Planner plan is created in the expected group.
+   - Buckets are created in the new plan.
+   - Tasks reference the new plan ID and contain correct assignees, due dates, and checklists.
+   - The notification reports the expected task count.
+3. Delete the temporary test plan manually from Microsoft Planner after successful validation.
 
 ---
 
@@ -149,6 +180,14 @@ first Flow, `CampanulaCreateConcertPlanFromTemplate`.
 The solution source now also includes the `Campanula Planner Graph` custom
 connector under `src\CampanulaPlannerFlows\Connectors`.
 
+The deployment workflow automatically injects the connector OAuth app ID before
+packing. If `PP_CONNECTOR_APP_ID` is not set as a GitHub Actions variable, the
+workflow fails with an explicit error before packing starts. The placeholder
+`${MICROSOFT_ENTRA_APP_ID}` in
+`src\CampanulaPlannerFlows\Connectors\campa_planner_graph_connectionparameters.json`
+must never be replaced manually in source control; only the deployment pipeline
+may replace it at pack time.
+
 ### Required GitHub variables and secrets
 
 Go to **Settings → Secrets and variables → Actions** in this repository and add:
@@ -156,15 +195,32 @@ Go to **Settings → Secrets and variables → Actions** in this repository and 
 | Name | Type | Description |
 | --- | --- | --- |
 | `PP_ENVIRONMENT_URL` | Variable | Power Platform environment URL, e.g. `https://org.crm4.dynamics.com/` |
-| `PP_APP_ID` | Variable | Microsoft Entra ID application (client) ID of the service principal |
+| `PP_APP_ID` | Variable | Microsoft Entra ID application (client) ID of the deployment service principal |
 | `PP_TENANT_ID` | Variable | Microsoft Entra ID tenant ID |
-| `PP_CLIENT_SECRET` | Secret | Client secret of the service principal |
+| `PP_CLIENT_SECRET` | Secret | Client secret of the deployment service principal |
+| `PP_CONNECTOR_APP_ID` | Variable | Application (client) ID of the Entra app registration for the `Campanula Planner Graph` custom connector OAuth (separate from the deployment service principal; requires delegated `Tasks.ReadWrite` on Microsoft Graph) |
 
 ### Service Principal Setup
+
+There are two separate Entra app registrations for this project.
+
+#### Deployment service principal (`PP_APP_ID`)
 
 1. In **Azure Portal → App registrations**, create a new app registration (e.g. `PlannerTasksFromTemplate-CI`).
 2. Create a **Client secret** and copy its value → `PP_CLIENT_SECRET`.
 3. In **Power Platform Admin Center → Environments → [your env] → Settings → Users + permissions → Application users**, add the app registration and assign it the **System Administrator** or **System Customizer** role.
+
+#### Connector OAuth app registration (`PP_CONNECTOR_APP_ID`)
+
+1. In **Azure Portal → App registrations**, create a separate app registration for the custom connector (e.g. `CampanulaGraphConnector`).
+2. Under **API permissions**, add delegated permission **Microsoft Graph → Tasks.ReadWrite**. Grant admin consent if required by your tenant policy.
+3. Under **Authentication**, allow public client flows or configure a redirect URI depending on how Power Platform authenticates; the connector's `redirectUrl` is already set to `https://global.consent.azure-apim.net/redirect/campa-campanula-planner-graph-5f2d765a9c3b99d87d`.
+4. Copy the application (client) ID → `PP_CONNECTOR_APP_ID` (GitHub Actions variable, not a secret).
+5. There is no client secret needed for this registration; the connector uses delegated OAuth on behalf of the connecting user.
+
+> The deployment service principal (`PP_APP_ID`) is used only by PAC CLI and GitHub Actions to pack and import the solution.  
+> The connector app registration (`PP_CONNECTOR_APP_ID`) is used only by the `Campanula Planner Graph` Power Platform connection when the Flow signs in to Microsoft Graph on behalf of the connected user.  
+> These two applications have different roles and should not be merged.
 
 ### Trigger
 
@@ -209,9 +265,13 @@ src\CampanulaPlannerFlows
 ├── [Content_Types].xml
 ├── customizations.xml
 ├── Connectors\
-│   ├── campa_planner_graph_apiDefinition.swagger.json
-│   └── campa_planner_graph_connectionparameters.json
-├── solution.xml
+│   ├── campa_planner_graph.xml
+│   ├── campa_planner_graph_openapidefinition.json
+│   ├── campa_planner_graph_connectionparameters.json   ← contains ${MICROSOFT_ENTRA_APP_ID} placeholder in source
+│   └── campa_planner_graph_policytemplateinstances.json
+├── Other\
+│   ├── Customizations.xml
+│   └── Solution.xml
 └── Workflows\
     └── CampanulaCreateConcertPlanFromTemplate.json
 ```
@@ -266,3 +326,33 @@ Increment the version number before every release following
 - **Patch** (x.x.x+1) – bug fixes, description corrections, task additions/removals.
 - **Minor** (x.x+1.0) – new buckets, labels, or significant task structure changes.
 - **Major** (x+1.0.0) – breaking changes to the Flow logic or template structure.
+
+---
+
+## Operational Guardrails — Connector Credentials
+
+The `Campanula Planner Graph` connector uses an OAuth connection on behalf of a real
+user. That connection and its backing Entra app registration require occasional maintenance.
+
+### What can break silently
+
+| Failure mode | Symptom | Recovery |
+| --- | --- | --- |
+| Connector app registration deleted | Flow fails at `Create_Planner_Plan` with an auth error | Re-create the app registration, update `PP_CONNECTOR_APP_ID`, redeploy, and refresh the connection |
+| Connector connection expires or is deleted | Flow fails at `Create_Planner_Plan` | Re-create the `Campanula Planner Graph` connection in Power Platform and link it to the connection reference |
+| Connection user removed from the target Microsoft 365 group | Graph returns HTTP 403 on plan creation | Re-add the user to the group, or re-create the connection under a user who is a group member |
+| `PP_CONNECTOR_APP_ID` variable cleared in GitHub | Next deployment fails at the "Inject connector app ID" step before packing | Restore the variable value and re-run the workflow |
+
+### Connector connection ownership
+
+- The `Campanula Planner Graph` Power Platform connection is associated with one specific user account.
+- That account must remain a member of the Microsoft 365 group used for Planner plan creation.
+- If the account leaves the organization or the group, the connection must be re-created under a new account that is a group member.
+
+### Reviewing connector auth health
+
+After any change to the Entra tenant, the connector app registration, or the Power Platform environment:
+
+1. Open the `CampanulaPlannerFlows` solution in Power Platform.
+2. Navigate to **Connection References** and verify `Campanula Planner Graph - CampanulaCreateConcertPlanFromTemplate` shows a healthy connection.
+3. If the connection is missing or shows an error, create a new connection for the `Campanula Planner Graph` connector and update the connection reference.
