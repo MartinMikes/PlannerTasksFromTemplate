@@ -60,6 +60,10 @@ _Avoid_: Run log, Flow instance
 The durable record that relates one template-defined bucket or task to the corresponding item created in a concert plan.
 _Avoid_: Cache row, temporary mapping
 
+**Operator**:
+An authorized person who reviews processing records, corrects operational problems, and explicitly starts recovery, abandonment, notification resend, or replacement actions.
+_Avoid_: Administrator, task owner
+
 **Replacement plan**:
 A new concert plan explicitly authorized by an operator after the preceding concert plan has been abandoned because it cannot be safely completed.
 _Avoid_: Retry plan, duplicate plan
