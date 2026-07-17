@@ -11,3 +11,7 @@ The triage vocabulary uses the default five canonical labels (`needs-triage`, `n
 ### Domain docs
 
 Domain docs are configured as a single-context layout (root `CONTEXT.md` and root `docs/adr/`). See `docs/agents/domain.md`.
+
+### Power Automate conventions
+
+Before designing or editing Power Automate assets, read `docs/agents/power-automate.md` for the reference POC and naming conventions.

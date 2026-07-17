@@ -43,6 +43,4 @@ tedy obsahuje řádky, kde `TemplateType` odpovídá zvolenému typu koncertu
 (`Velký` nebo `Malý`), a zároveň řádky, kde `TemplateType` odpovídá zvolenému
 místu (`Ignác`, `Jakub`, `Kříž`, `Gotika` nebo `Jinde`).
 
-### Datum koncertu
-
-Pokud datum ještě není přesně stanoveno (např. z důvodu ověření dostupnosti koncertního místa, či hosta), pak zde použijeme nejdřívější uvažovanou variantu, aby nám neutekly nějaké termíny úkolů.
+Datum musí být kalendářně později než dnešní datum v časové zóně `Europe/Prague`. Toto je požadavek cílového produkčního kontraktu (viz `docs/research/production-flow-contract-audit.md` a ADR 0002); současná verze Flow jej nemusí ještě vynucovat.
