@@ -46,3 +46,5 @@ místu (`Ignác`, `Jakub`, `Kříž`, `Gotika` nebo `Jinde`).
 ### Datum koncertu
 
 Pokud datum ještě není přesně stanoveno (např. z důvodu ověření dostupnosti koncertního místa, či hosta), pak zde použijeme nejdřívější uvažovanou variantu, aby nám neutekly nějaké termíny úkolů.
+
+Datum musí být kalendářně později než dnešní datum v časové zóně `Europe/Prague`. Koncert ve stejný den Flow odmítne před vytvořením Planner plánu.

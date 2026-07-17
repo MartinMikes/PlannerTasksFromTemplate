@@ -66,7 +66,7 @@ The Microsoft Form is Czech for end users, but this sheet keeps English technica
 | Column | Type | Description | Default |
 | --- | --- | --- | --- |
 | `TemplateType` | Text | Template variant used by the Flow filter. For concert planning from the Microsoft Form, use either concert-type values such as `Velký` or `Malý`, or location values such as `Ignác`, `Jakub`, `Kříž`, `Gotika`, or `Jinde`, while keeping the column name `TemplateType`. Fill this for every task that should be created for that variant. | _(required)_ |
-| `TaskId` | Text | Stable task identifier. Treat as text because current values use hierarchical IDs such as `4.3.1`. | _(optional)_ |
+| `TaskId` | Text | Stable template-task key used in validation warnings. Treat as text because current values use hierarchical IDs such as `4.3.1`; values must be unique and must not be recycled for another task. | _(required)_ |
 | `TaskName` | Text | Name of the Planner task. Keep it unique enough to distinguish the task within a plan. | _(required)_ |
 | `GroupName` | Text | Responsible group. Must match a value in `tbGroups[GroupName]`. | _(required)_ |
 | `AssignedToEmails` | Formula/Text result | Semicolon-separated e-mail list filled from `tbGroups[AssignedToEmails]` for the selected `GroupName`. Do **not** edit manually unless intentionally overriding the lookup. | _(formula)_ |
@@ -101,11 +101,12 @@ if they are triggered by a different Flow path.
 
 ### Data quality notes
 
-- Rows intended for Flow creation should have `TemplateType`, `TaskName`, `GroupName`, `DaysFromEvent`, `Bucket`, and `Priority` populated.
+- Rows intended for Flow creation should have `TemplateType`, `TaskId`, `TaskName`, `GroupName`, `DaysFromEvent`, `Bucket`, and `Priority` populated, and their responsibility group must resolve to at least one valid assignee.
 - The production Flow filters with `TemplateType` equal to the selected concert type or selected location; rows with blank `TemplateType` are not selected.
 - Keep Czech form choice values and English workbook identifiers distinct: form users see `Typ šablony`, but automation references `TemplateType`.
 - `Datum koncertu` should use the earliest considered concert date when the final date is not known yet; this keeps `DaysFromEvent` deadlines early enough.
-- `TaskId` is useful for maintainers but is not currently used by the Flow when creating Planner tasks.
+- A calculated due date may be in the past when preparation should already have started; the Flow preserves that date and still creates the valid task.
+- `TaskId` identifies a skipped task in warning e-mails independently of its mutable row position and title; it is not a persisted Planner-object identity.
 - `Progress`, `AssignedToEmails`, and `Labels` are documented in the workbook, but the checked-in Flow currently creates tasks using bucket, title, due date, priority, description, and checklist data.
 
 ---
@@ -140,7 +141,7 @@ Current groups:
 | `Výlep-Polná` | `vaclav.vacek@campanulajihlava.cz` |
 | `Výlep-Jihlavsko` | `martin.mikes@campanulajihlava.cz; jiri.zajic@campanulajihlava.cz; nada.jozifkova@campanulajihlava.cz` |
 
-Use semicolons to separate multiple assignees. Complete blank e-mail mappings before using those groups for tasks that should be assigned.
+Use semicolons to separate multiple assignees. Every selected task must resolve to at least one valid assignee; a task that references a blank mapping is skipped and reported as an invalid template task.
 
 ---
 

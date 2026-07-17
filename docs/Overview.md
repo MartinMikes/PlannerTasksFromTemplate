@@ -63,16 +63,17 @@ implementation.
 The Flow performs the following steps:
 
 1. **Receive Microsoft Form response** – collects `Název koncertu`, `Typ šablony`, `Místo konání`, and `Datum koncertu`.
-2. **Prepare Flow inputs** – maps Czech form answers to English technical fields such as `concertName`, `templateType`, `location`, and `concertDate`.
-3. **Create Planner Plan** – uses the `Campanula Planner Graph` custom connector to call Microsoft Graph `POST /planner/plans`, naming the plan after the concert with `Místo konání` added in parentheses.
-4. **Create Buckets** – uses the standard Planner connector to iterate the `tbBuckets` table from the Excel template and create each bucket in the new plan.
-5. **Create Tasks** – for each row in `tbTasksTemplate` whose `TemplateType` matches the selected concert type or selected location:
-   - Calculates the **due date** from `DaysFromEvent` relative to the concert date.
+2. **Prepare and validate inputs** – maps Czech form answers to English technical fields and requires `Datum koncertu` to be later than today in Europe/Prague.
+3. **Preflight the workbook** – verifies the required tables and columns, validates the complete bucket and label catalogs, and classifies every selected task row atomically. Processing continues only when at least one selected task is valid.
+4. **Create Planner Plan** – uses the `Campanula Planner Graph` custom connector to call Microsoft Graph `POST /planner/plans`, naming the plan after the concert with `Místo konání` added in parentheses.
+5. **Create Buckets and labels** – creates every populated bucket and configures every populated label from the Excel template, whether or not the selected tasks use it.
+6. **Create Tasks** – for each valid row in `tbTasksTemplate` whose `TemplateType` matches the selected concert type or selected location:
+   - Calculates the **due date** from `DaysFromEvent` relative to the concert date and preserves a result in the past without clamping or skipping the task.
    - Resolves **assignees** from `AssignedToEmails` (semicolon-separated list of e-mail addresses).
    - Sets **progress**, **priority**, **bucket** and **labels**.
    - Adds **checklist items** from the semicolon-separated `CheckListItems` value.
    - Sets **description** (rich text preserved as plain text with line breaks and bullet points).
-6. **Notify** – sends a summary notification (Teams message or e-mail) to the organising team.
+7. **Notify** – sends one e-mail reporting clean success, completion with warnings (including every skipped task's `TaskId`, or `(missing)`, title, and reason), or generation failure. After a generation failure, the operator manually deletes any partial plan, corrects the cause, and submits a new Form response.
 
 ## Data Flow
 

@@ -2,6 +2,12 @@
 
 Research date: 2026-07-15
 
+Decision revision: 2026-07-17. Platform facts remain valid, but the earlier
+replay-and-recovery recommendations are superseded by
+[ADR 0002](../adr/0002-discard-failed-plans-and-resubmit.md). The production
+design intentionally uses one generation attempt, manual deletion of a partial
+plan, and a new Form submission instead of durable idempotency or recovery.
+
 ## Scope
 
 This memo records the Microsoft platform constraints that affect the production
@@ -20,9 +26,10 @@ platform behavior.
 - `When a new response is submitted` is a webhook trigger whose payload exposes
   a numeric `responseId`. The trigger payload does not contain the complete
   answer set. `Get response details` requires both `Form Id` and `Response Id`,
-  and returns dynamic output. The Flow should therefore use the trigger's
-  `responseId` with the same form identifier and treat the response ID as the
-  natural source-event key for duplicate protection.
+  and returns dynamic output. The trigger's `responseId` is available for
+  diagnostics and correlation. This project deliberately does not persist it
+  for duplicate protection; rare duplicate delivery is an accepted manual
+  cleanup case under ADR 0002.
 - The connector documents 300 API calls per connection per 60 seconds.
 - Microsoft documents a Forms-specific deployment trap: after trigger
   concurrency control has been enabled and disabled, a
@@ -77,9 +84,10 @@ Source: [Excel Online (Business) connector](https://learn.microsoft.com/en-us/co
 - The standard Planner connector supports basic plans only and is throttled at
   100 API calls per connection per 60 seconds. A concert with many tasks can
   consume several calls per task (create, update, details/checklist), so loops
-  must be kept sequential or deliberately bounded and allowed to retry on
-  throttling. Connector limits are likely to be reached before the broader Flow
-  limits.
+  must be kept sequential or deliberately bounded. Read-only operations may
+  use bounded retries, but non-idempotent Planner creation actions fail fast so
+  ambiguous outcomes lead to manual deletion instead of duplicate content.
+  Connector limits are likely to be reached before the broader Flow limits.
 - The current `Create a bucket` action accepts a name, plan ID, and group ID.
   `Create a task` accepts a plan ID, title, optional bucket, start/due dates,
   semicolon-separated user IDs or email addresses, category flags, and numeric
@@ -96,9 +104,9 @@ Source: [Excel Online (Business) connector](https://learn.microsoft.com/en-us/co
   create-time default.
 - Description and checklist belong to task details. `Update task details`
   exposes description plus checklist item ID, title, and checked state. They are
-  not create-task parameters. Implementation and E2E tests must verify that
-  repeated detail updates preserve the description and all checklist items,
-  rather than relying only on successful action status.
+  not create-task parameters. The KISS implementation should write the complete
+  intended details once per task; E2E tests must verify the resulting
+  description and checklist instead of relying only on action status.
 - The create action accepts assignee email addresses directly, so the workbook's
   semicolon-separated `AssignedToEmails` representation fits the connector.
   At the Graph model level, assignments are user IDs and Planner is intended to
@@ -141,14 +149,14 @@ Sources: [Planner connector](https://learn.microsoft.com/en-us/connectors/planne
   custom-connector connection therefore needs confirmed membership.
 - A successful create returns `201 Created` and the new plan object/ID. Microsoft
   calls out 400, 403, and 404 as common errors to handle. The ID is required by
-  all subsequent bucket and task actions and should be recorded immediately for
-  failure recovery.
+  all subsequent bucket and task actions and must remain available within the
+  run so a failure e-mail can identify the partial plan.
 - The request contract has no documented client-supplied idempotency key. This
   supports the inference that automatic retries or repeated Forms processing
-  can create another plan. Duplicate protection must be implemented outside the
-  create call, keyed by the Forms response ID, and recovery must persist or
-  rediscover the created plan ID before retrying downstream work. Plan title
-  alone should not be treated as a unique key.
+  can create another plan. The project accepts the rare duplicate-delivery risk
+  and does not add external deduplication; non-idempotent create retries are
+  disabled and any duplicate plan is removed manually. Plan title alone must
+  not be treated as a unique key.
 - Graph Planner APIs, like the standard connector, expose basic plans rather
   than premium plans.
 
@@ -212,9 +220,11 @@ The platform facts above imply these concrete acceptance gates for this project:
 3. Verify all documented fields independently in Planner: bucket, title, due
    date, priority, every assignee, progress, applied category flags/category
    names, description, and every checklist item.
-4. Introduce and exercise a durable processing record keyed by Forms response
-   ID. Test replay after success and recovery after failure immediately after
-   plan creation and midway through task creation.
+4. Exercise the KISS failure path immediately after plan creation and midway
+   through task creation. Verify that non-idempotent creates do not retry, the
+   failure e-mail identifies the partial plan and corrective step, the operator
+   can delete it manually, and a new Form submission starts cleanly. Document
+   rather than prevent the accepted duplicate-delivery risk.
 5. Make first deployment connector-first, or prove the target already has the
    matching registered connector. Map every connection reference and
    environment variable; verify connector role assignment, delegated consent,

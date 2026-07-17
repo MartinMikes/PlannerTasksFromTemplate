@@ -1,43 +1,42 @@
-# Workbook contract and technical seed data
+# Workbook contract and acceptance data
 
 Research date: 2026-07-16
 
+Decision revision: 2026-07-17. The workbook structure findings remain valid,
+but permanent seed data and replay/recovery identities are removed in favor of
+the KISS failure policy in
+[ADR 0002](../adr/0002-discard-failed-plans-and-resubmit.md).
+
 ## Question
 
-What exact workbook structure and minimum representative data must
-`PlannerTasksTemplate.xlsx` contain so every Microsoft Form concert type and
-venue can exercise the complete concert-plan Flow contract without treating
-the technical seed as the maintainers' final task catalogue?
+What workbook structure and validation contract must
+`PlannerTasksTemplate.xlsx` expose so the maintainer-owned task catalogue can
+drive the concert-plan Flow safely while remaining editable work in progress?
 
 ## Decision
 
-Keep the current workbook as the source of truth, add one lookup sheet for the
-seven Form planning-scope values, and strengthen the existing tables with the
-stable identities required by replay and recovery.
+Keep the current seven-sheet workbook as the source of truth and require a
+stable `TaskId` solely so warning e-mails can identify an invalid task
+independently of row position or title. The constrained Form choices are
+trusted, so do not add a duplicate planning-scope lookup table or other
+recovery-only identities.
 
-The minimum technical seed is seven task rows: one for each concert type and
-one for each venue. Those rows deliberately cover every supported progress and
-priority value, all nine current Planning labels, blank and populated optional
-details, single and multiple checklist items, single and multiple assignees,
-negative/zero/positive schedule offsets, and all seven buckets. Their names and
-identifiers must make their technical purpose unmistakable. They are runnable
-acceptance data, not approved real-world concert tasks.
-
-Do not keep prefilled blank rows inside `tbTasksTemplate`. Maintainers should
-add rows by extending the Excel table. This removes the current ambiguity where
-blank reserved rows still contain assignment formulas and a default priority.
+Do not replace the maintainer's real task catalogue with synthetic production
+seed rows. Blank or partially authored work-in-progress rows may remain in the
+table. Rows outside the selected planning scope are ignored; selected invalid
+rows are skipped and reported, while structurally missing tables or columns are
+fatal before plan creation.
 
 ## Required sheets and tables
 
-The workbook has exactly these eight sheets in this order.
+The workbook has exactly these seven sheets in this order.
 
 | Sheet | Table | Required purpose |
 | --- | --- | --- |
-| `Návod` | None | Czech maintainer instructions and an explicit warning that `seed-` rows are technical acceptance data. |
-| `PlanningScopes` | `tbPlanningScopes` | Canonical Form values and their dimension. |
+| `Návod` | None | Czech maintainer instructions for editing and validating the task catalogue. |
 | `TasksTemplate` | `tbTasksTemplate` | Template tasks selected by concert type or venue. |
 | `Groups` | `tbGroups` | Responsibility-group-to-assignee mapping. |
-| `Buckets` | `tbBuckets` | Stable bucket identity, display name, and description. |
+| `Buckets` | `tbBuckets` | Bucket display name and maintainer description. |
 | `Progress` | `tbProgress` | Allowed initial progress values. |
 | `Priority` | `tbPriority` | Allowed Planner priority names. |
 | `Labels` | `tbLabels` | Fixed Planner category slot, display name, color, and usage note. |
@@ -45,32 +44,13 @@ The workbook has exactly these eight sheets in this order.
 English sheet, table, and column identifiers are the automation contract and
 must not be translated. Czech values and instructions remain user-facing.
 
-## Planning-scope contract
+## Planning-scope values
 
-`tbPlanningScopes` has two required text columns.
-
-| Column | Rule |
-| --- | --- |
-| `TemplateType` | Unique, nonblank, case-sensitive value used by the Form and `tbTasksTemplate`. |
-| `ScopeKind` | Exactly `ConcertType` or `Venue`. |
-
-It contains exactly these rows for the concert-request Flow.
-
-| TemplateType | ScopeKind |
-| --- | --- |
-| `Velký` | `ConcertType` |
-| `Malý` | `ConcertType` |
-| `Ignác` | `Venue` |
-| `Jakub` | `Venue` |
-| `Kříž` | `Venue` |
-| `Gotika` | `Venue` |
-| `Jinde` | `Venue` |
-
-Any future value must be added to the Form, `tbPlanningScopes`, documentation,
-static contract checks, and the Flow's allowed-input validation in one change.
-Administrative task scopes such as the current `Dotace` and
-`Dramaturgický plán` values do not belong in this table unless a separate Flow
-contract is introduced for them.
+The Flow trusts the constrained Form choices and selects rows whose
+`TemplateType` exactly matches the chosen concert type (`Velký` or `Malý`) or
+venue (`Ignác`, `Jakub`, `Kříž`, `Gotika`, or `Jinde`). The workbook may retain
+other administrative values for other uses; this Flow simply does not select
+them. No duplicate planning-scope table or allowed-value preflight is required.
 
 ## Task-table contract
 
@@ -78,13 +58,13 @@ contract is introduced for them.
 
 | Column | Required contract |
 | --- | --- |
-| `TemplateType` | Required exact match in `tbPlanningScopes[TemplateType]`. |
-| `TaskId` | Required immutable text key, unique across the entire table. It is the processing-item identity and must never be recycled for a different task. |
+| `TemplateType` | Required nonblank selection value; this Flow selects exact matches for its concert type or venue and ignores other values. |
+| `TaskId` | Required immutable text key for every selectable task, unique across the table. It identifies skipped rows in warning e-mails and must never be recycled for a different task; a selected row with no key is reported as `(missing)`. |
 | `TaskName` | Required nonblank Planner title. Exact service-length policy remains with the preflight ticket. |
 | `GroupName` | Required exact match in the unique `tbGroups[GroupName]` set. |
 | `AssignedToEmails` | Required calculated-column formula result. It is never manually seeded. |
 | `DaysFromEvent` | Required integer schedule offset; negative, zero, and positive values are valid. |
-| `Bucket` | Required exact match in the unique `tbBuckets[Bucket]` set. Preflight resolves the matching stable `BucketId`. |
+| `Bucket` | Required exact match in the unique `tbBuckets[Bucket]` set. |
 | `Progress` | Blank or exact match in `tbProgress[Progress]`; blank is equivalent to `Not started`. |
 | `Priority` | Required exact match in `tbPriority[Priority]`; no silent fallback. |
 | `Description` | Optional plain text with preserved line breaks and plain URLs. |
@@ -102,9 +82,9 @@ value before the workbook is uploaded to SharePoint. A referenced
 responsibility group must produce at least one address; the next preflight
 decision owns the operator behavior for invalid or unauthorized identities.
 
-`TaskId` becomes required because the accepted replay design persists each
-template task against its Planner task ID. A title is not an identity and may
-be edited by users.
+`TaskId` is required because warning e-mails must identify a skipped template
+task after workbook rows or titles are edited. It is not persisted against a
+Planner task ID.
 
 ## Lookup-table contracts
 
@@ -113,31 +93,22 @@ be edited by users.
 `tbGroups` has the existing columns `GroupName` and `AssignedToEmails`.
 
 - `GroupName` is required and unique after trimming and case normalization.
-- `AssignedToEmails` contains 1 through 20 semicolon-delimited addresses.
-- Tokens are trimmed, nonblank, syntactically valid, and unique ignoring case.
-- Every group referenced by a technical seed row has a nonblank mapping.
-- The three current `Tisk` rows must collapse to one row; blank mappings must
-  be completed or the unused rows removed.
+- `AssignedToEmails`, when populated, contains 1 through 20 semicolon-delimited
+  addresses whose tokens are trimmed, syntactically valid, and unique ignoring
+  case.
+- Every group referenced by a valid selected task has a nonblank mapping.
+- Blank mappings may remain as work in progress when no valid selected task
+  references them. A selected task that references one is skipped and reported.
+- Duplicate `GroupName` rows remain invalid because they make lookup results
+  ambiguous and must be collapsed before that group can produce valid tasks.
 
 ### Buckets
 
-`tbBuckets` adds a required first column, `BucketId`, before the existing
-`Bucket` and `Description` columns.
-
-| BucketId | Bucket |
-| --- | --- |
-| `planning` | `Příprava a plánování` |
-| `artists-program` | `Umělci a program` |
-| `promotion-marketing` | `Propagace a marketing` |
-| `production-logistics` | `Produkce a logistika` |
-| `finance-administration` | `Finance a administrativa` |
-| `concert-day` | `Den koncertu` |
-| `post-concert` | `Po koncertu` |
-
-Both `BucketId` and `Bucket` are required and unique. `BucketId` is immutable
-processing identity; `Bucket` remains the Planner display name selected by task
-rows. Descriptions remain required maintainer guidance but are not sent to
-Planner.
+`tbBuckets` retains the existing `Bucket` and `Description` columns. `Bucket`
+is required and unique after trimming and case normalization. Every populated
+bucket row is created in every concert plan, including buckets unused by the
+selected tasks. Descriptions remain required maintainer guidance but are not
+sent to Planner.
 
 ### Progress and priority
 
@@ -162,13 +133,17 @@ The Flow mappings remain blank/`Not started` = 0, `In progress` = 50,
 
 `tbLabels` retains `Label`, `Name`, `Color`, and `Usage`.
 
-- It has exactly 25 rows for `Label1` through `Label25`, in numeric order.
-- `Label` is the immutable Planner category slot and is unique.
-- The first nine names and colors remain the accepted mapping below.
-- `Label10` through `Label25` retain their fixed colors but have blank `Name`
-  and `Usage` until maintainers intentionally activate them.
+- It has one row for each configured Planner category, currently `Label1`
+  through `Label9`.
+- `Label` is the immutable Planner category slot, must be within `Label1`
+  through `Label25`, and is unique.
+- The current nine names and colors remain the accepted mapping below.
+- Unused slots do not need preallocated blank rows; add the next explicit slot
+  only when maintainers intentionally configure another label.
 - Populated names are unique after trimming and case normalization.
 - A task may reference only a row with a nonblank `Name`.
+- Every populated name is configured on every concert plan, even when no
+  selected task applies that label.
 
 | Label | Name | Color |
 | --- | --- | --- |
@@ -182,10 +157,10 @@ The Flow mappings remain blank/`Not started` = 0, `In progress` = 50,
 | `Label8` | `Provoz` | `Lime` |
 | `Label9` | `IT` | `Aqua` |
 
-The technical seed intentionally references labels 7 through 9 so target-tenant
-acceptance cannot overlook the documented uncertainty about naming and applying
-categories beyond six. Production must not claim those labels work until the
-live check succeeds.
+Target-tenant E2E acceptance must explicitly exercise labels 7 through 9 so it
+cannot overlook the documented uncertainty about naming and applying categories
+beyond six. Production must not claim those labels work until the live check
+succeeds.
 
 ## Excel data validation
 
@@ -194,7 +169,6 @@ to adjacent columns or preallocated blank ranges.
 
 | Column | Excel validation |
 | --- | --- |
-| `TemplateType` | List: `INDIRECT("tbPlanningScopes[TemplateType]")`; blank prohibited. |
 | `GroupName` | List: `INDIRECT("tbGroups[GroupName]")`; blank prohibited. |
 | `DaysFromEvent` | Custom whole-number rule; blank prohibited. |
 | `Bucket` | List: `INDIRECT("tbBuckets[Bucket]")`; blank prohibited. |
@@ -203,74 +177,45 @@ to adjacent columns or preallocated blank ranges.
 
 Do not use a single-choice Excel list validation for `Labels`; native list
 validation conflicts with the documented semicolon-delimited multi-label
-format. Token validation belongs in the repository workbook checker and Flow
-preflight. The same checker enforces cross-row uniqueness, semicolon-token
-rules, required fields, and maximum counts that Excel validation cannot express
-reliably across table expansion.
+format. Token validation belongs in Flow preflight, which also enforces
+cross-row uniqueness, semicolon-token rules, required fields, and maximum counts
+that Excel validation cannot express reliably across table expansion.
 
 The current `G2:H58` bucket validation is invalid because it applies bucket
 names to `Progress`. It must be replaced by independent `Bucket` and `Progress`
 rules.
 
-## Exact seven-row technical seed
+## Acceptance data
 
-The seed uses existing responsibility groups with populated mappings. The
-`AssignedToEmails` value in every row is the calculated-column formula, not a
-hardcoded address.
+The production workbook contains only maintainer-owned concert tasks. E2E
+acceptance uses a temporary concert submission against the current catalogue
+and verifies the actual selected rows. Coverage for optional fields and unusual
+values may be exercised with temporary rows that are removed after the test;
+the repository does not require a permanent synthetic seed catalogue.
 
-| TemplateType | TaskId | TaskName | GroupName | DaysFromEvent | Bucket | Progress | Priority | Labels |
-| --- | --- | --- | --- | ---: | --- | --- | --- | --- |
-| `Velký` | `seed-type-large-001` | `TECHNICKÝ VZOR – typ Velký` | `Finance` | -30 | `Příprava a plánování` | `In progress` | `Urgent` | `Organizace;Hudba` |
-| `Malý` | `seed-type-small-001` | `TECHNICKÝ VZOR – typ Malý` | `Sbormistr` | -14 | `Umělci a program` | `Completed` | `Important` | `Umělci;Propagace` |
-| `Ignác` | `seed-venue-ignac-001` | `TECHNICKÝ VZOR – místo Ignác` | `Kostel` | -7 | `Propagace a marketing` | `Not started` | `Medium` | `Logistika` |
-| `Jakub` | `seed-venue-jakub-001` | `TECHNICKÝ VZOR – místo Jakub` | `Předseda` | 0 | `Produkce a logistika` | _(blank)_ | `Low` | `Finance;Administrativa` |
-| `Kříž` | `seed-venue-kriz-001` | `TECHNICKÝ VZOR – místo Kříž` | `Doprava` | 1 | `Finance a administrativa` | `Not started` | `Urgent` | `Provoz` |
-| `Gotika` | `seed-venue-gotika-001` | `TECHNICKÝ VZOR – místo Gotika` | `Místopředseda` | 7 | `Den koncertu` | `In progress` | `Medium` | `IT` |
-| `Jinde` | `seed-venue-other-001` | `TECHNICKÝ VZOR – místo Jinde` | `Dotace` | 14 | `Po koncertu` | `Completed` | `Low` | _(blank)_ |
+## Flow preflight checks
 
-Optional-field coverage is exact:
+The production Flow owns one runtime validation path; no second repository
+checker is required. Preflight performs these checks before plan creation and
+classifies failures according to ADR 0002.
 
-- `seed-type-large-001` has a two-line description whose second line is
-  `https://example.invalid/campanula-seed`, and checklist
-  `První krok;Druhý krok`.
-- `seed-type-small-001` has a one-line description and checklist
-  `Jediný krok`.
-- `seed-venue-ignac-001` has blank description and checklist values.
-- The remaining rows may use short technical descriptions but do not introduce
-  new behavioral variants.
-
-This is the irreducible coverage set: removing a row leaves one Form choice
-without a selected venue/type task, while the seven rows collectively exercise
-all buckets, the four priority names, the three progress names plus blank, all
-nine active labels plus blank, formula-derived assignments, each schedule
-offset sign, and optional-detail branches.
-
-## Static workbook acceptance checks
-
-The later implementation ticket must add an automated checker that fails when
-any of these conditions is false.
-
-1. The workbook opens as OOXML and contains the exact required sheets, tables,
-   and columns.
-2. `tbPlanningScopes` matches the seven documented Form choices and dimensions.
-3. Required text values are nonblank after trimming; technical keys and display
-   names are unique under their stated comparison rules.
-4. Every task scope, responsibility group, bucket, progress value, priority,
-   and Planning label resolves exactly once.
-5. Every populated task has a unique `TaskId`, integer `DaysFromEvent`, valid
-   assignee tokens, at most 20 assignees, and at most 20 unique checklist items.
-6. Every task's `AssignedToEmails` cell contains the required calculated-column
-   formula and a recalculated cached result.
-7. Data-validation ranges target the intended columns and use the required
-   lookup tables.
-8. The seven technical seed rows provide the coverage matrix defined above.
-9. The workbook contains zero cached Excel errors such as `#REF!`, `#VALUE!`,
+1. Every required table and column is readable through the Excel connector.
+2. The complete bucket catalog and every populated label slot are structurally
+   valid because all of them are copied into every plan.
+3. Each selected row is validated atomically: its required text is nonblank,
+   its `TaskId` is unique, and every responsibility group, bucket, progress,
+   priority, and label reference resolves exactly once.
+4. Each selected row has an integer `DaysFromEvent`, 1 through 20 valid unique
+   assignees, and at most 20 unique checklist items.
+5. Each selected row's `AssignedToEmails` cell exposes a recalculated formula
+   result.
+6. Selected rows expose no cached Excel errors such as `#REF!`, `#VALUE!`,
    `#NAME?`, `#N/A`, or `#DIV/0!`.
-10. Formula recalculation succeeds before delivery and the workbook remains
-    readable by both Excel and the Excel Online (Business) connector.
+7. At least one selected row remains valid.
 
-The checker must inspect semantic table content rather than worksheet cell
-positions so normal table growth does not invalidate it.
+Missing sheets, tables, or required columns are fatal. Invalid selected task
+rows are collected as warnings; the Flow proceeds only when at least one valid
+task remains.
 
 ## Current-workbook delta
 
@@ -278,22 +223,16 @@ The checked-in workbook already has the seven original sheets, all seven
 original tables, the required 12 task columns, 56 assignment formulas, and no
 cached formula errors. It needs these changes during implementation:
 
-- add `PlanningScopes` and `tbPlanningScopes`;
-- make `TaskId` mandatory and replace current non-Form task data with the seven
-  clearly marked technical seed rows;
-- add stable `BucketId` values;
-- collapse duplicate responsibility groups and remove or complete blank
-  mappings;
-- populate explicit `Label10` through `Label25` slot keys while keeping their
-  names reserved;
-- remove prefilled blank task rows;
-- repair the bucket/progress validation ranges and add scope validation;
+- make `TaskId` mandatory for every task intended for Flow selection without
+  replacing the maintainer-owned task catalogue;
+- treat duplicate or blank responsibility-group mappings as work-in-progress
+  data that invalidates only selected tasks referencing them;
+- repair the bucket/progress validation ranges;
 - recalculate and verify cached formula results.
 
-The existing detailed task content should be preserved outside the production
-table for maintainer review before replacement, but nothing under `archive/`
-may be edited or regenerated. Authoring the final real task catalogue remains
-outside this Wayfinder destination.
+Nothing under `archive/` may be edited or regenerated. Authoring and updating
+the real task catalogue remains maintainer-owned and outside this Wayfinder
+destination.
 
 ## Evidence and related decisions
 
@@ -301,7 +240,7 @@ outside this Wayfinder destination.
 - [Excel template reference](../ExcelTemplate.md)
 - [Production Flow contract audit](./production-flow-contract-audit.md)
 - [Planner task field and label mapping](./planner-task-field-mapping.md)
-- [Replay and recovery ADR](../adr/0001-safe-replay-and-recovery.md)
+- [KISS discard-and-resubmit ADR](../adr/0002-discard-failed-plans-and-resubmit.md)
 
 No workbook or production Flow file was changed while resolving this research
 ticket.

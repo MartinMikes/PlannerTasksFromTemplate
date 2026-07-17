@@ -2,6 +2,11 @@
 
 Audit date: 2026-07-15
 
+Decision revision: 2026-07-17. The implementation evidence remains an audit of
+the same source revision, while the required production contract has been
+updated to the KISS failure policy in
+[ADR 0002](../adr/0002-discard-failed-plans-and-resubmit.md).
+
 ## Question
 
 Which behaviors promised by the project documentation are implemented in the
@@ -16,11 +21,12 @@ production-complete against the documented contract.
 
 The Flow currently creates a plan, buckets, filtered tasks, due dates,
 priorities, descriptions, checklist items, and a success e-mail. It does not
-apply task assignees, initial progress, or labels. It also has no durable replay
-protection, preflight validation, partial-failure recovery, or failure
-notification. Environment-specific identifiers are embedded as Flow parameter
-defaults rather than solution environment variables, and the deployment does
-not provide connection-reference or environment-variable mappings.
+apply task assignees, initial progress, or labels. It also has no preflight
+validation or actionable failure notification. Durable replay protection and
+partial-failure recovery are intentionally outside the revised KISS contract.
+Environment-specific identifiers are embedded as Flow parameter defaults rather
+than solution environment variables, and the deployment does not provide
+connection-reference or environment-variable mappings.
 
 The workbook is structurally compatible with the Flow, but its current content
 cannot exercise the documented Microsoft Form choices. This is a known
@@ -53,7 +59,7 @@ ticket.
 | Forms trigger | Webhook trigger plus `Get response details` uses the same Form ID and trigger `responseId`. | Implemented |
 | Input mapping | Concert name, type, venue, and event date map to named Compose actions. | Implemented |
 | Input validation | No required-value, allowed-choice, date, or length validation exists. | Missing |
-| Duplicate protection | `responseId` is not persisted or checked before plan creation. | Missing |
+| Duplicate protection | `responseId` is not persisted or checked before plan creation. | Intentionally omitted; manual duplicate cleanup accepted |
 | Plan creation | Custom connector calls Graph `POST /planner/plans` with group container URL and plan title. | Implemented |
 | Plan naming | Title is `<concert name> (<venue>)`. | Implemented |
 | Workbook pagination | Both list-row actions enable pagination with a 5,000-item threshold. | Implemented |
@@ -68,12 +74,12 @@ ticket.
 | Checklist | Nonblank semicolon-separated items are added sequentially. | Implemented |
 | Success notification | Office 365 Outlook sends an e-mail containing inputs and created-task count. | Implemented |
 | Failure notification | Failures stop the success-only chain; no operator e-mail or diagnostic summary is sent. | Missing |
-| Partial-failure recovery | No scopes, persisted progress, compensation, resume path, or operator recovery record exists. | Missing |
+| KISS failure handling | No catch path sends a partial-plan link and manual delete/resubmit instructions. | Missing |
 | Connection references | All five Flow references match solution connection-reference definitions. | Implemented in source |
 | Environment portability | Form/question IDs, Planner group, Excel locators, and recipient are hardcoded defaults. | Missing |
 | First deployment | One package introduces connector, reference, and Flow together; no connector-first path exists. | At risk |
 | Package construction | Power Platform CLI 2.7.4 successfully packed the source as Managed. | Verified locally |
-| Automated validation | No PR/static validation checks the Flow contract, workbook, or solution pack before release. | Missing |
+| Automated validation | No PR/static validation parses the solution source or verifies a pack before release. Workbook business validation belongs to Flow preflight. | Missing |
 
 ## Confirmed implementation strengths
 
@@ -112,35 +118,37 @@ checklists. Only the last two are complete.
 - Preserve description and all checklist items when multiple task-detail
   updates are required.
 
-### Replay and recovery
+### KISS failure handling
 
 The Flow creates the irreversible external resource before reading or
 validating the workbook. Any later failure can leave an empty or partially
 populated plan. Retrying the Forms event can create another plan because Graph
 plan creation has no documented idempotency key.
 
-The final design must use the Forms `responseId` as the source-event identity,
-persist the created plan ID and progress, distinguish first processing from
-replay, and define resume or compensation behavior. The exact storage and
-recovery semantics belong to
-`Choose safe replay and partial-failure recovery semantics`.
+The final design deliberately does not persist Forms response identity or
+created-object progress. It must disable retries for non-idempotent Planner
+creation actions, retain the current plan ID within the run, and send an
+actionable failure e-mail. If a partial plan exists, the operator deletes it,
+corrects the cause, and submits a new Form response. Rare duplicate trigger
+delivery is accepted and handled by manually deleting the duplicate plan.
 
 ### Preflight validation
 
 Before plan creation, the Flow must validate at least:
 
-- nonblank concert name and a valid event date;
-- allowed concert type and venue values;
+- an event date strictly after the current Europe/Prague calendar date;
 - readable workbook and required tables/columns;
-- nonempty, unique bucket names;
-- at least one selected template task;
-- required task values and a resolvable bucket;
-- integer schedule offsets and recognized priority/progress/label values;
-- assignee syntax and the policy for blank or unresolved assignments;
-- safe task-title and plan-title lengths.
+- nonempty, unique bucket names and structurally valid populated label slots;
+- each selected task atomically, including a stable `TaskId`, required values,
+  unambiguous responsibility-group mapping, resolvable bucket, integer schedule
+  offset, recognized values, and at least one valid assignee;
+- at least one valid selected template task.
 
-Validation failures must create no Planner plan and must send an actionable
-operator e-mail.
+The constrained Form choices and concert title are trusted. A workbook-contract
+failure or zero valid selected tasks creates no Planner plan and sends an
+actionable failure e-mail. Individual invalid template tasks are skipped; their
+`TaskId` value (or `(missing)`), title, and validation reason appear in the
+completed-with-warnings e-mail.
 
 ### Portable configuration and deployment
 
@@ -183,9 +191,9 @@ known gaps:
   nonempty-row check is insufficient; the existing task-name filter is
   necessary.
 
-The workbook-contract ticket should define the technical seed rows and repair
-these validation/data-quality issues without inventing the final concert task
-content.
+The workbook-contract decision should preserve the maintainer-owned task
+catalogue and define how Flow preflight treats these validation/data-quality
+issues without adding synthetic production seed rows.
 
 ## Documentation inconsistencies
 
@@ -194,8 +202,6 @@ content.
 - `Overview.md` says `AssignedToEmails` uses `FILTER`/`TEXTJOIN`; the workbook
   uses `INDEX`/`MATCH` and stores semicolon-separated addresses in the group
   table.
-- `Overview.md` allows Teams or e-mail; the agreed production channel and the
-  current Flow are e-mail only. Teams is a future extension.
 - `ExcelTemplate.md` correctly admits that assignments, progress, and labels
   are missing, but incorrectly says the Flow still references `BucketName`.
 - README and `Deployment.md` show root `[Content_Types].xml`, `solution.xml`, and
@@ -207,7 +213,6 @@ content.
   and rely on a later manual revert. A temp staging copy is safer.
 - `src/exported` and the Copilot demo workbook are not identified clearly as
   non-production reference artifacts.
-- `AGENTS.md` does not yet record the strict read-only rule for `archive/`.
 
 ## Required production contract
 
@@ -216,21 +221,20 @@ below are true.
 
 ### Event and identity
 
-1. One valid Forms response is one `Concert request`, identified durably by the
-   Form ID plus `responseId`.
-2. Replaying the same request does not create another concert plan or duplicate
-   completed work.
-3. The processing record exposes the run state, created plan ID, completed work,
-   last error, and safe operator action.
+1. One Forms response is one `Concert request`; `responseId` is retained only
+   for in-run diagnostics and e-mail context.
+2. No durable response register or replay path exists. Rare duplicate delivery
+   may create a duplicate plan, which the operator removes manually.
 
 ### Configuration and preflight
 
 1. All environment-specific identifiers are solution environment variables or
    an equivalently explicit ALM contract.
-2. All required connections, permissions, group membership, workbook tables,
-   columns, values, and selected rows are validated before plan creation where
-   technically possible.
-3. Invalid input produces no plan and sends one actionable failure e-mail.
+2. All required connections, permissions, group membership, and the workbook
+   contract are validated before plan creation where technically possible.
+3. The event date must be after today in Europe/Prague. Workbook-level failure
+   or zero valid tasks produces no plan and sends an actionable failure e-mail;
+   invalid individual task rows are skipped and reported.
 
 ### Planner plan and planning scope
 
@@ -238,14 +242,14 @@ below are true.
    `<concert name> (<venue>)`.
 2. The selected planning scope is the exact union of populated task rows for
    the chosen concert type and venue.
-3. Every nonblank unique workbook bucket required by selected tasks exists
-   exactly once in the plan.
-4. Plan category descriptions match the configured workbook label slots and
-   names.
+3. Every nonblank unique workbook bucket exists exactly once in the plan,
+   whether or not a selected task uses it.
+4. Every nonblank configured label name is applied to its plan category slot,
+   whether or not a selected task uses it.
 
 ### Tasks
 
-Each selected `Template task` produces exactly one Planner task with:
+Each valid selected `Template task` produces exactly one Planner task with:
 
 - the documented title and bucket;
 - due date equal to event date plus integer schedule offset;
@@ -255,25 +259,31 @@ Each selected `Template task` produces exactly one Planner task with:
 - description text preserved as Planner-supported plain text;
 - every nonblank semicolon-separated checklist item exactly once.
 
-Invalid task data follows an explicit all-or-nothing or recoverable partial-run
-policy chosen by the recovery ticket; it must never fail silently.
+Any invalid field or reference makes the whole template task invalid. Invalid
+template tasks are skipped and reported; a runtime failure while creating a
+valid task is a fatal generation failure.
 
 ### Completion, notification, and operations
 
-1. A success e-mail is sent only after all required work succeeds and includes
-   request identity, plan identity/link, and created counts.
-2. A failure e-mail identifies the request, run, failure stage, plan ID when
-   already created, and the safe recovery action.
-3. Planner throttling and connector retries cannot create duplicates.
+1. A clean-success or completed-with-warnings e-mail includes request context,
+   plan identity/link, created counts, and for each skipped row its `TaskId`
+   value (or `(missing)`), title, and validation reason.
+2. A failure e-mail identifies the request, run, failure stage, plan ID/link
+   when available, and instructs the operator to delete the partial plan,
+   correct the cause, and submit a new Form response.
+3. Non-idempotent Planner creation actions do not retry. Read-only and e-mail
+   actions may use bounded retries; no durable notification state or resend
+   workflow exists.
 4. The solution packs without unexplained warnings, imports using explicit
    settings, has healthy mapped connections, and can register/enable the Forms
    trigger.
 5. Static checks run before release publication. A release records whether the
    exact packed artifact was imported successfully.
-6. When access permits, a temporary end-to-end request verifies every field,
-   replay after success, and recovery after injected failures. Otherwise the
-   same cases remain an executable manual checklist with an explicit access
-   blocker.
+6. When access permits, temporary end-to-end requests verify every field, clean
+   success, completion with warnings, fatal validation before plan creation,
+   and injected failure after partial creation followed by manual deletion and
+   a clean resubmission. Otherwise the same cases remain an executable manual
+   checklist with an explicit access blocker.
 
 ## Verification performed
 
