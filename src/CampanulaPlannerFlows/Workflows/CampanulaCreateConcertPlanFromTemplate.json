@@ -103,6 +103,22 @@
           "type": "String",
           "defaultValue": "tbBuckets"
         },
+        "groupsTable": {
+          "type": "String",
+          "defaultValue": "tbGroups"
+        },
+        "progressTable": {
+          "type": "String",
+          "defaultValue": "tbProgress"
+        },
+        "priorityTable": {
+          "type": "String",
+          "defaultValue": "tbPriority"
+        },
+        "labelsTable": {
+          "type": "String",
+          "defaultValue": "tbLabels"
+        },
         "notificationTo": {
           "type": "String",
           "defaultValue": "martin.mikes@campanulajihlava.cz"
@@ -247,9 +263,600 @@
             ]
           }
         },
-        "Create_Planner_Plan": {
+        "ValidateConcertRequest": {
           "runAfter": {
             "Initialize_CreatedTaskCount": [
+              "Succeeded"
+            ]
+          },
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "greater": [
+                  "@formatDateTime(outputs('Compose_ConcertDate'), 'yyyy-MM-dd')",
+                  "@convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time', 'yyyy-MM-dd')"
+                ]
+              }
+            ]
+          },
+          "actions": {},
+          "else": {
+            "actions": {
+              "NotifyInvalidConcertDate": {
+                "runAfter": {},
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "emailMessage/To": "@parameters('notificationTo')",
+                    "emailMessage/Subject": "@concat('Concert request rejected before Planner creation: ', outputs('Compose_PlannerPlanName'))",
+                    "emailMessage/Body": "@concat('<p class=\"editor-paragraph\">The concert request was rejected before Planner creation.</p>', '<p class=\"editor-paragraph\">Concert date <strong>', string(outputs('Compose_ConcertDate')), '</strong> must be later than the current Europe/Prague calendar date <strong>', convertTimeZone(utcNow(), 'UTC', 'Central Europe Standard Time', 'yyyy-MM-dd'), '</strong>.</p>', '<p class=\"editor-paragraph\">No Planner content was created. Submit a new concert request with a future event date.</p>')",
+                    "emailMessage/Importance": "Normal"
+                  },
+                  "host": {
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                    "connectionName": "shared_office365",
+                    "operationId": "SendEmailV2"
+                  },
+                  "authentication": "@parameters('$authentication')"
+                }
+              },
+              "TerminateInvalidConcertRequest": {
+                "runAfter": {
+                  "NotifyInvalidConcertDate": [
+                    "Succeeded",
+                    "Failed",
+                    "TimedOut"
+                  ]
+                },
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "InvalidConcertDate",
+                    "message": "The concert request date must be later than the current Europe/Prague calendar date."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ReadWorkbookContract": {
+          "runAfter": {
+            "ValidateConcertRequest": [
+              "Succeeded"
+            ]
+          },
+          "type": "Scope",
+          "actions": {
+            "ListRowsTasksTemplate": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "source": "@parameters('excelSource')",
+                  "drive": "@parameters('excelDrive')",
+                  "file": "@parameters('excelFile')",
+                  "table": "@parameters('tasksTable')"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness",
+                  "connectionName": "shared_excelonlinebusiness",
+                  "operationId": "GetItems"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "ListRowsGroups": {
+              "runAfter": {
+                "ListRowsTasksTemplate": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "source": "@parameters('excelSource')",
+                  "drive": "@parameters('excelDrive')",
+                  "file": "@parameters('excelFile')",
+                  "table": "@parameters('groupsTable')"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness",
+                  "connectionName": "shared_excelonlinebusiness",
+                  "operationId": "GetItems"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "ListRowsBuckets": {
+              "runAfter": {
+                "ListRowsGroups": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "source": "@parameters('excelSource')",
+                  "drive": "@parameters('excelDrive')",
+                  "file": "@parameters('excelFile')",
+                  "table": "@parameters('bucketsTable')"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness",
+                  "connectionName": "shared_excelonlinebusiness",
+                  "operationId": "GetItems"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "ListRowsProgress": {
+              "runAfter": {
+                "ListRowsBuckets": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "source": "@parameters('excelSource')",
+                  "drive": "@parameters('excelDrive')",
+                  "file": "@parameters('excelFile')",
+                  "table": "@parameters('progressTable')"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness",
+                  "connectionName": "shared_excelonlinebusiness",
+                  "operationId": "GetItems"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "ListRowsPriority": {
+              "runAfter": {
+                "ListRowsProgress": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "source": "@parameters('excelSource')",
+                  "drive": "@parameters('excelDrive')",
+                  "file": "@parameters('excelFile')",
+                  "table": "@parameters('priorityTable')"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness",
+                  "connectionName": "shared_excelonlinebusiness",
+                  "operationId": "GetItems"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "ListRowsLabels": {
+              "runAfter": {
+                "ListRowsPriority": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "source": "@parameters('excelSource')",
+                  "drive": "@parameters('excelDrive')",
+                  "file": "@parameters('excelFile')",
+                  "table": "@parameters('labelsTable')"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness",
+                  "connectionName": "shared_excelonlinebusiness",
+                  "operationId": "GetItems"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            }
+          }
+        },
+        "ValidateSharedPlanConfiguration": {
+          "runAfter": {
+            "ReadWorkbookContract": [
+              "Succeeded"
+            ]
+          },
+          "type": "Scope",
+          "actions": {
+            "FilterInvalidBucketRows": {
+              "runAfter": {},
+              "type": "Query",
+              "inputs": {
+                "from": "@outputs('ListRowsBuckets')?['body/value']",
+                "where": "@or(equals(length(trim(coalesce(string(item()?['Bucket']), ''))), 0), equals(length(trim(coalesce(string(item()?['Description']), ''))), 0))"
+              }
+            },
+            "SelectBucketNames": {
+              "runAfter": {
+                "FilterInvalidBucketRows": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Select",
+              "inputs": {
+                "from": "@outputs('ListRowsBuckets')?['body/value']",
+                "select": "@toLower(trim(string(item()?['Bucket'])))"
+              }
+            },
+            "ComposeUniqueBucketNames": {
+              "runAfter": {
+                "SelectBucketNames": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Compose",
+              "inputs": "@union(body('SelectBucketNames'), body('SelectBucketNames'))"
+            },
+            "FilterPopulatedLabelRows": {
+              "runAfter": {
+                "ComposeUniqueBucketNames": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Query",
+              "inputs": {
+                "from": "@outputs('ListRowsLabels')?['body/value']",
+                "where": "@or(greater(length(trim(coalesce(string(item()?['Label']), ''))), 0), greater(length(trim(coalesce(string(item()?['Name']), ''))), 0), greater(length(trim(coalesce(string(item()?['Color']), ''))), 0), greater(length(trim(coalesce(string(item()?['Usage']), ''))), 0))"
+              }
+            },
+            "FilterInvalidPopulatedLabelRows": {
+              "runAfter": {
+                "FilterPopulatedLabelRows": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Query",
+              "inputs": {
+                "from": "@body('FilterPopulatedLabelRows')",
+                "where": "@not(and(contains(createArray('Label1', 'Label2', 'Label3', 'Label4', 'Label5', 'Label6', 'Label7', 'Label8', 'Label9', 'Label10', 'Label11', 'Label12', 'Label13', 'Label14', 'Label15', 'Label16', 'Label17', 'Label18', 'Label19', 'Label20', 'Label21', 'Label22', 'Label23', 'Label24', 'Label25'), trim(string(item()?['Label']))), greater(length(trim(coalesce(string(item()?['Name']), ''))), 0)))"
+              }
+            },
+            "SelectPopulatedLabelSlots": {
+              "runAfter": {
+                "FilterInvalidPopulatedLabelRows": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Select",
+              "inputs": {
+                "from": "@body('FilterPopulatedLabelRows')",
+                "select": "@trim(string(item()?['Label']))"
+              }
+            },
+            "ComposeUniquePopulatedLabelSlots": {
+              "runAfter": {
+                "SelectPopulatedLabelSlots": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Compose",
+              "inputs": "@union(body('SelectPopulatedLabelSlots'), body('SelectPopulatedLabelSlots'))"
+            },
+            "SelectPopulatedLabelNames": {
+              "runAfter": {
+                "ComposeUniquePopulatedLabelSlots": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Select",
+              "inputs": {
+                "from": "@body('FilterPopulatedLabelRows')",
+                "select": "@toLower(trim(string(item()?['Name'])))"
+              }
+            },
+            "ComposeUniquePopulatedLabelNames": {
+              "runAfter": {
+                "SelectPopulatedLabelNames": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Compose",
+              "inputs": "@union(body('SelectPopulatedLabelNames'), body('SelectPopulatedLabelNames'))"
+            },
+            "ValidateSharedPlanConfigurationResult": {
+              "runAfter": {
+                "ComposeUniquePopulatedLabelNames": [
+                  "Succeeded"
+                ]
+              },
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsTasksTemplate')?['body/value'])",
+                      "TemplateType"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsTasksTemplate')?['body/value'])",
+                      "TaskId"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsTasksTemplate')?['body/value'])",
+                      "TaskName"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsTasksTemplate')?['body/value'])",
+                      "GroupName"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsTasksTemplate')?['body/value'])",
+                      "AssignedToEmails"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsTasksTemplate')?['body/value'])",
+                      "DaysFromEvent"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsTasksTemplate')?['body/value'])",
+                      "Bucket"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsTasksTemplate')?['body/value'])",
+                      "Progress"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsTasksTemplate')?['body/value'])",
+                      "Priority"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsTasksTemplate')?['body/value'])",
+                      "Description"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsTasksTemplate')?['body/value'])",
+                      "CheckListItems"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsTasksTemplate')?['body/value'])",
+                      "Labels"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsGroups')?['body/value'])",
+                      "GroupName"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsGroups')?['body/value'])",
+                      "AssignedToEmails"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsBuckets')?['body/value'])",
+                      "Bucket"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsBuckets')?['body/value'])",
+                      "Description"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsProgress')?['body/value'])",
+                      "Progress"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsPriority')?['body/value'])",
+                      "Priority"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsLabels')?['body/value'])",
+                      "Label"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsLabels')?['body/value'])",
+                      "Name"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsLabels')?['body/value'])",
+                      "Color"
+                    ]
+                  },
+                  {
+                    "contains": [
+                      "@string(outputs('ListRowsLabels')?['body/value'])",
+                      "Usage"
+                    ]
+                  },
+                  {
+                    "greater": [
+                      "@length(outputs('ListRowsBuckets')?['body/value'])",
+                      0
+                    ]
+                  },
+                  {
+                    "equals": [
+                      "@length(body('FilterInvalidBucketRows'))",
+                      0
+                    ]
+                  },
+                  {
+                    "equals": [
+                      "@length(body('SelectBucketNames'))",
+                      "@length(outputs('ComposeUniqueBucketNames'))"
+                    ]
+                  },
+                  {
+                    "equals": [
+                      "@length(body('FilterInvalidPopulatedLabelRows'))",
+                      0
+                    ]
+                  },
+                  {
+                    "equals": [
+                      "@length(body('SelectPopulatedLabelSlots'))",
+                      "@length(outputs('ComposeUniquePopulatedLabelSlots'))"
+                    ]
+                  },
+                  {
+                    "equals": [
+                      "@length(body('SelectPopulatedLabelNames'))",
+                      "@length(outputs('ComposeUniquePopulatedLabelNames'))"
+                    ]
+                  }
+                ]
+              },
+              "actions": {},
+              "else": {
+                "actions": {
+                  "NotifyInvalidSharedPlanConfiguration": {
+                    "runAfter": {},
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "emailMessage/To": "@parameters('notificationTo')",
+                        "emailMessage/Subject": "@concat('Concert request rejected before Planner creation: ', outputs('Compose_PlannerPlanName'))",
+                        "emailMessage/Body": "@concat('<p class=\"editor-paragraph\">The concert request was rejected before Planner creation.</p>', '<p class=\"editor-paragraph\">The shared workbook contract or shared plan configuration is invalid.</p>', '<p class=\"editor-paragraph\">Check the required workbook tables and columns, bucket catalog, and populated planning-label rows, then submit a new concert request.</p>', '<p class=\"editor-paragraph\">No Planner content was created.</p>')",
+                        "emailMessage/Importance": "Normal"
+                      },
+                      "host": {
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                        "connectionName": "shared_office365",
+                        "operationId": "SendEmailV2"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    }
+                  },
+                  "TerminateInvalidSharedPlanConfiguration": {
+                    "runAfter": {
+                      "NotifyInvalidSharedPlanConfiguration": [
+                        "Succeeded",
+                        "Failed",
+                        "TimedOut"
+                      ]
+                    },
+                    "type": "Terminate",
+                    "inputs": {
+                      "runStatus": "Failed",
+                      "runError": {
+                        "code": "InvalidSharedPlanConfiguration",
+                        "message": "The workbook contract or shared plan configuration is invalid."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "NotifyPreflightFailure": {
+          "runAfter": {
+            "ReadWorkbookContract": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "emailMessage/To": "@parameters('notificationTo')",
+              "emailMessage/Subject": "@concat('Concert request rejected before Planner creation: ', outputs('Compose_PlannerPlanName'))",
+              "emailMessage/Body": "@concat('<p class=\"editor-paragraph\">The concert request was rejected before Planner creation.</p>', '<p class=\"editor-paragraph\">The workbook contract could not be read through Excel Online Business. Verify the required workbook tables and access, then submit a new concert request.</p>', '<p class=\"editor-paragraph\">No Planner content was created.</p>')",
+              "emailMessage/Importance": "Normal"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+              "connectionName": "shared_office365",
+              "operationId": "SendEmailV2"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "TerminatePreflightFailure": {
+          "runAfter": {
+            "NotifyPreflightFailure": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "type": "Terminate",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "WorkbookContractReadFailed",
+              "message": "The workbook contract could not be read before Planner creation."
+            }
+          }
+        },
+        "Create_Planner_Plan": {
+          "runAfter": {
+            "ValidateSharedPlanConfiguration": [
               "Succeeded"
             ]
           },
