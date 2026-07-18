@@ -1,43 +1,57 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const workflowPath = path.join(
-  process.cwd(),
+const WORKFLOW_PATH_SEGMENTS = [
   'src',
   'CampanulaPlannerFlows',
   'Workflows',
   'CampanulaCreateConcertPlanFromTemplate.json',
-);
+];
 
+const workflowPath = path.join(process.cwd(), ...WORKFLOW_PATH_SEGMENTS);
 const workflow = JSON.parse(fs.readFileSync(workflowPath, 'utf8'));
-const rootActions = workflow?.properties?.definition?.actions;
+const rootActionMap = workflow?.properties?.definition?.actions;
 
-if (!rootActions || typeof rootActions !== 'object') {
+if (!isActionMap(rootActionMap)) {
   throw new Error('Workflow definition is missing actions.');
 }
 
-function checkActions(actions, scopeName) {
-  const actionNames = new Set(Object.keys(actions));
+validateActionDependencies(rootActionMap, 'root');
 
-  for (const [name, action] of Object.entries(actions)) {
-    const runAfter = action?.runAfter ?? {};
+function isActionMap(value) {
+  return Boolean(value) && typeof value === 'object';
+}
+
+function validateActionDependencies(actionMap, scopePath) {
+  const actionNames = new Set(Object.keys(actionMap));
+
+  for (const [actionName, actionDefinition] of Object.entries(actionMap)) {
+    const runAfter = actionDefinition?.runAfter ?? {};
 
     for (const dependencyName of Object.keys(runAfter)) {
       if (!actionNames.has(dependencyName)) {
         throw new Error(
-          `Action "${name}" in ${scopeName} depends on missing action "${dependencyName}".`,
+          `Action "${actionName}" in ${scopePath} depends on missing action "${dependencyName}".`,
         );
       }
     }
 
-    if (action?.actions) {
-      checkActions(action.actions, `${scopeName}.${name}`);
-    }
-
-    if (action?.else?.actions) {
-      checkActions(action.else.actions, `${scopeName}.${name}.else`);
+    for (const [childScopeSuffix, childActionMap] of getChildActionScopes(actionDefinition)) {
+      validateActionDependencies(childActionMap, `${scopePath}.${actionName}${childScopeSuffix}`);
     }
   }
 }
 
-checkActions(rootActions, 'root');
+function getChildActionScopes(actionDefinition) {
+  const childScopes = [];
+
+  if (isActionMap(actionDefinition?.actions)) {
+    childScopes.push(['', actionDefinition.actions]);
+  }
+
+  if (isActionMap(actionDefinition?.else?.actions)) {
+    childScopes.push(['.else', actionDefinition.else.actions]);
+  }
+
+  return childScopes;
+}
