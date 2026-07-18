@@ -23,6 +23,16 @@ const connectorPath = path.join(
   'campa_planner_graph_openapidefinition.json',
 );
 const connector = JSON.parse(fs.readFileSync(connectorPath, 'utf8'));
+const plannerPlanDetailsPath = '/v1.0/planner/plans/{planId}/details';
+const tasksTemplateActionName = 'List_rows_present_in_a_table_-_TasksTemplate';
+
+function readActionOperationId(action) {
+  return action?.inputs?.host?.operationId;
+}
+
+function readActionParameters(action) {
+  return JSON.stringify(action?.inputs?.parameters ?? {});
+}
 
 function getRootAction(actionName) {
   return rootActions[actionName];
@@ -31,22 +41,16 @@ function getRootAction(actionName) {
 test('configures populated Planner labels once before task creation', () => {
   const getPlanDetails = getRootAction('GetPlannerPlanDetails');
   const updatePlanDetails = getRootAction('UpdatePlannerPlanDetails');
-  const tasksRead = getRootAction('List_rows_present_in_a_table_-_TasksTemplate');
+  const tasksRead = getRootAction(tasksTemplateActionName);
 
-  assert.equal(getPlanDetails?.inputs?.host?.operationId, 'GetPlanDetails');
+  assert.equal(readActionOperationId(getPlanDetails), 'GetPlanDetails');
 
-  assert.equal(updatePlanDetails?.inputs?.host?.operationId, 'UpdatePlanDetails');
+  assert.equal(readActionOperationId(updatePlanDetails), 'UpdatePlanDetails');
   assert.deepEqual(updatePlanDetails?.runAfter ?? {}, {
     GetPlannerPlanDetails: ['Succeeded'],
   });
-  assert.match(
-    JSON.stringify(updatePlanDetails?.inputs?.parameters ?? {}),
-    /If-Match/i,
-  );
-  assert.match(
-    JSON.stringify(updatePlanDetails?.inputs?.parameters ?? {}),
-    /categoryDescriptions/,
-  );
+  assert.match(readActionParameters(updatePlanDetails), /If-Match/i);
+  assert.match(readActionParameters(updatePlanDetails), /categoryDescriptions/);
 
   assert.deepEqual(tasksRead?.runAfter ?? {}, {
     Apply_to_each_bucket: ['Succeeded'],
@@ -68,7 +72,7 @@ test('creates every workbook bucket sequentially with the current Planner operat
     foreachBucket?.foreach,
     "@outputs('List_rows_present_in_a_table_-_Buckets')?['body/value']",
   );
-  assert.equal(createBucket?.inputs?.host?.operationId, 'CreateBucket_V2');
+  assert.equal(readActionOperationId(createBucket), 'CreateBucket_V2');
   assert.deepEqual(setBucketMap?.runAfter ?? {}, {
     Create_Planner_Bucket: ['Succeeded'],
   });
@@ -79,10 +83,10 @@ test('extends the Graph connector only with plan-details read and patch operatio
 
   assert.deepEqual(connectorPaths, [
     '/v1.0/planner/plans',
-    '/v1.0/planner/plans/{planId}/details',
+    plannerPlanDetailsPath,
   ]);
 
-  const planDetailsPath = connector.paths['/v1.0/planner/plans/{planId}/details'];
+  const planDetailsPath = connector.paths[plannerPlanDetailsPath];
 
   assert.ok(planDetailsPath.get, 'missing plan-details GET operation');
   assert.ok(planDetailsPath.patch, 'missing plan-details PATCH operation');

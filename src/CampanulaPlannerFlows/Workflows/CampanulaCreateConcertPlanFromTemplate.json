@@ -246,7 +246,7 @@
             ]
           }
         },
-        "Initialize_PlanCategoryDescriptions": {
+        "InitializePlanCategoryDescriptions": {
           "runAfter": {
             "Initialize_BucketMap": [
               "Succeeded"
@@ -265,7 +265,7 @@
         },
         "Initialize_CreatedTaskCount": {
           "runAfter": {
-            "Initialize_PlanCategoryDescriptions": [
+            "InitializePlanCategoryDescriptions": [
               "Succeeded"
             ]
           },
@@ -930,7 +930,7 @@
             "where": "@greater(length(trim(coalesce(string(item()?['Name']), ''))), 0)"
           }
         },
-        "Apply_to_each_label": {
+        "ApplyToEachPlannerLabel": {
           "runAfter": {
             "FilterPopulatedPlannerLabelRows": [
               "Succeeded"
@@ -940,7 +940,7 @@
           "foreach": "@body('FilterPopulatedPlannerLabelRows')",
           "operationOptions": "Sequential",
           "actions": {
-            "Set_PlanCategoryDescriptions": {
+            "SetPlanCategoryDescriptions": {
               "runAfter": {},
               "type": "SetVariable",
               "inputs": {
@@ -952,7 +952,7 @@
         },
         "GetPlannerPlanDetails": {
           "runAfter": {
-            "Apply_to_each_label": [
+            "ApplyToEachPlannerLabel": [
               "Succeeded"
             ]
           },

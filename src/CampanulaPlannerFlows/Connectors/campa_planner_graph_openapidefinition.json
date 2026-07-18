@@ -75,21 +75,12 @@
         "x-ms-visibility": "important",
         "parameters": [
           {
-            "name": "planId",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "description": "Planner plan identifier.",
-            "x-ms-summary": "Plan ID",
-            "x-ms-visibility": "important"
+            "$ref": "#/parameters/PlanId"
           }
         ],
         "responses": {
           "200": {
-            "description": "Planner plan details returned successfully.",
-            "schema": {
-              "$ref": "#/definitions/PlannerPlanDetails"
-            }
+            "$ref": "#/responses/PlannerPlanDetailsGetResponse"
           },
           "default": {
             "description": "Unexpected error response from Microsoft Graph.",
@@ -112,22 +103,10 @@
         "x-ms-visibility": "important",
         "parameters": [
           {
-            "name": "planId",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "description": "Planner plan identifier.",
-            "x-ms-summary": "Plan ID",
-            "x-ms-visibility": "important"
+            "$ref": "#/parameters/PlanId"
           },
           {
-            "name": "If-Match",
-            "in": "header",
-            "required": true,
-            "type": "string",
-            "description": "ETag from the immediately preceding plan-details read.",
-            "x-ms-summary": "If-Match",
-            "x-ms-visibility": "important"
+            "$ref": "#/parameters/IfMatch"
           },
           {
             "name": "body",
@@ -140,13 +119,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Planner plan details updated successfully.",
-            "schema": {
-              "$ref": "#/definitions/PlannerPlanDetails"
-            }
+            "$ref": "#/responses/PlannerPlanDetailsUpdateResponse"
           },
           "204": {
-            "description": "Planner plan details updated successfully."
+            "$ref": "#/responses/PlannerPlanDetailsNoContentResponse"
           },
           "default": {
             "description": "Unexpected error response from Microsoft Graph.",
@@ -261,81 +237,85 @@
       "type": "object",
       "properties": {
         "category1": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category2": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category3": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category4": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category5": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category6": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category7": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category8": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category9": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category10": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category11": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category12": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category13": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category14": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category15": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category16": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category17": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category18": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category19": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category20": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category21": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category22": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category23": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category24": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         },
         "category25": {
-          "type": "string"
+          "$ref": "#/definitions/PlannerCategoryDescription"
         }
       }
+    },
+    "PlannerCategoryDescription": {
+      "type": "string",
+      "description": "Planner label display name."
     },
     "ErrorResponse": {
       "type": "object",
@@ -354,8 +334,43 @@
       }
     }
   },
-  "parameters": {},
-  "responses": {},
+  "parameters": {
+    "PlanId": {
+      "name": "planId",
+      "in": "path",
+      "required": true,
+      "type": "string",
+      "description": "Planner plan identifier.",
+      "x-ms-summary": "Plan ID",
+      "x-ms-visibility": "important"
+    },
+    "IfMatch": {
+      "name": "If-Match",
+      "in": "header",
+      "required": true,
+      "type": "string",
+      "description": "ETag from the immediately preceding plan-details read.",
+      "x-ms-summary": "If-Match",
+      "x-ms-visibility": "important"
+    }
+  },
+  "responses": {
+    "PlannerPlanDetailsGetResponse": {
+      "description": "Planner plan details returned successfully.",
+      "schema": {
+        "$ref": "#/definitions/PlannerPlanDetails"
+      }
+    },
+    "PlannerPlanDetailsUpdateResponse": {
+      "description": "Planner plan details updated successfully.",
+      "schema": {
+        "$ref": "#/definitions/PlannerPlanDetails"
+      }
+    },
+    "PlannerPlanDetailsNoContentResponse": {
+      "description": "Planner plan details updated successfully."
+    }
+  },
   "securityDefinitions": {
     "oauth2_auth": {
       "type": "oauth2",
