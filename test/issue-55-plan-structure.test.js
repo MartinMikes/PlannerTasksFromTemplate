@@ -1,41 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-
-const workflowPath = path.join(
-  __dirname,
-  '..',
-  'src',
-  'CampanulaPlannerFlows',
-  'Workflows',
-  'CampanulaCreateConcertPlanFromTemplate.json',
-);
-
-const workflow = JSON.parse(fs.readFileSync(workflowPath, 'utf8'));
-const rootActions = workflow.properties.definition.actions;
-const connectorPath = path.join(
-  __dirname,
-  '..',
-  'src',
-  'CampanulaPlannerFlows',
-  'Connectors',
-  'campa_planner_graph_openapidefinition.json',
-);
-const connector = JSON.parse(fs.readFileSync(connectorPath, 'utf8'));
+const {
+  connector,
+  getRootAction,
+  readActionOperationId,
+  readActionParameters,
+} = require('./helpers/planner-fixtures');
 const plannerPlanDetailsPath = '/v1.0/planner/plans/{planId}/details';
-
-function readActionOperationId(action) {
-  return action?.inputs?.host?.operationId;
-}
-
-function readActionParameters(action) {
-  return JSON.stringify(action?.inputs?.parameters ?? {});
-}
-
-function getRootAction(actionName) {
-  return rootActions[actionName];
-}
 
 test('configures populated Planner labels once before task creation', () => {
   const getPlanDetails = getRootAction('GetPlannerPlanDetails');

@@ -1,19 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-
-const workflowPath = path.join(
-  __dirname,
-  '..',
-  'src',
-  'CampanulaPlannerFlows',
-  'Workflows',
-  'CampanulaCreateConcertPlanFromTemplate.json',
-);
-
-const workflow = JSON.parse(fs.readFileSync(workflowPath, 'utf8'));
-const rootActions = workflow.properties.definition.actions;
+const { rootActions } = require('./helpers/planner-fixtures');
 const validationActions =
   rootActions.ValidateSelectedTaskRows?.actions?.ApplyToEachSelectedTemplateRow?.actions ?? {};
 const createTaskAction =

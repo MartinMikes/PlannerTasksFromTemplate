@@ -314,7 +314,7 @@
             ]
           }
         },
-        "Initialize_TaskChecklistItems": {
+        "InitializeTaskChecklistItems": {
           "runAfter": {
             "Initialize_SkippedSelectedRowWarnings": [
               "Succeeded"
@@ -333,7 +333,7 @@
         },
         "ValidateConcertRequest": {
           "runAfter": {
-            "Initialize_TaskChecklistItems": [
+            "InitializeTaskChecklistItems": [
               "Succeeded"
             ]
           },

@@ -1,43 +1,19 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-
-const workflowPath = path.join(
-  __dirname,
-  '..',
-  'src',
-  'CampanulaPlannerFlows',
-  'Workflows',
-  'CampanulaCreateConcertPlanFromTemplate.json',
-);
-
-const workflow = JSON.parse(fs.readFileSync(workflowPath, 'utf8'));
-const rootActions = workflow.properties.definition.actions;
+const {
+  connector,
+  readActionOperationId,
+  readActionParameters,
+  rootActions,
+} = require('./helpers/planner-fixtures');
 const taskLoopActions = rootActions.Apply_to_each_template_task?.actions ?? {};
-const connectorPath = path.join(
-  __dirname,
-  '..',
-  'src',
-  'CampanulaPlannerFlows',
-  'Connectors',
-  'campa_planner_graph_openapidefinition.json',
-);
-const connector = JSON.parse(fs.readFileSync(connectorPath, 'utf8'));
-
-function readActionOperationId(action) {
-  return action?.inputs?.host?.operationId;
-}
-
-function readActionParameters(action) {
-  return JSON.stringify(action?.inputs?.parameters ?? {});
-}
 
 test('updates Planner task progress and details through single-pass Graph reads and writes', () => {
   const createTask = taskLoopActions.Create_Planner_Task;
   const getTask = taskLoopActions.GetPlannerTask;
-  const updateTask =
-    taskLoopActions.ConditionallyUpdatePlannerTaskProgress?.actions?.UpdatePlannerTask;
+  const conditionalTaskProgressUpdate =
+    taskLoopActions.ConditionallyUpdatePlannerTaskProgress;
+  const updateTask = conditionalTaskProgressUpdate?.actions?.UpdatePlannerTask;
   const resetTaskChecklistItems = taskLoopActions.SetTaskChecklistItemsEmpty;
   const buildTaskChecklistItems = taskLoopActions.ApplyToEachChecklistItemPayload;
   const getTaskDetails = taskLoopActions.GetPlannerTaskDetails;
@@ -50,12 +26,12 @@ test('updates Planner task progress and details through single-pass Graph reads 
     Create_Planner_Task: ['Succeeded'],
   });
 
-  assert.equal(taskLoopActions.ConditionallyUpdatePlannerTaskProgress?.type, 'If');
-  assert.deepEqual(taskLoopActions.ConditionallyUpdatePlannerTaskProgress?.runAfter ?? {}, {
+  assert.equal(conditionalTaskProgressUpdate?.type, 'If');
+  assert.deepEqual(conditionalTaskProgressUpdate?.runAfter ?? {}, {
     GetPlannerTask: ['Succeeded'],
   });
   assert.match(
-    JSON.stringify(taskLoopActions.ConditionallyUpdatePlannerTaskProgress?.expression ?? {}),
+    JSON.stringify(conditionalTaskProgressUpdate?.expression ?? {}),
     /In progress|Completed/,
   );
 
@@ -63,7 +39,7 @@ test('updates Planner task progress and details through single-pass Graph reads 
   assert.deepEqual(updateTask?.runAfter ?? {}, {});
   assert.match(readActionParameters(updateTask), /If-Match/i);
   assert.match(readActionParameters(updateTask), /percentComplete/);
-  assert.equal(taskLoopActions.ConditionallyUpdatePlannerTaskProgress?.actions?.UpdatePlannerTask, updateTask);
+  assert.equal(conditionalTaskProgressUpdate?.actions?.UpdatePlannerTask, updateTask);
 
   assert.deepEqual(resetTaskChecklistItems?.runAfter ?? {}, {
     ConditionallyUpdatePlannerTaskProgress: ['Succeeded', 'Skipped'],
