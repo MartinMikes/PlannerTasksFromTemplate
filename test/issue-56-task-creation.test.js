@@ -18,9 +18,24 @@ const validationActions =
   rootActions.ValidateSelectedTaskRows?.actions?.ApplyToEachSelectedTemplateRow?.actions ?? {};
 const createTaskAction =
   rootActions.Apply_to_each_template_task?.actions?.Create_Planner_Task;
+const appendValidSelectedRowValue =
+  validationActions.IsSelectedTaskRowValid?.actions?.AppendValidSelectedRow?.inputs?.value ?? {};
+const createTaskParameters = createTaskAction?.inputs?.parameters ?? {};
 
-function readActionParameters(action) {
-  return JSON.stringify(action?.inputs?.parameters ?? {});
+function readActionInput(actionName) {
+  return validationActions[actionName]?.inputs ?? '';
+}
+
+function assertObjectContainsKey(objectValue, key, message) {
+  assert.match(JSON.stringify(objectValue), new RegExp(`"${key}"`, 'i'), message);
+}
+
+function assertParameterMapsToItem(parameterName, itemKey) {
+  assert.equal(
+    createTaskParameters[parameterName],
+    `@item()?['${itemKey}']`,
+    `expected ${parameterName} to map from ${itemKey}`,
+  );
 }
 
 test('normalizes selected-row ownership and label flags before sequential task creation', () => {
@@ -37,34 +52,31 @@ test('normalizes selected-row ownership and label flags before sequential task c
     'missing label resolution against tbLabels',
   );
 
-  assert.match(
-    validationActions.ComposeSelectedTaskValidationReason?.inputs ?? '',
-    /1-20 unique assignee/i,
-  );
-  assert.match(
-    validationActions.ComposeSelectedTaskValidationReason?.inputs ?? '',
-    /Labels/i,
+  const validationReasonInput = readActionInput('ComposeSelectedTaskValidationReason');
+
+  assert.match(validationReasonInput, /1-20 unique assignee/i);
+  assert.match(validationReasonInput, /Labels/i);
+
+  assert.equal(
+    appendValidSelectedRowValue.AssignedToEmails,
+    "@outputs('ComposeSelectedTaskNormalizedAssignedToEmails')",
   );
 
-  assert.match(
-    JSON.stringify(validationActions.IsSelectedTaskRowValid?.actions?.AppendValidSelectedRow?.inputs?.value ?? {}),
-    /AssignedToEmails/,
-  );
-  assert.match(
-    JSON.stringify(validationActions.IsSelectedTaskRowValid?.actions?.AppendValidSelectedRow?.inputs?.value ?? {}),
-    /category1/i,
-  );
-  assert.match(
-    JSON.stringify(validationActions.IsSelectedTaskRowValid?.actions?.AppendValidSelectedRow?.inputs?.value ?? {}),
-    /category25/i,
-  );
+  for (let index = 1; index <= 25; index += 1) {
+    assertObjectContainsKey(
+      appendValidSelectedRowValue,
+      `category${index}`,
+      `missing category${index} label flag on validated rows`,
+    );
+  }
 
   assert.equal(createTaskAction?.inputs?.host?.operationId, 'CreateTask_V3');
-  assert.match(readActionParameters(createTaskAction), /body\/assignments/);
-  assert.match(readActionParameters(createTaskAction), /body\/category1/);
-  assert.match(readActionParameters(createTaskAction), /body\/category25/);
-  assert.match(
-    readActionParameters(createTaskAction),
-    /item\(\)\?\['AssignedToEmails'\]/,
+  assert.equal(
+    createTaskParameters['body/assignments'],
+    "@item()?['AssignedToEmails']",
   );
+
+  for (let index = 1; index <= 25; index += 1) {
+    assertParameterMapsToItem(`body/category${index}`, `category${index}`);
+  }
 });
