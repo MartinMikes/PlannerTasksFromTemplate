@@ -972,9 +972,51 @@
                   "type": "Compose",
                   "inputs": "@toUpper(outputs('ComposeSelectedTaskAssignedToEmails'))"
                 },
-                "ComposeSelectedTaskDaysFromEvent": {
+                "FilterSelectedTaskAssigneeTokens": {
                   "runAfter": {
                     "ComposeSelectedTaskAssignedToEmailsUpper": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@split(outputs('ComposeSelectedTaskAssignedToEmails'), ';')",
+                    "where": "@greater(length(trim(string(item()))), 0)"
+                  }
+                },
+                "SelectSelectedTaskAssigneeTokens": {
+                  "runAfter": {
+                    "FilterSelectedTaskAssigneeTokens": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('FilterSelectedTaskAssigneeTokens')",
+                    "select": "@toLower(trim(string(item())))"
+                  }
+                },
+                "ComposeSelectedTaskUniqueAssigneeTokens": {
+                  "runAfter": {
+                    "SelectSelectedTaskAssigneeTokens": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@union(body('SelectSelectedTaskAssigneeTokens'), body('SelectSelectedTaskAssigneeTokens'))"
+                },
+                "ComposeSelectedTaskNormalizedAssignedToEmails": {
+                  "runAfter": {
+                    "ComposeSelectedTaskUniqueAssigneeTokens": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@join(outputs('ComposeSelectedTaskUniqueAssigneeTokens'), ';')"
+                },
+                "ComposeSelectedTaskDaysFromEvent": {
+                  "runAfter": {
+                    "ComposeSelectedTaskNormalizedAssignedToEmails": [
                       "Succeeded"
                     ]
                   },
@@ -1044,9 +1086,72 @@
                   "type": "Compose",
                   "inputs": "@contains(string(outputs('ListRowsPriority')?['body/value']), concat('\"Priority\":\"', outputs('ComposeSelectedTaskPriorityName'), '\"'))"
                 },
-                "ComposeSelectedTaskAssignedToEmailsHasExcelError": {
+                "ComposeSelectedTaskLabels": {
                   "runAfter": {
                     "ComposeSelectedTaskPriorityExists": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@trim(coalesce(string(item()?['Labels']), ''))"
+                },
+                "FilterSelectedTaskLabelTokens": {
+                  "runAfter": {
+                    "ComposeSelectedTaskLabels": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@split(outputs('ComposeSelectedTaskLabels'), ';')",
+                    "where": "@greater(length(trim(string(item()))), 0)"
+                  }
+                },
+                "SelectSelectedTaskLabelTokens": {
+                  "runAfter": {
+                    "FilterSelectedTaskLabelTokens": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('FilterSelectedTaskLabelTokens')",
+                    "select": "@toLower(trim(string(item())))"
+                  }
+                },
+                "ComposeSelectedTaskUniqueLabelTokens": {
+                  "runAfter": {
+                    "SelectSelectedTaskLabelTokens": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@union(body('SelectSelectedTaskLabelTokens'), body('SelectSelectedTaskLabelTokens'))"
+                },
+                "ComposeSelectedTaskUniqueLabelTokenEnvelope": {
+                  "runAfter": {
+                    "ComposeSelectedTaskUniqueLabelTokens": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@concat(';', join(outputs('ComposeSelectedTaskUniqueLabelTokens'), ';'), ';')"
+                },
+                "FilterResolvedSelectedTaskLabelRows": {
+                  "runAfter": {
+                    "ComposeSelectedTaskUniqueLabelTokenEnvelope": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@outputs('ListRowsLabels')?['body/value']",
+                    "where": "@and(greater(length(trim(coalesce(string(item()?['Name']), ''))), 0), contains(outputs('ComposeSelectedTaskUniqueLabelTokenEnvelope'), concat(';', toLower(trim(string(item()?['Name']))), ';')))"
+                  }
+                },
+                "ComposeSelectedTaskAssignedToEmailsHasExcelError": {
+                  "runAfter": {
+                    "FilterResolvedSelectedTaskLabelRows": [
                       "Succeeded"
                     ]
                   },
@@ -1060,7 +1165,7 @@
                     ]
                   },
                   "type": "Compose",
-                  "inputs": "@if(equals(outputs('ComposeSelectedTaskId'), ''), 'TaskId is required.', if(equals(outputs('ComposeSelectedTaskTitle'), ''), 'TaskName is required.', if(equals(length(outputs('ComposeSelectedTaskGroupName')), 0), 'GroupName is required.', if(not(outputs('ComposeSelectedTaskGroupExists')), 'GroupName does not resolve in tbGroups.', if(equals(length(outputs('ComposeSelectedTaskAssignedToEmails')), 0), 'AssignedToEmails formula result is required.', if(outputs('ComposeSelectedTaskAssignedToEmailsHasExcelError'), 'AssignedToEmails contains an Excel error.', if(equals(length(outputs('ComposeSelectedTaskDaysFromEvent')), 0), 'DaysFromEvent is required.', if(equals(length(outputs('ComposeSelectedTaskBucketName')), 0), 'Bucket is required.', if(not(outputs('ComposeSelectedTaskBucketExists')), 'Bucket does not resolve in tbBuckets.', if(and(greater(length(outputs('ComposeSelectedTaskProgressName')), 0), not(outputs('ComposeSelectedTaskProgressExists'))), 'Progress does not resolve in tbProgress.', if(equals(length(outputs('ComposeSelectedTaskPriorityName')), 0), 'Priority is required.', if(not(outputs('ComposeSelectedTaskPriorityExists')), 'Priority does not resolve in tbPriority.', ''))))))))))))"
+                  "inputs": "@if(equals(outputs('ComposeSelectedTaskId'), ''), 'TaskId is required.', if(equals(outputs('ComposeSelectedTaskTitle'), ''), 'TaskName is required.', if(equals(length(outputs('ComposeSelectedTaskGroupName')), 0), 'GroupName is required.', if(not(outputs('ComposeSelectedTaskGroupExists')), 'GroupName does not resolve in tbGroups.', if(equals(length(outputs('ComposeSelectedTaskAssignedToEmails')), 0), 'AssignedToEmails formula result is required.', if(outputs('ComposeSelectedTaskAssignedToEmailsHasExcelError'), 'AssignedToEmails contains an Excel error.', if(or(equals(length(outputs('ComposeSelectedTaskUniqueAssigneeTokens')), 0), greater(length(outputs('ComposeSelectedTaskUniqueAssigneeTokens')), 20), not(equals(length(body('SelectSelectedTaskAssigneeTokens')), length(outputs('ComposeSelectedTaskUniqueAssigneeTokens'))))), 'AssignedToEmails must resolve to 1-20 unique assignee addresses.', if(equals(length(outputs('ComposeSelectedTaskDaysFromEvent')), 0), 'DaysFromEvent is required.', if(equals(length(outputs('ComposeSelectedTaskBucketName')), 0), 'Bucket is required.', if(not(outputs('ComposeSelectedTaskBucketExists')), 'Bucket does not resolve in tbBuckets.', if(and(greater(length(outputs('ComposeSelectedTaskProgressName')), 0), not(outputs('ComposeSelectedTaskProgressExists'))), 'Progress does not resolve in tbProgress.', if(equals(length(outputs('ComposeSelectedTaskPriorityName')), 0), 'Priority is required.', if(not(outputs('ComposeSelectedTaskPriorityExists')), 'Priority does not resolve in tbPriority.', if(and(greater(length(body('FilterSelectedTaskLabelTokens')), 0), or(not(equals(length(body('SelectSelectedTaskLabelTokens')), length(outputs('ComposeSelectedTaskUniqueLabelTokens')))), not(equals(length(outputs('ComposeSelectedTaskUniqueLabelTokens')), length(body('FilterResolvedSelectedTaskLabelRows'))))))), 'Labels must resolve to unique tbLabels names.', '')))))))))))))"
                 },
                 "ComposeSelectedTaskWarningHtml": {
                   "runAfter": {
@@ -1094,7 +1199,42 @@
                       "type": "AppendToArrayVariable",
                       "inputs": {
                         "name": "validSelectedRows",
-                        "value": "@item()"
+                        "value": {
+                          "TaskId": "@outputs('ComposeSelectedTaskId')",
+                          "TaskName": "@outputs('ComposeSelectedTaskTitle')",
+                          "AssignedToEmails": "@outputs('ComposeSelectedTaskNormalizedAssignedToEmails')",
+                          "DaysFromEvent": "@outputs('ComposeSelectedTaskDaysFromEvent')",
+                          "Bucket": "@outputs('ComposeSelectedTaskBucketName')",
+                          "Progress": "@outputs('ComposeSelectedTaskProgressName')",
+                          "Priority": "@outputs('ComposeSelectedTaskPriorityName')",
+                          "Description": "@coalesce(item()?['Description'], '')",
+                          "CheckListItems": "@coalesce(item()?['CheckListItems'], '')",
+                          "category1": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label1\"')",
+                          "category2": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label2\"')",
+                          "category3": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label3\"')",
+                          "category4": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label4\"')",
+                          "category5": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label5\"')",
+                          "category6": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label6\"')",
+                          "category7": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label7\"')",
+                          "category8": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label8\"')",
+                          "category9": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label9\"')",
+                          "category10": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label10\"')",
+                          "category11": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label11\"')",
+                          "category12": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label12\"')",
+                          "category13": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label13\"')",
+                          "category14": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label14\"')",
+                          "category15": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label15\"')",
+                          "category16": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label16\"')",
+                          "category17": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label17\"')",
+                          "category18": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label18\"')",
+                          "category19": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label19\"')",
+                          "category20": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label20\"')",
+                          "category21": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label21\"')",
+                          "category22": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label22\"')",
+                          "category23": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label23\"')",
+                          "category24": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label24\"')",
+                          "category25": "@contains(string(body('FilterResolvedSelectedTaskLabelRows')), '\"Label\":\"Label25\"')"
+                        }
                       }
                     }
                   },
@@ -1375,8 +1515,34 @@
                   "body/planId": "@body('Create_Planner_Plan')?['id']",
                   "body/bucketId": "@variables('bucketMap')?[item()?['Bucket']]",
                   "body/title": "@item()?['TaskName']",
+                  "body/assignments": "@item()?['AssignedToEmails']",
                   "body/dueDateTime": "@outputs('Compose_TaskDueDate')",
-                  "body/priority": "@outputs('Compose_PlannerPriority')"
+                  "body/priority": "@outputs('Compose_PlannerPriority')",
+                  "body/category1": "@item()?['category1']",
+                  "body/category2": "@item()?['category2']",
+                  "body/category3": "@item()?['category3']",
+                  "body/category4": "@item()?['category4']",
+                  "body/category5": "@item()?['category5']",
+                  "body/category6": "@item()?['category6']",
+                  "body/category7": "@item()?['category7']",
+                  "body/category8": "@item()?['category8']",
+                  "body/category9": "@item()?['category9']",
+                  "body/category10": "@item()?['category10']",
+                  "body/category11": "@item()?['category11']",
+                  "body/category12": "@item()?['category12']",
+                  "body/category13": "@item()?['category13']",
+                  "body/category14": "@item()?['category14']",
+                  "body/category15": "@item()?['category15']",
+                  "body/category16": "@item()?['category16']",
+                  "body/category17": "@item()?['category17']",
+                  "body/category18": "@item()?['category18']",
+                  "body/category19": "@item()?['category19']",
+                  "body/category20": "@item()?['category20']",
+                  "body/category21": "@item()?['category21']",
+                  "body/category22": "@item()?['category22']",
+                  "body/category23": "@item()?['category23']",
+                  "body/category24": "@item()?['category24']",
+                  "body/category25": "@item()?['category25']"
                 },
                 "host": {
                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
