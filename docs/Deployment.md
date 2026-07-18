@@ -294,6 +294,70 @@ environment, expect to find them primarily under **Solutions**. A managed flow
 imported this way might not appear under **My Flows** unless you are also its
 owner or co-owner in that environment.
 
+## Target-Tenant Black-Box Acceptance
+
+Run this procedure only against the imported managed solution in the target
+tenant. The supported seam is one temporary Microsoft Forms response per case,
+followed by verification in Planner, outcome e-mail, and Power Automate run
+history.
+
+### Preconditions
+
+1. Identify and retain the exact managed solution artifact imported for the
+   test, including the workflow run or release record that produced it.
+2. Confirm the imported Flow is enabled inside the `CampanulaPlannerFlows`
+   solution and the `Campanula Planner Graph` connection reference is healthy.
+3. Confirm the SharePoint workbook copy matches the intended workbook version.
+4. Prepare reversible temporary workbook rows or a safe temporary
+   configuration for negative cases. Never modify archive material.
+
+### Required coverage
+
+Execute and capture evidence for these black-box cases:
+
+1. Clean success with small and large concert scopes.
+2. Coverage across both concert types.
+3. A live check that labels 7 through 9 are named and applied successfully.
+4. Completed-with-warnings with valid tasks still created.
+5. Zero-valid-task with no unintended plan created.
+6. Today and past date rejection before plan creation.
+7. Structural workbook failure using a safe temporary workbook change.
+8. Runtime failure after partial creation, then manual deletion, correction,
+   and a successful new submission.
+
+### Verify in each successful plan
+
+For the created plan, verify the visible outcome includes:
+
+1. Expected plan title.
+2. Every configured bucket.
+3. Every configured label name, including labels 7 through 9.
+4. Selected task count for the submitted scope.
+5. Assignments, due dates including a past calculated date, progress, and
+   priority.
+6. Applied labels, descriptions, and checklists.
+7. The outcome e-mail plan link and task counts.
+
+### Run-history evidence
+
+Capture Power Automate run history evidence that:
+
+1. Non-idempotent create actions do not retry for plan, bucket, or task
+   creation.
+2. Bounded e-mail retries remain enabled and their final result is visible in
+   run history.
+3. The runtime failure after partial creation records the failure stage and the
+   partial-plan link.
+
+### Cleanup rules
+
+After evidence is captured:
+
+1. Delete every temporary plan created for acceptance.
+2. Remove every temporary workbook row or temporary workbook configuration.
+3. Keep the retained managed artifact and evidence set.
+4. Do not edit, regenerate, move, or delete archive material.
+
 ## SharePoint Template Update
 
 After changing `templates/PlannerTasksTemplate.xlsx`:
