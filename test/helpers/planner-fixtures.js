@@ -23,9 +23,14 @@ const connector = readJson([
 ]);
 
 const rootActions = workflow.properties.definition.actions;
+const generateConcertPlanActions = rootActions.GenerateConcertPlan?.actions ?? {};
 
 function getRootAction(actionName) {
   return rootActions[actionName];
+}
+
+function getGenerateConcertPlanAction(actionName) {
+  return generateConcertPlanActions[actionName];
 }
 
 function readActionOperationId(action) {
@@ -42,5 +47,7 @@ module.exports = {
   readActionOperationId,
   readActionParameters,
   rootActions,
+  generateConcertPlanActions,
+  getGenerateConcertPlanAction,
   workflow,
 };

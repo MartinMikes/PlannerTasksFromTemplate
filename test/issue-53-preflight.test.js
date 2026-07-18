@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { getRootAction } = require('./helpers/planner-fixtures');
+const { getRootAction, getGenerateConcertPlanAction } = require('./helpers/planner-fixtures');
 const requiredWorkbookReads = [
   'ListRowsTasksTemplate',
   'ListRowsGroups',
@@ -36,7 +36,7 @@ test('creates the Planner plan only after a dedicated preflight success gate', (
   );
   assertHasRootAction('NotifyPreflightFailure', 'missing preflight failure notification');
 
-  assertRunAfter('Create_Planner_Plan', {
+  assertRunAfter('GenerateConcertPlan', {
     ValidateSelectedTaskRows: ['Succeeded'],
   });
 });
@@ -110,8 +110,8 @@ test('classifies selected rows before plan creation and stops when none are vali
 });
 
 test('creates tasks only from validated rows and reports skipped selected rows', () => {
-  const applyToEachTemplateTask = getRootAction('Apply_to_each_template_task');
-  const sendSummaryNotification = getRootAction('Send_summary_notification');
+  const applyToEachTemplateTask = getGenerateConcertPlanAction('Apply_to_each_template_task');
+  const notifyConcertPlanOutcome = getRootAction('NotifyConcertPlanOutcome');
   const classifySelectedRows =
     getSelectedRowValidationActions().ApplyToEachSelectedTemplateRow;
   const classifySelectedRowActions = classifySelectedRows?.actions ?? {};
@@ -125,7 +125,11 @@ test('creates tasks only from validated rows and reports skipped selected rows',
     'missing selected-row warning formatter',
   );
   assert.match(
-    JSON.stringify(sendSummaryNotification?.inputs?.parameters?.['emailMessage/Body'] ?? ''),
+    JSON.stringify(
+      notifyConcertPlanOutcome?.actions?.NotifyCompletedWithWarnings?.inputs?.parameters?.[
+        'emailMessage/Body'
+      ] ?? '',
+    ),
     /skippedSelectedRowWarnings/,
   );
 });

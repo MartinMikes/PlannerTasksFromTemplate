@@ -2,16 +2,16 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   connector,
-  getRootAction,
+  getGenerateConcertPlanAction,
   readActionOperationId,
   readActionParameters,
 } = require('./helpers/planner-fixtures');
 const plannerPlanDetailsPath = '/v1.0/planner/plans/{planId}/details';
 
 test('configures populated Planner labels once before task creation', () => {
-  const getPlanDetails = getRootAction('GetPlannerPlanDetails');
-  const updatePlanDetails = getRootAction('UpdatePlannerPlanDetails');
-  const createTasks = getRootAction('Apply_to_each_template_task');
+  const getPlanDetails = getGenerateConcertPlanAction('GetPlannerPlanDetails');
+  const updatePlanDetails = getGenerateConcertPlanAction('UpdatePlannerPlanDetails');
+  const createTasks = getGenerateConcertPlanAction('Apply_to_each_template_task');
 
   assert.equal(readActionOperationId(getPlanDetails), 'GetPlanDetails');
 
@@ -23,20 +23,19 @@ test('configures populated Planner labels once before task creation', () => {
   assert.match(readActionParameters(updatePlanDetails), /categoryDescriptions/);
 
   assert.deepEqual(createTasks?.runAfter ?? {}, {
-    Apply_to_each_bucket: ['Succeeded'],
-    UpdatePlannerPlanDetails: ['Succeeded'],
+    SetGenerationStageCreatePlannerTasks: ['Succeeded'],
   });
   assert.equal(createTasks?.foreach, "@variables('validSelectedRows')");
 });
 
 test('creates every workbook bucket sequentially with the current Planner operation', () => {
-  const listBuckets = getRootAction('List_rows_present_in_a_table_-_Buckets');
-  const foreachBucket = getRootAction('Apply_to_each_bucket');
+  const listBuckets = getGenerateConcertPlanAction('List_rows_present_in_a_table_-_Buckets');
+  const foreachBucket = getGenerateConcertPlanAction('Apply_to_each_bucket');
   const createBucket = foreachBucket?.actions?.Create_Planner_Bucket;
   const setBucketMap = foreachBucket?.actions?.Set_BucketMap;
 
   assert.deepEqual(listBuckets?.runAfter ?? {}, {
-    Create_Planner_Plan: ['Succeeded'],
+    SetGenerationStageCreatePlannerBuckets: ['Succeeded'],
   });
   assert.equal(foreachBucket?.operationOptions, 'Sequential');
   assert.equal(

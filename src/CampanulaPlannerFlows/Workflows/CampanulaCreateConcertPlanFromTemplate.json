@@ -280,9 +280,26 @@
             ]
           }
         },
-        "Initialize_ValidSelectedRows": {
+        "Initialize_CreatedBucketCount": {
           "runAfter": {
             "Initialize_CreatedTaskCount": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "createdBucketCount",
+                "type": "Integer",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "Initialize_ValidSelectedRows": {
+          "runAfter": {
+            "Initialize_CreatedBucketCount": [
               "Succeeded"
             ]
           },
@@ -331,9 +348,43 @@
             ]
           }
         },
-        "ValidateConcertRequest": {
+        "Initialize_GenerationStage": {
           "runAfter": {
             "InitializeTaskChecklistItems": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "generationStage",
+                "type": "String",
+                "value": "validate the concert request"
+              }
+            ]
+          }
+        },
+        "Initialize_PlannerPlanLink": {
+          "runAfter": {
+            "Initialize_GenerationStage": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "plannerPlanLink",
+                "type": "String",
+                "value": ""
+              }
+            ]
+          }
+        },
+        "ValidateConcertRequest": {
+          "runAfter": {
+            "Initialize_PlannerPlanLink": [
               "Succeeded"
             ]
           },
@@ -1330,434 +1381,601 @@
             }
           }
         },
-        "Create_Planner_Plan": {
+        "GenerateConcertPlan": {
           "runAfter": {
             "ValidateSelectedTaskRows": [
               "Succeeded"
             ]
           },
-          "type": "OpenApiConnection",
-          "inputs": {
-            "parameters": {
-              "body/container/url": "@outputs('Compose_PlannerGroupUrl')",
-              "body/title": "@outputs('Compose_PlannerPlanName')"
-            },
-            "host": {
-              "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-              "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-              "operationId": "CreatePlan"
-            },
-            "authentication": "@parameters('$authentication')"
-          }
-        },
-        "List_rows_present_in_a_table_-_Buckets": {
-          "runAfter": {
-            "Create_Planner_Plan": [
-              "Succeeded"
-            ]
-          },
-          "type": "OpenApiConnection",
-          "inputs": {
-            "parameters": {
-              "source": "@parameters('excelSource')",
-              "drive": "@parameters('excelDrive')",
-              "file": "@parameters('excelFile')",
-              "table": "@parameters('bucketsTable')"
-            },
-            "host": {
-              "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness",
-              "connectionName": "shared_excelonlinebusiness",
-              "operationId": "GetItems"
-            },
-            "authentication": "@parameters('$authentication')"
-          },
-          "runtimeConfiguration": {
-            "paginationPolicy": {
-              "minimumItemCount": 5000
-            }
-          }
-        },
-        "FilterPopulatedPlannerLabelRows": {
-          "runAfter": {
-            "Create_Planner_Plan": [
-              "Succeeded"
-            ]
-          },
-          "type": "Query",
-          "inputs": {
-            "from": "@outputs('ListRowsLabels')?['body/value']",
-            "where": "@greater(length(trim(coalesce(string(item()?['Name']), ''))), 0)"
-          }
-        },
-        "ApplyToEachPlannerLabel": {
-          "runAfter": {
-            "FilterPopulatedPlannerLabelRows": [
-              "Succeeded"
-            ]
-          },
-          "type": "Foreach",
-          "foreach": "@body('FilterPopulatedPlannerLabelRows')",
-          "operationOptions": "Sequential",
+          "type": "Scope",
           "actions": {
-            "SetPlanCategoryDescriptions": {
+            "SetGenerationStageCreatePlannerPlan": {
               "runAfter": {},
               "type": "SetVariable",
               "inputs": {
-                "name": "planCategoryDescriptions",
-                "value": "@setProperty(variables('planCategoryDescriptions'), replace(toLower(trim(string(item()?['Label']))), 'label', 'category'), trim(string(item()?['Name'])))"
-              }
-            }
-          }
-        },
-        "GetPlannerPlanDetails": {
-          "runAfter": {
-            "ApplyToEachPlannerLabel": [
-              "Succeeded"
-            ]
-          },
-          "type": "OpenApiConnection",
-          "inputs": {
-            "parameters": {
-              "planId": "@body('Create_Planner_Plan')?['id']"
-            },
-            "host": {
-              "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-              "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-              "operationId": "GetPlanDetails"
-            },
-            "authentication": "@parameters('$authentication')"
-          }
-        },
-        "UpdatePlannerPlanDetails": {
-          "runAfter": {
-            "GetPlannerPlanDetails": [
-              "Succeeded"
-            ]
-          },
-          "type": "OpenApiConnection",
-          "inputs": {
-            "parameters": {
-              "planId": "@body('Create_Planner_Plan')?['id']",
-              "If-Match": "@body('GetPlannerPlanDetails')?['@odata.etag']",
-              "body": {
-                "categoryDescriptions": "@variables('planCategoryDescriptions')"
+                "name": "generationStage",
+                "value": "create the Planner plan"
               }
             },
-            "host": {
-              "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-              "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-              "operationId": "UpdatePlanDetails"
-            },
-            "authentication": "@parameters('$authentication')"
-          }
-        },
-        "Apply_to_each_bucket": {
-          "runAfter": {
-            "List_rows_present_in_a_table_-_Buckets": [
-              "Succeeded"
-            ]
-          },
-          "type": "Foreach",
-          "foreach": "@outputs('List_rows_present_in_a_table_-_Buckets')?['body/value']",
-          "operationOptions": "Sequential",
-          "actions": {
-            "Create_Planner_Bucket": {
-              "runAfter": {},
-              "type": "OpenApiConnection",
-              "inputs": {
-                "parameters": {
-                  "body/name": "@item()?['Bucket']",
-                  "body/planId": "@body('Create_Planner_Plan')?['id']",
-                  "body/orderHint": " !"
-                },
-                "host": {
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
-                  "connectionName": "shared_planner",
-                  "operationId": "CreateBucket_V2"
-                },
-                "authentication": "@parameters('$authentication')"
-              }
-            },
-            "Set_BucketMap": {
+            "Create_Planner_Plan": {
               "runAfter": {
-                "Create_Planner_Bucket": [
-                  "Succeeded"
-                ]
-              },
-              "type": "SetVariable",
-              "inputs": {
-                "name": "bucketMap",
-                "value": "@setProperty(variables('bucketMap'), item()?['Bucket'], body('Create_Planner_Bucket')?['id'])"
-              }
-            }
-          }
-        },
-        "Apply_to_each_template_task": {
-          "runAfter": {
-            "Apply_to_each_bucket": [
-              "Succeeded"
-            ],
-            "UpdatePlannerPlanDetails": [
-              "Succeeded"
-            ]
-          },
-          "type": "Foreach",
-          "foreach": "@variables('validSelectedRows')",
-          "operationOptions": "Sequential",
-          "actions": {
-            "Compose_TaskDueDate": {
-              "runAfter": {},
-              "type": "Compose",
-              "inputs": "@addDays(outputs('Compose_ConcertDate'), int(coalesce(item()?['DaysFromEvent'], 0)))"
-            },
-            "Compose_PlannerPriority": {
-              "runAfter": {
-                "Compose_TaskDueDate": [
-                  "Succeeded"
-                ]
-              },
-              "type": "Compose",
-              "inputs": "@if(equals(item()?['Priority'], 'Urgent'), 1, if(equals(item()?['Priority'], 'Important'), 3, if(equals(item()?['Priority'], 'Low'), 9, 5)))"
-            },
-            "Create_Planner_Task": {
-              "runAfter": {
-                "Compose_PlannerPriority": [
+                "SetGenerationStageCreatePlannerPlan": [
                   "Succeeded"
                 ]
               },
               "type": "OpenApiConnection",
               "inputs": {
                 "parameters": {
-                  "body/groupId": "@parameters('plannerGroupId')",
-                  "body/planId": "@body('Create_Planner_Plan')?['id']",
-                  "body/bucketId": "@variables('bucketMap')?[item()?['Bucket']]",
-                  "body/title": "@item()?['TaskName']",
-                  "body/assignments": "@item()?['AssignedToEmails']",
-                  "body/dueDateTime": "@outputs('Compose_TaskDueDate')",
-                  "body/priority": "@outputs('Compose_PlannerPriority')",
-                  "body/category1": "@item()?['category1']",
-                  "body/category2": "@item()?['category2']",
-                  "body/category3": "@item()?['category3']",
-                  "body/category4": "@item()?['category4']",
-                  "body/category5": "@item()?['category5']",
-                  "body/category6": "@item()?['category6']",
-                  "body/category7": "@item()?['category7']",
-                  "body/category8": "@item()?['category8']",
-                  "body/category9": "@item()?['category9']",
-                  "body/category10": "@item()?['category10']",
-                  "body/category11": "@item()?['category11']",
-                  "body/category12": "@item()?['category12']",
-                  "body/category13": "@item()?['category13']",
-                  "body/category14": "@item()?['category14']",
-                  "body/category15": "@item()?['category15']",
-                  "body/category16": "@item()?['category16']",
-                  "body/category17": "@item()?['category17']",
-                  "body/category18": "@item()?['category18']",
-                  "body/category19": "@item()?['category19']",
-                  "body/category20": "@item()?['category20']",
-                  "body/category21": "@item()?['category21']",
-                  "body/category22": "@item()?['category22']",
-                  "body/category23": "@item()?['category23']",
-                  "body/category24": "@item()?['category24']",
-                  "body/category25": "@item()?['category25']"
-                },
-                "host": {
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
-                  "connectionName": "shared_planner",
-                  "operationId": "CreateTask_V3"
-                },
-                "authentication": "@parameters('$authentication')"
-              }
-            },
-            "GetPlannerTask": {
-              "runAfter": {
-                "Create_Planner_Task": [
-                  "Succeeded"
-                ]
-              },
-              "type": "OpenApiConnection",
-              "inputs": {
-                "parameters": {
-                  "id": "@body('Create_Planner_Task')?['id']"
+                  "body/container/url": "@outputs('Compose_PlannerGroupUrl')",
+                  "body/title": "@outputs('Compose_PlannerPlanName')"
                 },
                 "host": {
                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
                   "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                  "operationId": "GetTask"
+                  "operationId": "CreatePlan"
                 },
-                "authentication": "@parameters('$authentication')"
-              }
-            },
-            "ConditionallyUpdatePlannerTaskProgress": {
-              "runAfter": {
-                "GetPlannerTask": [
-                  "Succeeded"
-                ]
-              },
-              "type": "If",
-              "expression": {
-                "or": [
-                  {
-                    "equals": [
-                      "@item()?['Progress']",
-                      "In progress"
-                    ]
-                  },
-                  {
-                    "equals": [
-                      "@item()?['Progress']",
-                      "Completed"
-                    ]
-                  }
-                ]
-              },
-              "actions": {
-                "UpdatePlannerTask": {
-                  "runAfter": {},
-                  "type": "OpenApiConnection",
-                  "inputs": {
-                    "parameters": {
-                      "id": "@body('Create_Planner_Task')?['id']",
-                      "If-Match": "@body('GetPlannerTask')?['@odata.etag']",
-                      "body": {
-                        "percentComplete": "@if(equals(item()?['Progress'], 'Completed'), 100, 50)"
-                      }
-                    },
-                    "host": {
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                      "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                      "operationId": "UpdateTask"
-                    },
-                    "authentication": "@parameters('$authentication')"
-                  }
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "none"
                 }
-              },
-              "else": {
-                "actions": {}
               }
             },
-            "SetTaskChecklistItemsEmpty": {
+            "SetPlannerPlanLink": {
               "runAfter": {
-                "ConditionallyUpdatePlannerTaskProgress": [
-                  "Succeeded",
-                  "Skipped"
+                "Create_Planner_Plan": [
+                  "Succeeded"
                 ]
               },
               "type": "SetVariable",
               "inputs": {
-                "name": "taskChecklistItems",
-                "value": {}
+                "name": "plannerPlanLink",
+                "value": "@concat('https://graph.microsoft.com/v1.0/planner/plans/', body('Create_Planner_Plan')?['id'])"
               }
             },
-            "ApplyToEachChecklistItemPayload": {
+            "SetGenerationStageConfigurePlannerLabels": {
               "runAfter": {
-                "SetTaskChecklistItemsEmpty": [
+                "SetPlannerPlanLink": [
+                  "Succeeded"
+                ]
+              },
+              "type": "SetVariable",
+              "inputs": {
+                "name": "generationStage",
+                "value": "configure Planner labels"
+              }
+            },
+            "FilterPopulatedPlannerLabelRows": {
+              "runAfter": {
+                "SetGenerationStageConfigurePlannerLabels": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Query",
+              "inputs": {
+                "from": "@outputs('ListRowsLabels')?['body/value']",
+                "where": "@greater(length(trim(coalesce(string(item()?['Name']), ''))), 0)"
+              }
+            },
+            "ApplyToEachPlannerLabel": {
+              "runAfter": {
+                "FilterPopulatedPlannerLabelRows": [
                   "Succeeded"
                 ]
               },
               "type": "Foreach",
-              "foreach": "@split(coalesce(item()?['CheckListItems'], ''), ';')",
+              "foreach": "@body('FilterPopulatedPlannerLabelRows')",
               "operationOptions": "Sequential",
               "actions": {
-                "AddChecklistItemToPayload": {
+                "SetPlanCategoryDescriptions": {
                   "runAfter": {},
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "planCategoryDescriptions",
+                    "value": "@setProperty(variables('planCategoryDescriptions'), replace(toLower(trim(string(item()?['Label']))), 'label', 'category'), trim(string(item()?['Name'])))"
+                  }
+                }
+              }
+            },
+            "GetPlannerPlanDetails": {
+              "runAfter": {
+                "ApplyToEachPlannerLabel": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "planId": "@body('Create_Planner_Plan')?['id']"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                  "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                  "operationId": "GetPlanDetails"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "UpdatePlannerPlanDetails": {
+              "runAfter": {
+                "GetPlannerPlanDetails": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "planId": "@body('Create_Planner_Plan')?['id']",
+                  "If-Match": "@body('GetPlannerPlanDetails')?['@odata.etag']",
+                  "body": {
+                    "categoryDescriptions": "@variables('planCategoryDescriptions')"
+                  }
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                  "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                  "operationId": "UpdatePlanDetails"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "SetGenerationStageCreatePlannerBuckets": {
+              "runAfter": {
+                "UpdatePlannerPlanDetails": [
+                  "Succeeded"
+                ]
+              },
+              "type": "SetVariable",
+              "inputs": {
+                "name": "generationStage",
+                "value": "create Planner buckets"
+              }
+            },
+            "List_rows_present_in_a_table_-_Buckets": {
+              "runAfter": {
+                "SetGenerationStageCreatePlannerBuckets": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "source": "@parameters('excelSource')",
+                  "drive": "@parameters('excelDrive')",
+                  "file": "@parameters('excelFile')",
+                  "table": "@parameters('bucketsTable')"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness",
+                  "connectionName": "shared_excelonlinebusiness",
+                  "operationId": "GetItems"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "Apply_to_each_bucket": {
+              "runAfter": {
+                "List_rows_present_in_a_table_-_Buckets": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Foreach",
+              "foreach": "@outputs('List_rows_present_in_a_table_-_Buckets')?['body/value']",
+              "operationOptions": "Sequential",
+              "actions": {
+                "Create_Planner_Bucket": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "body/name": "@item()?['Bucket']",
+                      "body/planId": "@body('Create_Planner_Plan')?['id']",
+                      "body/orderHint": " !"
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
+                      "connectionName": "shared_planner",
+                      "operationId": "CreateBucket_V2"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "none"
+                    }
+                  }
+                },
+                "Set_BucketMap": {
+                  "runAfter": {
+                    "Create_Planner_Bucket": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "bucketMap",
+                    "value": "@setProperty(variables('bucketMap'), item()?['Bucket'], body('Create_Planner_Bucket')?['id'])"
+                  }
+                },
+                "IncrementCreatedBucketCount": {
+                  "runAfter": {
+                    "Set_BucketMap": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "IncrementVariable",
+                  "inputs": {
+                    "name": "createdBucketCount",
+                    "value": 1
+                  }
+                }
+              }
+            },
+            "SetGenerationStageCreatePlannerTasks": {
+              "runAfter": {
+                "Apply_to_each_bucket": [
+                  "Succeeded"
+                ]
+              },
+              "type": "SetVariable",
+              "inputs": {
+                "name": "generationStage",
+                "value": "create Planner tasks"
+              }
+            },
+            "Apply_to_each_template_task": {
+              "runAfter": {
+                "SetGenerationStageCreatePlannerTasks": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Foreach",
+              "foreach": "@variables('validSelectedRows')",
+              "operationOptions": "Sequential",
+              "actions": {
+                "Compose_TaskDueDate": {
+                  "runAfter": {},
+                  "type": "Compose",
+                  "inputs": "@addDays(outputs('Compose_ConcertDate'), int(coalesce(item()?['DaysFromEvent'], 0)))"
+                },
+                "Compose_PlannerPriority": {
+                  "runAfter": {
+                    "Compose_TaskDueDate": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@if(equals(item()?['Priority'], 'Urgent'), 1, if(equals(item()?['Priority'], 'Important'), 3, if(equals(item()?['Priority'], 'Low'), 9, 5)))"
+                },
+                "Create_Planner_Task": {
+                  "runAfter": {
+                    "Compose_PlannerPriority": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "body/groupId": "@parameters('plannerGroupId')",
+                      "body/planId": "@body('Create_Planner_Plan')?['id']",
+                      "body/bucketId": "@variables('bucketMap')?[item()?['Bucket']]",
+                      "body/title": "@item()?['TaskName']",
+                      "body/assignments": "@item()?['AssignedToEmails']",
+                      "body/dueDateTime": "@outputs('Compose_TaskDueDate')",
+                      "body/priority": "@outputs('Compose_PlannerPriority')",
+                      "body/category1": "@item()?['category1']",
+                      "body/category2": "@item()?['category2']",
+                      "body/category3": "@item()?['category3']",
+                      "body/category4": "@item()?['category4']",
+                      "body/category5": "@item()?['category5']",
+                      "body/category6": "@item()?['category6']",
+                      "body/category7": "@item()?['category7']",
+                      "body/category8": "@item()?['category8']",
+                      "body/category9": "@item()?['category9']",
+                      "body/category10": "@item()?['category10']",
+                      "body/category11": "@item()?['category11']",
+                      "body/category12": "@item()?['category12']",
+                      "body/category13": "@item()?['category13']",
+                      "body/category14": "@item()?['category14']",
+                      "body/category15": "@item()?['category15']",
+                      "body/category16": "@item()?['category16']",
+                      "body/category17": "@item()?['category17']",
+                      "body/category18": "@item()?['category18']",
+                      "body/category19": "@item()?['category19']",
+                      "body/category20": "@item()?['category20']",
+                      "body/category21": "@item()?['category21']",
+                      "body/category22": "@item()?['category22']",
+                      "body/category23": "@item()?['category23']",
+                      "body/category24": "@item()?['category24']",
+                      "body/category25": "@item()?['category25']"
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
+                      "connectionName": "shared_planner",
+                      "operationId": "CreateTask_V3"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "none"
+                    }
+                  }
+                },
+                "GetPlannerTask": {
+                  "runAfter": {
+                    "Create_Planner_Task": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "id": "@body('Create_Planner_Task')?['id']"
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                      "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                      "operationId": "GetTask"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "ConditionallyUpdatePlannerTaskProgress": {
+                  "runAfter": {
+                    "GetPlannerTask": [
+                      "Succeeded"
+                    ]
+                  },
                   "type": "If",
                   "expression": {
-                    "and": [
+                    "or": [
                       {
-                        "greater": [
-                          "@length(trim(item()))",
-                          0
+                        "equals": [
+                          "@item()?['Progress']",
+                          "In progress"
+                        ]
+                      },
+                      {
+                        "equals": [
+                          "@item()?['Progress']",
+                          "Completed"
                         ]
                       }
                     ]
                   },
                   "actions": {
-                    "SetTaskChecklistItems": {
+                    "UpdatePlannerTask": {
                       "runAfter": {},
-                      "type": "SetVariable",
+                      "type": "OpenApiConnection",
                       "inputs": {
-                        "name": "taskChecklistItems",
-                        "value": "@setProperty(variables('taskChecklistItems'), guid(), setProperty(setProperty(setProperty(json('{}'), '@odata.type', 'microsoft.graph.plannerChecklistItem'), 'isChecked', false), 'title', trim(item())))"
+                        "parameters": {
+                          "id": "@body('Create_Planner_Task')?['id']",
+                          "If-Match": "@body('GetPlannerTask')?['@odata.etag']",
+                          "body": {
+                            "percentComplete": "@if(equals(item()?['Progress'], 'Completed'), 100, 50)"
+                          }
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                          "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                          "operationId": "UpdateTask"
+                        },
+                        "authentication": "@parameters('$authentication')"
                       }
                     }
                   },
                   "else": {
                     "actions": {}
                   }
-                }
-              }
-            },
-            "GetPlannerTaskDetails": {
-              "runAfter": {
-                "ApplyToEachChecklistItemPayload": [
-                  "Succeeded"
-                ]
-              },
-              "type": "OpenApiConnection",
-              "inputs": {
-                "parameters": {
-                  "id": "@body('Create_Planner_Task')?['id']"
                 },
-                "host": {
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                  "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                  "operationId": "GetTaskDetails"
-                },
-                "authentication": "@parameters('$authentication')"
-              }
-            },
-            "UpdatePlannerTaskDetails": {
-              "runAfter": {
-                "GetPlannerTaskDetails": [
-                  "Succeeded"
-                ]
-              },
-              "type": "OpenApiConnection",
-              "inputs": {
-                "parameters": {
-                  "id": "@body('Create_Planner_Task')?['id']",
-                  "If-Match": "@body('GetPlannerTaskDetails')?['@odata.etag']",
-                  "body": {
-                    "description": "@coalesce(item()?['Description'], '')",
-                    "checklist": "@variables('taskChecklistItems')"
+                "SetTaskChecklistItemsEmpty": {
+                  "runAfter": {
+                    "ConditionallyUpdatePlannerTaskProgress": [
+                      "Succeeded",
+                      "Skipped"
+                    ]
+                  },
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "taskChecklistItems",
+                    "value": {}
                   }
                 },
-                "host": {
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                  "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                  "operationId": "UpdateTaskDetails"
+                "ApplyToEachChecklistItemPayload": {
+                  "runAfter": {
+                    "SetTaskChecklistItemsEmpty": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Foreach",
+                  "foreach": "@split(coalesce(item()?['CheckListItems'], ''), ';')",
+                  "operationOptions": "Sequential",
+                  "actions": {
+                    "AddChecklistItemToPayload": {
+                      "runAfter": {},
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          {
+                            "greater": [
+                              "@length(trim(item()))",
+                              0
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "SetTaskChecklistItems": {
+                          "runAfter": {},
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "taskChecklistItems",
+                            "value": "@setProperty(variables('taskChecklistItems'), guid(), setProperty(setProperty(setProperty(json('{}'), '@odata.type', 'microsoft.graph.plannerChecklistItem'), 'isChecked', false), 'title', trim(item())))"
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {}
+                      }
+                    }
+                  }
                 },
-                "authentication": "@parameters('$authentication')"
-              }
-            },
-            "Increment_CreatedTaskCount": {
-              "runAfter": {
-                "UpdatePlannerTaskDetails": [
-                  "Succeeded"
-                ]
-              },
-              "type": "IncrementVariable",
-              "inputs": {
-                "name": "createdTaskCount",
-                "value": 1
+                "GetPlannerTaskDetails": {
+                  "runAfter": {
+                    "ApplyToEachChecklistItemPayload": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "id": "@body('Create_Planner_Task')?['id']"
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                      "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                      "operationId": "GetTaskDetails"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "UpdatePlannerTaskDetails": {
+                  "runAfter": {
+                    "GetPlannerTaskDetails": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "id": "@body('Create_Planner_Task')?['id']",
+                      "If-Match": "@body('GetPlannerTaskDetails')?['@odata.etag']",
+                      "body": {
+                        "description": "@coalesce(item()?['Description'], '')",
+                        "checklist": "@variables('taskChecklistItems')"
+                      }
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                      "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                      "operationId": "UpdateTaskDetails"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Increment_CreatedTaskCount": {
+                  "runAfter": {
+                    "UpdatePlannerTaskDetails": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "IncrementVariable",
+                  "inputs": {
+                    "name": "createdTaskCount",
+                    "value": 1
+                  }
+                }
               }
             }
           }
         },
-        "Send_summary_notification": {
+        "NotifyConcertPlanOutcome": {
           "runAfter": {
-            "Apply_to_each_template_task": [
+            "GenerateConcertPlan": [
               "Succeeded"
+            ]
+          },
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "greater": [
+                  "@length(variables('skippedSelectedRowWarnings'))",
+                  0
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "NotifyCompletedWithWarnings": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "emailMessage/To": "@parameters('notificationTo')",
+                  "emailMessage/Subject": "@concat('Planner plan created with warnings: ', outputs('Compose_PlannerPlanName'))",
+                  "emailMessage/Body": "@concat('<p class=\"editor-paragraph\">Planner plan <strong>', outputs('Compose_PlannerPlanName'), '</strong> was created with warnings.</p>', '<p class=\"editor-paragraph\">Concert name: ', outputs('Compose_ConcertName'), '</p>', '<p class=\"editor-paragraph\">Template type: ', outputs('Compose_TemplateType'), '</p>', '<p class=\"editor-paragraph\">Location: ', outputs('Compose_Location'), '</p>', '<p class=\"editor-paragraph\">Concert date: ', string(outputs('Compose_ConcertDate')), '</p>', '<p class=\"editor-paragraph\">Planner plan link: <a href=\"', variables('plannerPlanLink'), '\">', variables('plannerPlanLink'), '</a></p>', '<p class=\"editor-paragraph\">Created buckets: ', string(variables('createdBucketCount')), '</p>', '<p class=\"editor-paragraph\">Created tasks: ', string(variables('createdTaskCount')), '</p>', '<p class=\"editor-paragraph\">Skipped selected rows: ', string(length(variables('skippedSelectedRowWarnings'))), '</p>', '<ul>', join(variables('skippedSelectedRowWarnings'), ''), '</ul>')",
+                  "emailMessage/Importance": "Normal"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                  "connectionName": "shared_office365",
+                  "operationId": "SendEmailV2"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "CompleteCompletedWithWarningsNotification": {
+              "runAfter": {
+                "NotifyCompletedWithWarnings": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              },
+              "type": "Compose",
+              "inputs": "CompletedWithWarningsNotificationHandled"
+            }
+          },
+          "else": {
+            "actions": {
+              "NotifyCleanSuccess": {
+                "runAfter": {},
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "emailMessage/To": "@parameters('notificationTo')",
+                    "emailMessage/Subject": "@concat('Planner plan created: ', outputs('Compose_PlannerPlanName'))",
+                    "emailMessage/Body": "@concat('<p class=\"editor-paragraph\">Planner plan <strong>', outputs('Compose_PlannerPlanName'), '</strong> was created successfully.</p>', '<p class=\"editor-paragraph\">Concert name: ', outputs('Compose_ConcertName'), '</p>', '<p class=\"editor-paragraph\">Template type: ', outputs('Compose_TemplateType'), '</p>', '<p class=\"editor-paragraph\">Location: ', outputs('Compose_Location'), '</p>', '<p class=\"editor-paragraph\">Concert date: ', string(outputs('Compose_ConcertDate')), '</p>', '<p class=\"editor-paragraph\">Planner plan link: <a href=\"', variables('plannerPlanLink'), '\">', variables('plannerPlanLink'), '</a></p>', '<p class=\"editor-paragraph\">Created buckets: ', string(variables('createdBucketCount')), '</p>', '<p class=\"editor-paragraph\">Created tasks: ', string(variables('createdTaskCount')), '</p>')",
+                    "emailMessage/Importance": "Normal"
+                  },
+                  "host": {
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                    "connectionName": "shared_office365",
+                    "operationId": "SendEmailV2"
+                  },
+                  "authentication": "@parameters('$authentication')"
+                }
+              },
+              "CompleteCleanSuccessNotification": {
+                "runAfter": {
+                  "NotifyCleanSuccess": [
+                    "Succeeded",
+                    "Failed",
+                    "TimedOut"
+                  ]
+                },
+                "type": "Compose",
+                "inputs": "CleanSuccessNotificationHandled"
+              }
+            }
+          }
+        },
+        "NotifyGenerationFailure": {
+          "runAfter": {
+            "GenerateConcertPlan": [
+              "Failed",
+              "TimedOut"
             ]
           },
           "type": "OpenApiConnection",
           "inputs": {
             "parameters": {
               "emailMessage/To": "@parameters('notificationTo')",
-              "emailMessage/Subject": "@concat('Planner plan created: ', outputs('Compose_PlannerPlanName'))",
-              "emailMessage/Body": "@concat('<p class=\"editor-paragraph\">Planner plan <strong>', outputs('Compose_PlannerPlanName'), '</strong> was created.</p>', '<p class=\"editor-paragraph\">Concert name: ', outputs('Compose_ConcertName'), '</p>', '<p class=\"editor-paragraph\">Template type: ', outputs('Compose_TemplateType'), '</p>', '<p class=\"editor-paragraph\">Location: ', outputs('Compose_Location'), '</p>', '<p class=\"editor-paragraph\">Concert date: ', string(outputs('Compose_ConcertDate')), '</p>', '<p class=\"editor-paragraph\">Created tasks: ', string(variables('createdTaskCount')), '</p>', '<p class=\"editor-paragraph\">Skipped selected rows: ', string(length(variables('skippedSelectedRowWarnings'))), '</p>', if(greater(length(variables('skippedSelectedRowWarnings')), 0), concat('<p class=\"editor-paragraph\">The plan was created with warnings.</p><ul>', join(variables('skippedSelectedRowWarnings'), ''), '</ul>'), ''))",
-              "emailMessage/Importance": "Normal"
+              "emailMessage/Subject": "@concat('Concert plan generation failed: ', outputs('Compose_PlannerPlanName'))",
+              "emailMessage/Body": "@concat('<p class=\"editor-paragraph\">The concert request failed during Planner generation.</p>', '<p class=\"editor-paragraph\">Concert name: ', outputs('Compose_ConcertName'), '</p>', '<p class=\"editor-paragraph\">Template type: ', outputs('Compose_TemplateType'), '</p>', '<p class=\"editor-paragraph\">Location: ', outputs('Compose_Location'), '</p>', '<p class=\"editor-paragraph\">Concert date: ', string(outputs('Compose_ConcertDate')), '</p>', '<p class=\"editor-paragraph\">Failing stage: ', variables('generationStage'), '</p>', if(greater(length(variables('plannerPlanLink')), 0), concat('<p class=\"editor-paragraph\">Partial Planner plan link: <a href=\"', variables('plannerPlanLink'), '\">', variables('plannerPlanLink'), '</a></p>'), '<p class=\"editor-paragraph\">Partial Planner plan link: unavailable because plan creation did not complete.</p>'), '<p class=\"editor-paragraph\">Delete any partial Planner content, correct the cause, and submit a new Form response.</p>', '<p class=\"editor-paragraph\">This flow never resumes failed requests and never deletes partial Planner content automatically.</p>')",
+              "emailMessage/Importance": "High"
             },
             "host": {
               "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
@@ -1765,6 +1983,23 @@
               "operationId": "SendEmailV2"
             },
             "authentication": "@parameters('$authentication')"
+          }
+        },
+        "TerminateGenerationFailure": {
+          "runAfter": {
+            "NotifyGenerationFailure": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "type": "Terminate",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "GenerationFailure",
+              "message": "@concat('Planner generation failed while trying to ', variables('generationStage'), '.')"
+            }
           }
         }
       },
