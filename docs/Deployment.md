@@ -94,26 +94,28 @@ pac auth create \
 ### 3. Inject connector app ID and create the managed solution zip
 
 The connector source contains the placeholder `${MICROSOFT_ENTRA_APP_ID}`.
-Replace it before packing, using the connector app registration ID from `.env`:
+Replace it in a temporary pack folder before packing, using the connector app
+registration ID from `.env`:
 
 ```bash
 : "${PP_CONNECTOR_APP_ID:?PP_CONNECTOR_APP_ID is required}"
+mkdir -p out
+rm -rf out/CampanulaPlannerFlows
+cp -R src/CampanulaPlannerFlows out/CampanulaPlannerFlows
+
 # macOS (BSD sed): use `sed -i '' ...` or install GNU sed (`brew install gnu-sed`) and use `gsed -i ...`.
 sed -i "s|\${MICROSOFT_ENTRA_APP_ID}|${PP_CONNECTOR_APP_ID}|g" \
-  src/CampanulaPlannerFlows/Connectors/campa_planner_graph_connectionparameters.json
+  out/CampanulaPlannerFlows/Connectors/campa_planner_graph_connectionparameters.json
 
-mkdir -p out
-(
-  cd src/CampanulaPlannerFlows
-  pac solution pack \
-    --zipFile ../../out/CampanulaPlannerFlows.zip \
-    --folder . \
-    --packageType Managed
-)
+pac solution pack \
+  --zipFile out/CampanulaPlannerFlows.zip \
+  --folder out/CampanulaPlannerFlows \
+  --packageType Managed
 ```
 
-> Do not commit `campa_planner_graph_connectionparameters.json` after this substitution.
-> The file is for local pack/import only; revert it afterwards to keep the placeholder in Git.
+> Keep `${MICROSOFT_ENTRA_APP_ID}` in the tracked source file. Substitute only
+> in the temporary pack folder so the checked-in connector contract stays
+> environment-neutral.
 
 ### 4. Import the solution
 
@@ -181,7 +183,8 @@ The solution source now also includes the `Campanula Planner Graph` custom
 connector under `src\CampanulaPlannerFlows\Connectors`.
 
 The deployment workflow automatically injects the connector OAuth app ID before
-packing. If `PP_CONNECTOR_APP_ID` is not set as a GitHub Actions variable, the
+packing into a temporary staging copy of the solution source. If
+`PP_CONNECTOR_APP_ID` is not set as a GitHub Actions variable, the
 workflow fails with an explicit error before packing starts. The placeholder
 `${MICROSOFT_ENTRA_APP_ID}` in
 `src\CampanulaPlannerFlows\Connectors\campa_planner_graph_connectionparameters.json`
@@ -226,8 +229,8 @@ There are two separate Entra app registrations for this project.
 
 | Event | Action |
 | --- | --- |
-| Push to `main` | Runs semantic-release. If a release is published, GitHub Actions updates the solution version, packs a **Managed** package, attaches it to the GitHub release, and imports it into production. |
-| `workflow_dispatch` | Ad hoc production deploy. GitHub Actions packs the selected ref as a **Managed** package and imports it into production even when semantic-release does not publish a release. |
+| Push to `main` | Runs semantic-release. If a release is published, GitHub Actions updates the solution version, stages the source, packs one **Managed** package, attaches that exact zip to the GitHub release, and imports the same zip into production. |
+| `workflow_dispatch` | Ad hoc production deploy. GitHub Actions stages the selected ref, packs one **Managed** package, and imports that same zip into production even when semantic-release does not publish a release. |
 
 The workflow allows only one production deployment to run at a time.
 
@@ -277,7 +280,9 @@ src\CampanulaPlannerFlows
 ```
 
 The production folder is zipped by GitHub Actions and imported with Power
-Platform Tools. Resolve environment-specific form, Excel, Planner, and
+Platform Tools. The import step explicitly activates solution workflows and
+publishes changes so connection references and the Forms-triggered Flow are
+ready for post-deploy verification. Resolve environment-specific form, Excel, Planner, and
 notification values before running the Flow in a live environment.
 
 After importing a version that contains the custom connector, open Power
