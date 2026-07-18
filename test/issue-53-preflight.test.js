@@ -22,6 +22,7 @@ const requiredWorkbookReads = [
   'ListRowsPriority',
   'ListRowsLabels',
 ];
+const validationScopeName = 'ValidateSelectedTaskRows';
 
 function getRootAction(actionName) {
   return rootActions[actionName];
@@ -29,6 +30,14 @@ function getRootAction(actionName) {
 
 function assertHasRootAction(actionName, message) {
   assert.ok(getRootAction(actionName), message);
+}
+
+function assertRunAfter(actionName, expectedRunAfter) {
+  assert.deepEqual(getRootAction(actionName)?.runAfter ?? {}, expectedRunAfter);
+}
+
+function getSelectedRowValidationActions() {
+  return getRootAction(validationScopeName)?.actions ?? {};
 }
 
 test('creates the Planner plan only after a dedicated preflight success gate', () => {
@@ -44,9 +53,7 @@ test('creates the Planner plan only after a dedicated preflight success gate', (
   );
   assertHasRootAction('NotifyPreflightFailure', 'missing preflight failure notification');
 
-  const createPlanRunAfter = getRootAction('Create_Planner_Plan')?.runAfter ?? {};
-
-  assert.deepEqual(createPlanRunAfter, {
+  assertRunAfter('Create_Planner_Plan', {
     ValidateSelectedTaskRows: ['Succeeded'],
   });
 });
@@ -61,9 +68,6 @@ test('reads every required workbook table before Planner creation', () => {
 
 test('uses a Europe/Prague date gate and pre-create failure notifications', () => {
   const validateConcertRequest = getRootAction('ValidateConcertRequest');
-  const readWorkbookContract = getRootAction('ReadWorkbookContract');
-  const validateSharedPlanConfiguration = getRootAction('ValidateSharedPlanConfiguration');
-  const validateSelectedTaskRows = getRootAction('ValidateSelectedTaskRows');
 
   assert.equal(validateConcertRequest?.type, 'If');
   assert.match(
@@ -78,20 +82,20 @@ test('uses a Europe/Prague date gate and pre-create failure notifications', () =
     'NotifyPreflightFailure',
     'missing workbook-read failure notification',
   );
-  assert.deepEqual(readWorkbookContract?.runAfter ?? {}, {
+  assertRunAfter('ReadWorkbookContract', {
     ValidateConcertRequest: ['Succeeded'],
   });
-  assert.deepEqual(validateSharedPlanConfiguration?.runAfter ?? {}, {
+  assertRunAfter('ValidateSharedPlanConfiguration', {
     ReadWorkbookContract: ['Succeeded'],
   });
-  assert.deepEqual(validateSelectedTaskRows?.runAfter ?? {}, {
+  assertRunAfter(validationScopeName, {
     ValidateSharedPlanConfiguration: ['Succeeded'],
   });
 });
 
 test('classifies selected rows before plan creation and stops when none are valid', () => {
-  const validateSelectedTaskRows = getRootAction('ValidateSelectedTaskRows');
-  const validationActions = validateSelectedTaskRows?.actions ?? {};
+  const validateSelectedTaskRows = getRootAction(validationScopeName);
+  const validationActions = getSelectedRowValidationActions();
   const filterSelectedRows = validationActions.FilterSelectedTemplateRows;
   const classifySelectedRows = validationActions.ApplyToEachSelectedTemplateRow;
   const ensureValidRows = validationActions.EnsureValidSelectedTasks;
@@ -125,10 +129,17 @@ test('classifies selected rows before plan creation and stops when none are vali
 test('creates tasks only from validated rows and reports skipped selected rows', () => {
   const applyToEachTemplateTask = getRootAction('Apply_to_each_template_task');
   const sendSummaryNotification = getRootAction('Send_summary_notification');
+  const classifySelectedRows =
+    getSelectedRowValidationActions().ApplyToEachSelectedTemplateRow;
+  const classifySelectedRowActions = classifySelectedRows?.actions ?? {};
 
   assert.equal(
     applyToEachTemplateTask?.foreach,
     "@variables('validSelectedRows')",
+  );
+  assert.ok(
+    classifySelectedRowActions.ComposeSelectedTaskWarningHtml,
+    'missing selected-row warning formatter',
   );
   assert.match(
     JSON.stringify(sendSummaryNotification?.inputs?.parameters?.['emailMessage/Body'] ?? ''),

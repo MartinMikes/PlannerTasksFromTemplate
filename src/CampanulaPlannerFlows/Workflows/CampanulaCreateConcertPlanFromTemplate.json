@@ -928,18 +928,135 @@
                   "type": "Compose",
                   "inputs": "@trim(coalesce(string(item()?['TaskName']), ''))"
                 },
-                "ComposeSelectedTaskValidationReason": {
+                "ComposeSelectedTaskGroupName": {
                   "runAfter": {
                     "ComposeSelectedTaskTitle": [
                       "Succeeded"
                     ]
                   },
                   "type": "Compose",
-                  "inputs": "@if(equals(outputs('ComposeSelectedTaskId'), ''), 'TaskId is required.', if(equals(outputs('ComposeSelectedTaskTitle'), ''), 'TaskName is required.', if(equals(length(trim(coalesce(string(item()?['GroupName']), ''))), 0), 'GroupName is required.', if(not(contains(string(outputs('ListRowsGroups')?['body/value']), concat('\"GroupName\":\"', trim(coalesce(string(item()?['GroupName']), '')), '\"'))), 'GroupName does not resolve in tbGroups.', if(equals(length(trim(coalesce(string(item()?['AssignedToEmails']), ''))), 0), 'AssignedToEmails formula result is required.', if(or(contains(toUpper(trim(coalesce(string(item()?['AssignedToEmails']), ''))), '#REF!'), contains(toUpper(trim(coalesce(string(item()?['AssignedToEmails']), ''))), '#VALUE!'), contains(toUpper(trim(coalesce(string(item()?['AssignedToEmails']), ''))), '#NAME?'), contains(toUpper(trim(coalesce(string(item()?['AssignedToEmails']), ''))), '#N/A'), contains(toUpper(trim(coalesce(string(item()?['AssignedToEmails']), ''))), '#DIV/0!')), 'AssignedToEmails contains an Excel error.', if(equals(length(trim(coalesce(string(item()?['DaysFromEvent']), ''))), 0), 'DaysFromEvent is required.', if(equals(length(trim(coalesce(string(item()?['Bucket']), ''))), 0), 'Bucket is required.', if(not(contains(string(outputs('ListRowsBuckets')?['body/value']), concat('\"Bucket\":\"', trim(coalesce(string(item()?['Bucket']), '')), '\"'))), 'Bucket does not resolve in tbBuckets.', if(and(greater(length(trim(coalesce(string(item()?['Progress']), ''))), 0), not(contains(string(outputs('ListRowsProgress')?['body/value']), concat('\"Progress\":\"', trim(coalesce(string(item()?['Progress']), '')), '\"')))), 'Progress does not resolve in tbProgress.', if(equals(length(trim(coalesce(string(item()?['Priority']), ''))), 0), 'Priority is required.', if(not(contains(string(outputs('ListRowsPriority')?['body/value']), concat('\"Priority\":\"', trim(coalesce(string(item()?['Priority']), '')), '\"'))), 'Priority does not resolve in tbPriority.', ''))))))))))))"
+                  "inputs": "@trim(coalesce(string(item()?['GroupName']), ''))"
+                },
+                "ComposeSelectedTaskAssignedToEmails": {
+                  "runAfter": {
+                    "ComposeSelectedTaskGroupName": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@trim(coalesce(string(item()?['AssignedToEmails']), ''))"
+                },
+                "ComposeSelectedTaskAssignedToEmailsUpper": {
+                  "runAfter": {
+                    "ComposeSelectedTaskAssignedToEmails": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@toUpper(outputs('ComposeSelectedTaskAssignedToEmails'))"
+                },
+                "ComposeSelectedTaskDaysFromEvent": {
+                  "runAfter": {
+                    "ComposeSelectedTaskAssignedToEmailsUpper": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@trim(coalesce(string(item()?['DaysFromEvent']), ''))"
+                },
+                "ComposeSelectedTaskBucketName": {
+                  "runAfter": {
+                    "ComposeSelectedTaskDaysFromEvent": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@trim(coalesce(string(item()?['Bucket']), ''))"
+                },
+                "ComposeSelectedTaskProgressName": {
+                  "runAfter": {
+                    "ComposeSelectedTaskBucketName": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@trim(coalesce(string(item()?['Progress']), ''))"
+                },
+                "ComposeSelectedTaskPriorityName": {
+                  "runAfter": {
+                    "ComposeSelectedTaskProgressName": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@trim(coalesce(string(item()?['Priority']), ''))"
+                },
+                "ComposeSelectedTaskGroupExists": {
+                  "runAfter": {
+                    "ComposeSelectedTaskPriorityName": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@contains(string(outputs('ListRowsGroups')?['body/value']), concat('\"GroupName\":\"', outputs('ComposeSelectedTaskGroupName'), '\"'))"
+                },
+                "ComposeSelectedTaskBucketExists": {
+                  "runAfter": {
+                    "ComposeSelectedTaskGroupExists": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@contains(string(outputs('ListRowsBuckets')?['body/value']), concat('\"Bucket\":\"', outputs('ComposeSelectedTaskBucketName'), '\"'))"
+                },
+                "ComposeSelectedTaskProgressExists": {
+                  "runAfter": {
+                    "ComposeSelectedTaskBucketExists": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@contains(string(outputs('ListRowsProgress')?['body/value']), concat('\"Progress\":\"', outputs('ComposeSelectedTaskProgressName'), '\"'))"
+                },
+                "ComposeSelectedTaskPriorityExists": {
+                  "runAfter": {
+                    "ComposeSelectedTaskProgressExists": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@contains(string(outputs('ListRowsPriority')?['body/value']), concat('\"Priority\":\"', outputs('ComposeSelectedTaskPriorityName'), '\"'))"
+                },
+                "ComposeSelectedTaskAssignedToEmailsHasExcelError": {
+                  "runAfter": {
+                    "ComposeSelectedTaskPriorityExists": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@or(contains(outputs('ComposeSelectedTaskAssignedToEmailsUpper'), '#REF!'), contains(outputs('ComposeSelectedTaskAssignedToEmailsUpper'), '#VALUE!'), contains(outputs('ComposeSelectedTaskAssignedToEmailsUpper'), '#NAME?'), contains(outputs('ComposeSelectedTaskAssignedToEmailsUpper'), '#N/A'), contains(outputs('ComposeSelectedTaskAssignedToEmailsUpper'), '#DIV/0!'))"
+                },
+                "ComposeSelectedTaskValidationReason": {
+                  "runAfter": {
+                    "ComposeSelectedTaskAssignedToEmailsHasExcelError": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@if(equals(outputs('ComposeSelectedTaskId'), ''), 'TaskId is required.', if(equals(outputs('ComposeSelectedTaskTitle'), ''), 'TaskName is required.', if(equals(length(outputs('ComposeSelectedTaskGroupName')), 0), 'GroupName is required.', if(not(outputs('ComposeSelectedTaskGroupExists')), 'GroupName does not resolve in tbGroups.', if(equals(length(outputs('ComposeSelectedTaskAssignedToEmails')), 0), 'AssignedToEmails formula result is required.', if(outputs('ComposeSelectedTaskAssignedToEmailsHasExcelError'), 'AssignedToEmails contains an Excel error.', if(equals(length(outputs('ComposeSelectedTaskDaysFromEvent')), 0), 'DaysFromEvent is required.', if(equals(length(outputs('ComposeSelectedTaskBucketName')), 0), 'Bucket is required.', if(not(outputs('ComposeSelectedTaskBucketExists')), 'Bucket does not resolve in tbBuckets.', if(and(greater(length(outputs('ComposeSelectedTaskProgressName')), 0), not(outputs('ComposeSelectedTaskProgressExists'))), 'Progress does not resolve in tbProgress.', if(equals(length(outputs('ComposeSelectedTaskPriorityName')), 0), 'Priority is required.', if(not(outputs('ComposeSelectedTaskPriorityExists')), 'Priority does not resolve in tbPriority.', ''))))))))))))"
+                },
+                "ComposeSelectedTaskWarningHtml": {
+                  "runAfter": {
+                    "ComposeSelectedTaskValidationReason": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@concat('<li><strong>', if(equals(outputs('ComposeSelectedTaskId'), ''), '(missing)', outputs('ComposeSelectedTaskId')), '</strong> - ', if(equals(outputs('ComposeSelectedTaskTitle'), ''), '(missing title)', outputs('ComposeSelectedTaskTitle')), ': ', outputs('ComposeSelectedTaskValidationReason'), '</li>')"
                 },
                 "IsSelectedTaskRowValid": {
                   "runAfter": {
-                    "ComposeSelectedTaskValidationReason": [
+                    "ComposeSelectedTaskWarningHtml": [
                       "Succeeded"
                     ]
                   },
@@ -971,7 +1088,7 @@
                         "type": "AppendToArrayVariable",
                         "inputs": {
                           "name": "skippedSelectedRowWarnings",
-                          "value": "@concat('<li><strong>', if(equals(outputs('ComposeSelectedTaskId'), ''), '(missing)', outputs('ComposeSelectedTaskId')), '</strong> - ', if(equals(outputs('ComposeSelectedTaskTitle'), ''), '(missing title)', outputs('ComposeSelectedTaskTitle')), ': ', outputs('ComposeSelectedTaskValidationReason'), '</li>')"
+                          "value": "@outputs('ComposeSelectedTaskWarningHtml')"
                         }
                       }
                     }
