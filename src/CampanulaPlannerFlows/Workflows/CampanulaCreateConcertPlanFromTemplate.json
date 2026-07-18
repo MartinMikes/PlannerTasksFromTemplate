@@ -263,9 +263,43 @@
             ]
           }
         },
-        "ValidateConcertRequest": {
+        "Initialize_ValidSelectedRows": {
           "runAfter": {
             "Initialize_CreatedTaskCount": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "validSelectedRows",
+                "type": "Array",
+                "value": []
+              }
+            ]
+          }
+        },
+        "Initialize_SkippedSelectedRowWarnings": {
+          "runAfter": {
+            "Initialize_ValidSelectedRows": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "skippedSelectedRowWarnings",
+                "type": "Array",
+                "value": []
+              }
+            ]
+          }
+        },
+        "ValidateConcertRequest": {
+          "runAfter": {
+            "Initialize_SkippedSelectedRowWarnings": [
               "Succeeded"
             ]
           },
@@ -854,9 +888,160 @@
             }
           }
         },
-        "Create_Planner_Plan": {
+        "ValidateSelectedTaskRows": {
           "runAfter": {
             "ValidateSharedPlanConfiguration": [
+              "Succeeded"
+            ]
+          },
+          "type": "Scope",
+          "actions": {
+            "FilterSelectedTemplateRows": {
+              "runAfter": {},
+              "type": "Query",
+              "inputs": {
+                "from": "@outputs('ListRowsTasksTemplate')?['body/value']",
+                "where": "@contains(variables('templateTypeFilters'), item()?['TemplateType'])"
+              }
+            },
+            "ApplyToEachSelectedTemplateRow": {
+              "runAfter": {
+                "FilterSelectedTemplateRows": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Foreach",
+              "foreach": "@body('FilterSelectedTemplateRows')",
+              "operationOptions": "Sequential",
+              "actions": {
+                "ComposeSelectedTaskId": {
+                  "runAfter": {},
+                  "type": "Compose",
+                  "inputs": "@trim(coalesce(string(item()?['TaskId']), ''))"
+                },
+                "ComposeSelectedTaskTitle": {
+                  "runAfter": {
+                    "ComposeSelectedTaskId": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@trim(coalesce(string(item()?['TaskName']), ''))"
+                },
+                "ComposeSelectedTaskValidationReason": {
+                  "runAfter": {
+                    "ComposeSelectedTaskTitle": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@if(equals(outputs('ComposeSelectedTaskId'), ''), 'TaskId is required.', if(equals(outputs('ComposeSelectedTaskTitle'), ''), 'TaskName is required.', if(equals(length(trim(coalesce(string(item()?['GroupName']), ''))), 0), 'GroupName is required.', if(not(contains(string(outputs('ListRowsGroups')?['body/value']), concat('\"GroupName\":\"', trim(coalesce(string(item()?['GroupName']), '')), '\"'))), 'GroupName does not resolve in tbGroups.', if(equals(length(trim(coalesce(string(item()?['AssignedToEmails']), ''))), 0), 'AssignedToEmails formula result is required.', if(or(contains(toUpper(trim(coalesce(string(item()?['AssignedToEmails']), ''))), '#REF!'), contains(toUpper(trim(coalesce(string(item()?['AssignedToEmails']), ''))), '#VALUE!'), contains(toUpper(trim(coalesce(string(item()?['AssignedToEmails']), ''))), '#NAME?'), contains(toUpper(trim(coalesce(string(item()?['AssignedToEmails']), ''))), '#N/A'), contains(toUpper(trim(coalesce(string(item()?['AssignedToEmails']), ''))), '#DIV/0!')), 'AssignedToEmails contains an Excel error.', if(equals(length(trim(coalesce(string(item()?['DaysFromEvent']), ''))), 0), 'DaysFromEvent is required.', if(equals(length(trim(coalesce(string(item()?['Bucket']), ''))), 0), 'Bucket is required.', if(not(contains(string(outputs('ListRowsBuckets')?['body/value']), concat('\"Bucket\":\"', trim(coalesce(string(item()?['Bucket']), '')), '\"'))), 'Bucket does not resolve in tbBuckets.', if(and(greater(length(trim(coalesce(string(item()?['Progress']), ''))), 0), not(contains(string(outputs('ListRowsProgress')?['body/value']), concat('\"Progress\":\"', trim(coalesce(string(item()?['Progress']), '')), '\"')))), 'Progress does not resolve in tbProgress.', if(equals(length(trim(coalesce(string(item()?['Priority']), ''))), 0), 'Priority is required.', if(not(contains(string(outputs('ListRowsPriority')?['body/value']), concat('\"Priority\":\"', trim(coalesce(string(item()?['Priority']), '')), '\"'))), 'Priority does not resolve in tbPriority.', ''))))))))))))"
+                },
+                "IsSelectedTaskRowValid": {
+                  "runAfter": {
+                    "ComposeSelectedTaskValidationReason": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@outputs('ComposeSelectedTaskValidationReason')",
+                          ""
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "AppendValidSelectedRow": {
+                      "runAfter": {},
+                      "type": "AppendToArrayVariable",
+                      "inputs": {
+                        "name": "validSelectedRows",
+                        "value": "@item()"
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "AppendSkippedSelectedRowWarning": {
+                        "runAfter": {},
+                        "type": "AppendToArrayVariable",
+                        "inputs": {
+                          "name": "skippedSelectedRowWarnings",
+                          "value": "@concat('<li><strong>', if(equals(outputs('ComposeSelectedTaskId'), ''), '(missing)', outputs('ComposeSelectedTaskId')), '</strong> - ', if(equals(outputs('ComposeSelectedTaskTitle'), ''), '(missing title)', outputs('ComposeSelectedTaskTitle')), ': ', outputs('ComposeSelectedTaskValidationReason'), '</li>')"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "EnsureValidSelectedTasks": {
+              "runAfter": {
+                "ApplyToEachSelectedTemplateRow": [
+                  "Succeeded"
+                ]
+              },
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "greater": [
+                      "@length(variables('validSelectedRows'))",
+                      0
+                    ]
+                  }
+                ]
+              },
+              "actions": {},
+              "else": {
+                "actions": {
+                  "NotifyNoValidSelectedTasks": {
+                    "runAfter": {},
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "emailMessage/To": "@parameters('notificationTo')",
+                        "emailMessage/Subject": "@concat('Concert request rejected before Planner creation: ', outputs('Compose_PlannerPlanName'))",
+                        "emailMessage/Body": "@concat('<p class=\"editor-paragraph\">The concert request was rejected before Planner creation.</p>', '<p class=\"editor-paragraph\">No selected template row remained valid after preflight classification.</p>', '<p class=\"editor-paragraph\">Skipped selected rows: ', string(length(variables('skippedSelectedRowWarnings'))), '</p>', if(greater(length(variables('skippedSelectedRowWarnings')), 0), concat('<ul>', join(variables('skippedSelectedRowWarnings'), ''), '</ul>'), ''), '<p class=\"editor-paragraph\">No Planner content was created. Correct the selected workbook rows and submit a new concert request.</p>')",
+                        "emailMessage/Importance": "Normal"
+                      },
+                      "host": {
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                        "connectionName": "shared_office365",
+                        "operationId": "SendEmailV2"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    }
+                  },
+                  "TerminateNoValidSelectedTasks": {
+                    "runAfter": {
+                      "NotifyNoValidSelectedTasks": [
+                        "Succeeded",
+                        "Failed",
+                        "TimedOut"
+                      ]
+                    },
+                    "type": "Terminate",
+                    "inputs": {
+                      "runStatus": "Failed",
+                      "runError": {
+                        "code": "NoValidSelectedTasks",
+                        "message": "No selected template row remained valid after preflight classification."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Create_Planner_Plan": {
+          "runAfter": {
+            "ValidateSelectedTaskRows": [
               "Succeeded"
             ]
           },
@@ -942,53 +1127,14 @@
             }
           }
         },
-        "List_rows_present_in_a_table_-_TasksTemplate": {
+        "Apply_to_each_template_task": {
           "runAfter": {
             "Apply_to_each_bucket": [
               "Succeeded"
             ]
           },
-          "type": "OpenApiConnection",
-          "inputs": {
-            "parameters": {
-              "source": "@parameters('excelSource')",
-              "drive": "@parameters('excelDrive')",
-              "file": "@parameters('excelFile')",
-              "table": "@parameters('tasksTable')"
-            },
-            "host": {
-              "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness",
-              "connectionName": "shared_excelonlinebusiness",
-              "operationId": "GetItems"
-            },
-            "authentication": "@parameters('$authentication')"
-          },
-          "runtimeConfiguration": {
-            "paginationPolicy": {
-              "minimumItemCount": 5000
-            }
-          }
-        },
-        "Filter_rows_by_TemplateType": {
-          "runAfter": {
-            "List_rows_present_in_a_table_-_TasksTemplate": [
-              "Succeeded"
-            ]
-          },
-          "type": "Query",
-          "inputs": {
-            "from": "@outputs('List_rows_present_in_a_table_-_TasksTemplate')?['body/value']",
-            "where": "@and(contains(variables('templateTypeFilters'), item()?['TemplateType']), greater(length(trim(coalesce(string(item()?['TaskName']), ''))), 0))"
-          }
-        },
-        "Apply_to_each_template_task": {
-          "runAfter": {
-            "Filter_rows_by_TemplateType": [
-              "Succeeded"
-            ]
-          },
           "type": "Foreach",
-          "foreach": "@body('Filter_rows_by_TemplateType')",
+          "foreach": "@variables('validSelectedRows')",
           "operationOptions": "Sequential",
           "actions": {
             "Compose_TaskDueDate": {
@@ -1121,7 +1267,7 @@
             "parameters": {
               "emailMessage/To": "@parameters('notificationTo')",
               "emailMessage/Subject": "@concat('Planner plan created: ', outputs('Compose_PlannerPlanName'))",
-              "emailMessage/Body": "@concat('<p class=\"editor-paragraph\">Planner plan <strong>', outputs('Compose_PlannerPlanName'), '</strong> was created.</p>', '<p class=\"editor-paragraph\">Concert name: ', outputs('Compose_ConcertName'), '</p>', '<p class=\"editor-paragraph\">Template type: ', outputs('Compose_TemplateType'), '</p>', '<p class=\"editor-paragraph\">Location: ', outputs('Compose_Location'), '</p>', '<p class=\"editor-paragraph\">Concert date: ', string(outputs('Compose_ConcertDate')), '</p>', '<p class=\"editor-paragraph\">Created tasks: ', string(variables('createdTaskCount')), '</p>')",
+              "emailMessage/Body": "@concat('<p class=\"editor-paragraph\">Planner plan <strong>', outputs('Compose_PlannerPlanName'), '</strong> was created.</p>', '<p class=\"editor-paragraph\">Concert name: ', outputs('Compose_ConcertName'), '</p>', '<p class=\"editor-paragraph\">Template type: ', outputs('Compose_TemplateType'), '</p>', '<p class=\"editor-paragraph\">Location: ', outputs('Compose_Location'), '</p>', '<p class=\"editor-paragraph\">Concert date: ', string(outputs('Compose_ConcertDate')), '</p>', '<p class=\"editor-paragraph\">Created tasks: ', string(variables('createdTaskCount')), '</p>', '<p class=\"editor-paragraph\">Skipped selected rows: ', string(length(variables('skippedSelectedRowWarnings'))), '</p>', if(greater(length(variables('skippedSelectedRowWarnings')), 0), concat('<p class=\"editor-paragraph\">The plan was created with warnings.</p><ul>', join(variables('skippedSelectedRowWarnings'), ''), '</ul>'), ''))",
               "emailMessage/Importance": "Normal"
             },
             "host": {

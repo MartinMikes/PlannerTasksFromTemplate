@@ -38,12 +38,16 @@ test('creates the Planner plan only after a dedicated preflight success gate', (
     'ValidateSharedPlanConfiguration',
     'missing shared config validation',
   );
+  assertHasRootAction(
+    'ValidateSelectedTaskRows',
+    'missing selected task-row validation scope',
+  );
   assertHasRootAction('NotifyPreflightFailure', 'missing preflight failure notification');
 
   const createPlanRunAfter = getRootAction('Create_Planner_Plan')?.runAfter ?? {};
 
   assert.deepEqual(createPlanRunAfter, {
-    ValidateSharedPlanConfiguration: ['Succeeded'],
+    ValidateSelectedTaskRows: ['Succeeded'],
   });
 });
 
@@ -59,6 +63,7 @@ test('uses a Europe/Prague date gate and pre-create failure notifications', () =
   const validateConcertRequest = getRootAction('ValidateConcertRequest');
   const readWorkbookContract = getRootAction('ReadWorkbookContract');
   const validateSharedPlanConfiguration = getRootAction('ValidateSharedPlanConfiguration');
+  const validateSelectedTaskRows = getRootAction('ValidateSelectedTaskRows');
 
   assert.equal(validateConcertRequest?.type, 'If');
   assert.match(
@@ -79,4 +84,54 @@ test('uses a Europe/Prague date gate and pre-create failure notifications', () =
   assert.deepEqual(validateSharedPlanConfiguration?.runAfter ?? {}, {
     ReadWorkbookContract: ['Succeeded'],
   });
+  assert.deepEqual(validateSelectedTaskRows?.runAfter ?? {}, {
+    ValidateSharedPlanConfiguration: ['Succeeded'],
+  });
+});
+
+test('classifies selected rows before plan creation and stops when none are valid', () => {
+  const validateSelectedTaskRows = getRootAction('ValidateSelectedTaskRows');
+  const validationActions = validateSelectedTaskRows?.actions ?? {};
+  const filterSelectedRows = validationActions.FilterSelectedTemplateRows;
+  const classifySelectedRows = validationActions.ApplyToEachSelectedTemplateRow;
+  const ensureValidRows = validationActions.EnsureValidSelectedTasks;
+
+  assert.equal(validateSelectedTaskRows?.type, 'Scope');
+  assert.ok(filterSelectedRows, 'missing selected-row filter');
+  assert.ok(classifySelectedRows, 'missing selected-row classification loop');
+  assert.ok(ensureValidRows, 'missing valid-row gate');
+  assert.match(
+    JSON.stringify(filterSelectedRows?.inputs?.where ?? ''),
+    /templateTypeFilters/,
+  );
+  assert.doesNotMatch(
+    JSON.stringify(filterSelectedRows?.inputs?.where ?? ''),
+    /TaskName/,
+  );
+  assert.equal(
+    classifySelectedRows?.foreach,
+    "@body('FilterSelectedTemplateRows')",
+  );
+  assert.ok(
+    ensureValidRows?.else?.actions?.NotifyNoValidSelectedTasks,
+    'missing zero-valid notification',
+  );
+  assert.ok(
+    ensureValidRows?.else?.actions?.TerminateNoValidSelectedTasks,
+    'missing zero-valid termination',
+  );
+});
+
+test('creates tasks only from validated rows and reports skipped selected rows', () => {
+  const applyToEachTemplateTask = getRootAction('Apply_to_each_template_task');
+  const sendSummaryNotification = getRootAction('Send_summary_notification');
+
+  assert.equal(
+    applyToEachTemplateTask?.foreach,
+    "@variables('validSelectedRows')",
+  );
+  assert.match(
+    JSON.stringify(sendSummaryNotification?.inputs?.parameters?.['emailMessage/Body'] ?? ''),
+    /skippedSelectedRowWarnings/,
+  );
 });
