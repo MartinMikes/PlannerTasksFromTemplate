@@ -137,6 +137,150 @@
           }
         ]
       }
+    },
+    "/v1.0/planner/tasks/{id}": {
+      "get": {
+        "summary": "Get Planner task",
+        "description": "Read a Microsoft Planner task and return the current resource ETag.",
+        "operationId": "GetTask",
+        "x-ms-summary": "Get Planner Task",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "$ref": "#/parameters/TaskId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PlannerTaskGetResponse"
+          },
+          "default": {
+            "description": "Unexpected error response from Microsoft Graph.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Planner task",
+        "description": "Update Microsoft Planner task progress using a fresh ETag.",
+        "operationId": "UpdateTask",
+        "x-ms-summary": "Update Planner Task",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "$ref": "#/parameters/TaskId"
+          },
+          {
+            "$ref": "#/parameters/IfMatch"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateTaskRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PlannerTaskUpdateResponse"
+          },
+          "204": {
+            "$ref": "#/responses/PlannerTaskNoContentResponse"
+          },
+          "default": {
+            "description": "Unexpected error response from Microsoft Graph.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth": []
+          }
+        ]
+      }
+    },
+    "/v1.0/planner/tasks/{id}/details": {
+      "get": {
+        "summary": "Get Planner task details",
+        "description": "Read Microsoft Planner task details and return the current resource ETag.",
+        "operationId": "GetTaskDetails",
+        "x-ms-summary": "Get Planner Task Details",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "$ref": "#/parameters/TaskId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PlannerTaskDetailsGetResponse"
+          },
+          "default": {
+            "description": "Unexpected error response from Microsoft Graph.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Planner task details",
+        "description": "Update Microsoft Planner task description and checklist using a fresh ETag.",
+        "operationId": "UpdateTaskDetails",
+        "x-ms-summary": "Update Planner Task Details",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "$ref": "#/parameters/TaskId"
+          },
+          {
+            "$ref": "#/parameters/IfMatch"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateTaskDetailsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PlannerTaskDetailsUpdateResponse"
+          },
+          "204": {
+            "$ref": "#/responses/PlannerTaskDetailsNoContentResponse"
+          },
+          "default": {
+            "description": "Unexpected error response from Microsoft Graph.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth": []
+          }
+        ]
+      }
     }
   },
   "definitions": {
@@ -317,6 +461,97 @@
       "type": "string",
       "description": "Planner label display name."
     },
+    "PlannerTask": {
+      "type": "object",
+      "properties": {
+        "@odata.etag": {
+          "type": "string",
+          "description": "Planner task resource ETag."
+        },
+        "id": {
+          "type": "string",
+          "description": "Planner task identifier."
+        },
+        "percentComplete": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Planner task completion percentage."
+        }
+      }
+    },
+    "UpdateTaskRequest": {
+      "type": "object",
+      "required": [
+        "percentComplete"
+      ],
+      "properties": {
+        "percentComplete": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Planner task completion percentage."
+        }
+      }
+    },
+    "PlannerTaskDetails": {
+      "type": "object",
+      "properties": {
+        "@odata.etag": {
+          "type": "string",
+          "description": "Planner task-details resource ETag."
+        },
+        "id": {
+          "type": "string",
+          "description": "Planner task identifier."
+        },
+        "description": {
+          "type": "string",
+          "description": "Planner task description."
+        },
+        "checklist": {
+          "$ref": "#/definitions/PlannerChecklistItems"
+        }
+      }
+    },
+    "UpdateTaskDetailsRequest": {
+      "type": "object",
+      "required": [
+        "checklist",
+        "description"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Planner task description."
+        },
+        "checklist": {
+          "$ref": "#/definitions/PlannerChecklistItems"
+        }
+      }
+    },
+    "PlannerChecklistItems": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/PlannerChecklistItem"
+      },
+      "description": "Planner checklist items keyed by client-provided GUID."
+    },
+    "PlannerChecklistItem": {
+      "type": "object",
+      "properties": {
+        "@odata.type": {
+          "type": "string",
+          "description": "Planner checklist-item type discriminator."
+        },
+        "isChecked": {
+          "type": "boolean",
+          "description": "Whether the checklist item is completed."
+        },
+        "title": {
+          "type": "string",
+          "description": "Planner checklist item title."
+        }
+      }
+    },
     "ErrorResponse": {
       "type": "object",
       "properties": {
@@ -344,12 +579,21 @@
       "x-ms-summary": "Plan ID",
       "x-ms-visibility": "important"
     },
+    "TaskId": {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "type": "string",
+      "description": "Planner task identifier.",
+      "x-ms-summary": "Task ID",
+      "x-ms-visibility": "important"
+    },
     "IfMatch": {
       "name": "If-Match",
       "in": "header",
       "required": true,
       "type": "string",
-      "description": "ETag from the immediately preceding plan-details read.",
+      "description": "ETag from the immediately preceding Planner resource read.",
       "x-ms-summary": "If-Match",
       "x-ms-visibility": "important"
     }
@@ -369,6 +613,36 @@
     },
     "PlannerPlanDetailsNoContentResponse": {
       "description": "Planner plan details updated successfully."
+    },
+    "PlannerTaskGetResponse": {
+      "description": "Planner task returned successfully.",
+      "schema": {
+        "$ref": "#/definitions/PlannerTask"
+      }
+    },
+    "PlannerTaskUpdateResponse": {
+      "description": "Planner task updated successfully.",
+      "schema": {
+        "$ref": "#/definitions/PlannerTask"
+      }
+    },
+    "PlannerTaskNoContentResponse": {
+      "description": "Planner task updated successfully."
+    },
+    "PlannerTaskDetailsGetResponse": {
+      "description": "Planner task details returned successfully.",
+      "schema": {
+        "$ref": "#/definitions/PlannerTaskDetails"
+      }
+    },
+    "PlannerTaskDetailsUpdateResponse": {
+      "description": "Planner task details updated successfully.",
+      "schema": {
+        "$ref": "#/definitions/PlannerTaskDetails"
+      }
+    },
+    "PlannerTaskDetailsNoContentResponse": {
+      "description": "Planner task details updated successfully."
     }
   },
   "securityDefinitions": {

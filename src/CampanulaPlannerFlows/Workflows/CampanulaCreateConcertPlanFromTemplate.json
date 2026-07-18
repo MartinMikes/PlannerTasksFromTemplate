@@ -314,9 +314,26 @@
             ]
           }
         },
-        "ValidateConcertRequest": {
+        "Initialize_TaskChecklistItems": {
           "runAfter": {
             "Initialize_SkippedSelectedRowWarnings": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "taskChecklistItems",
+                "type": "Object",
+                "value": {}
+              }
+            ]
+          }
+        },
+        "ValidateConcertRequest": {
+          "runAfter": {
+            "Initialize_TaskChecklistItems": [
               "Succeeded"
             ]
           },
@@ -1552,7 +1569,7 @@
                 "authentication": "@parameters('$authentication')"
               }
             },
-            "Update_Planner_Task_Details": {
+            "GetPlannerTask": {
               "runAfter": {
                 "Create_Planner_Task": [
                   "Succeeded"
@@ -1561,20 +1578,80 @@
               "type": "OpenApiConnection",
               "inputs": {
                 "parameters": {
-                  "id": "@body('Create_Planner_Task')?['id']",
-                  "body/description": "@coalesce(item()?['Description'], '')"
+                  "id": "@body('Create_Planner_Task')?['id']"
                 },
                 "host": {
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
-                  "connectionName": "shared_planner",
-                  "operationId": "UpdateTaskDetails_V2"
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                  "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                  "operationId": "GetTask"
                 },
                 "authentication": "@parameters('$authentication')"
               }
             },
-            "Apply_to_each_checklist_item": {
+            "ConditionallyUpdatePlannerTaskProgress": {
               "runAfter": {
-                "Update_Planner_Task_Details": [
+                "GetPlannerTask": [
+                  "Succeeded"
+                ]
+              },
+              "type": "If",
+              "expression": {
+                "or": [
+                  {
+                    "equals": [
+                      "@item()?['Progress']",
+                      "In progress"
+                    ]
+                  },
+                  {
+                    "equals": [
+                      "@item()?['Progress']",
+                      "Completed"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "UpdatePlannerTask": {
+                  "runAfter": {},
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "id": "@body('Create_Planner_Task')?['id']",
+                      "If-Match": "@body('GetPlannerTask')?['@odata.etag']",
+                      "body": {
+                        "percentComplete": "@if(equals(item()?['Progress'], 'Completed'), 100, 50)"
+                      }
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                      "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                      "operationId": "UpdateTask"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "SetTaskChecklistItemsEmpty": {
+              "runAfter": {
+                "ConditionallyUpdatePlannerTaskProgress": [
+                  "Succeeded",
+                  "Skipped"
+                ]
+              },
+              "type": "SetVariable",
+              "inputs": {
+                "name": "taskChecklistItems",
+                "value": {}
+              }
+            },
+            "ApplyToEachChecklistItemPayload": {
+              "runAfter": {
+                "SetTaskChecklistItemsEmpty": [
                   "Succeeded"
                 ]
               },
@@ -1582,7 +1659,7 @@
               "foreach": "@split(coalesce(item()?['CheckListItems'], ''), ';')",
               "operationOptions": "Sequential",
               "actions": {
-                "Add_Checklist_Item": {
+                "AddChecklistItemToPayload": {
                   "runAfter": {},
                   "type": "If",
                   "expression": {
@@ -1596,20 +1673,12 @@
                     ]
                   },
                   "actions": {
-                    "Append_Checklist_Item_To_Task": {
+                    "SetTaskChecklistItems": {
                       "runAfter": {},
-                      "type": "OpenApiConnection",
+                      "type": "SetVariable",
                       "inputs": {
-                        "parameters": {
-                          "id": "@body('Create_Planner_Task')?['id']",
-                          "body/title": "@trim(item())"
-                        },
-                        "host": {
-                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
-                          "connectionName": "shared_planner",
-                          "operationId": "CreateChecklistItem"
-                        },
-                        "authentication": "@parameters('$authentication')"
+                        "name": "taskChecklistItems",
+                        "value": "@setProperty(variables('taskChecklistItems'), guid(), setProperty(setProperty(setProperty(json('{}'), '@odata.type', 'microsoft.graph.plannerChecklistItem'), 'isChecked', false), 'title', trim(item())))"
                       }
                     }
                   },
@@ -1619,9 +1688,52 @@
                 }
               }
             },
+            "GetPlannerTaskDetails": {
+              "runAfter": {
+                "ApplyToEachChecklistItemPayload": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "id": "@body('Create_Planner_Task')?['id']"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                  "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                  "operationId": "GetTaskDetails"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "UpdatePlannerTaskDetails": {
+              "runAfter": {
+                "GetPlannerTaskDetails": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "id": "@body('Create_Planner_Task')?['id']",
+                  "If-Match": "@body('GetPlannerTaskDetails')?['@odata.etag']",
+                  "body": {
+                    "description": "@coalesce(item()?['Description'], '')",
+                    "checklist": "@variables('taskChecklistItems')"
+                  }
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                  "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                  "operationId": "UpdateTaskDetails"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
             "Increment_CreatedTaskCount": {
               "runAfter": {
-                "Apply_to_each_checklist_item": [
+                "UpdatePlannerTaskDetails": [
                   "Succeeded"
                 ]
               },

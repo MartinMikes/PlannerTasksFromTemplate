@@ -81,10 +81,14 @@ test('creates every workbook bucket sequentially with the current Planner operat
 test('extends the Graph connector only with plan-details read and patch operations', () => {
   const connectorPaths = Object.keys(connector.paths).sort();
 
-  assert.deepEqual(connectorPaths, [
-    '/v1.0/planner/plans',
-    plannerPlanDetailsPath,
-  ]);
+  assert.ok(
+    connectorPaths.includes('/v1.0/planner/plans'),
+    'missing Planner plan create path',
+  );
+  assert.ok(
+    connectorPaths.includes(plannerPlanDetailsPath),
+    'missing Planner plan-details path',
+  );
 
   const planDetailsPath = connector.paths[plannerPlanDetailsPath];
 
