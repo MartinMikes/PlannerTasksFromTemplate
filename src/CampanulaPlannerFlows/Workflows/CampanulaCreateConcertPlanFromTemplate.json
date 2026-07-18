@@ -246,9 +246,26 @@
             ]
           }
         },
-        "Initialize_CreatedTaskCount": {
+        "Initialize_PlanCategoryDescriptions": {
           "runAfter": {
             "Initialize_BucketMap": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "planCategoryDescriptions",
+                "type": "Object",
+                "value": {}
+              }
+            ]
+          }
+        },
+        "Initialize_CreatedTaskCount": {
+          "runAfter": {
+            "Initialize_PlanCategoryDescriptions": [
               "Succeeded"
             ]
           },
@@ -901,6 +918,80 @@
             }
           }
         },
+        "FilterPopulatedPlannerLabelRows": {
+          "runAfter": {
+            "Create_Planner_Plan": [
+              "Succeeded"
+            ]
+          },
+          "type": "Query",
+          "inputs": {
+            "from": "@outputs('ListRowsLabels')?['body/value']",
+            "where": "@greater(length(trim(coalesce(string(item()?['Name']), ''))), 0)"
+          }
+        },
+        "Apply_to_each_label": {
+          "runAfter": {
+            "FilterPopulatedPlannerLabelRows": [
+              "Succeeded"
+            ]
+          },
+          "type": "Foreach",
+          "foreach": "@body('FilterPopulatedPlannerLabelRows')",
+          "operationOptions": "Sequential",
+          "actions": {
+            "Set_PlanCategoryDescriptions": {
+              "runAfter": {},
+              "type": "SetVariable",
+              "inputs": {
+                "name": "planCategoryDescriptions",
+                "value": "@setProperty(variables('planCategoryDescriptions'), replace(toLower(trim(string(item()?['Label']))), 'label', 'category'), trim(string(item()?['Name'])))"
+              }
+            }
+          }
+        },
+        "GetPlannerPlanDetails": {
+          "runAfter": {
+            "Apply_to_each_label": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "planId": "@body('Create_Planner_Plan')?['id']"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+              "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+              "operationId": "GetPlanDetails"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "UpdatePlannerPlanDetails": {
+          "runAfter": {
+            "GetPlannerPlanDetails": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "planId": "@body('Create_Planner_Plan')?['id']",
+              "If-Match": "@body('GetPlannerPlanDetails')?['@odata.etag']",
+              "body": {
+                "categoryDescriptions": "@variables('planCategoryDescriptions')"
+              }
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+              "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+              "operationId": "UpdatePlanDetails"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
         "Apply_to_each_bucket": {
           "runAfter": {
             "List_rows_present_in_a_table_-_Buckets": [
@@ -923,7 +1014,7 @@
                 "host": {
                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
                   "connectionName": "shared_planner",
-                  "operationId": "CreateBucket"
+                  "operationId": "CreateBucket_V2"
                 },
                 "authentication": "@parameters('$authentication')"
               }
@@ -945,6 +1036,9 @@
         "List_rows_present_in_a_table_-_TasksTemplate": {
           "runAfter": {
             "Apply_to_each_bucket": [
+              "Succeeded"
+            ],
+            "UpdatePlannerPlanDetails": [
               "Succeeded"
             ]
           },
