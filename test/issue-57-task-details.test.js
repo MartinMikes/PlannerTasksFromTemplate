@@ -2,11 +2,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   connector,
-  generateConcertPlanActions,
+  getWorkflowActions,
   readActionOperationId,
   readActionParameters,
 } = require('./helpers/planner-fixtures');
-const taskLoopActions = generateConcertPlanActions.Apply_to_each_template_task?.actions ?? {};
+const taskLoopActions = getWorkflowActions('GenerateConcertPlan', 'Apply_to_each_template_task');
 
 test('updates Planner task progress and details through single-pass Graph reads and writes', () => {
   const createTask = taskLoopActions.Create_Planner_Task;

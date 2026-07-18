@@ -2,16 +2,16 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   connector,
-  getGenerateConcertPlanAction,
+  getWorkflowAction,
   readActionOperationId,
   readActionParameters,
 } = require('./helpers/planner-fixtures');
 const plannerPlanDetailsPath = '/v1.0/planner/plans/{planId}/details';
 
 test('configures populated Planner labels once before task creation', () => {
-  const getPlanDetails = getGenerateConcertPlanAction('GetPlannerPlanDetails');
-  const updatePlanDetails = getGenerateConcertPlanAction('UpdatePlannerPlanDetails');
-  const createTasks = getGenerateConcertPlanAction('Apply_to_each_template_task');
+  const getPlanDetails = getWorkflowAction('GenerateConcertPlan', 'GetPlannerPlanDetails');
+  const updatePlanDetails = getWorkflowAction('GenerateConcertPlan', 'UpdatePlannerPlanDetails');
+  const createTasks = getWorkflowAction('GenerateConcertPlan', 'Apply_to_each_template_task');
 
   assert.equal(readActionOperationId(getPlanDetails), 'GetPlanDetails');
 
@@ -29,8 +29,11 @@ test('configures populated Planner labels once before task creation', () => {
 });
 
 test('creates every workbook bucket sequentially with the current Planner operation', () => {
-  const listBuckets = getGenerateConcertPlanAction('List_rows_present_in_a_table_-_Buckets');
-  const foreachBucket = getGenerateConcertPlanAction('Apply_to_each_bucket');
+  const listBuckets = getWorkflowAction(
+    'GenerateConcertPlan',
+    'List_rows_present_in_a_table_-_Buckets',
+  );
+  const foreachBucket = getWorkflowAction('GenerateConcertPlan', 'Apply_to_each_bucket');
   const createBucket = foreachBucket?.actions?.Create_Planner_Bucket;
   const setBucketMap = foreachBucket?.actions?.Set_BucketMap;
 

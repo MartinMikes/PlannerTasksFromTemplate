@@ -1,10 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { generateConcertPlanActions, rootActions } = require('./helpers/planner-fixtures');
-const validationActions =
-  rootActions.ValidateSelectedTaskRows?.actions?.ApplyToEachSelectedTemplateRow?.actions ?? {};
-const createTaskAction =
-  generateConcertPlanActions.Apply_to_each_template_task?.actions?.Create_Planner_Task;
+const { getWorkflowAction, getWorkflowActions } = require('./helpers/planner-fixtures');
+const validationActions = getWorkflowActions(
+  'ValidateSelectedTaskRows',
+  'ApplyToEachSelectedTemplateRow',
+);
+const createTaskAction = getWorkflowAction(
+  'GenerateConcertPlan',
+  'Apply_to_each_template_task',
+  'Create_Planner_Task',
+);
 const appendValidSelectedRowValue =
   validationActions.IsSelectedTaskRowValid?.actions?.AppendValidSelectedRow?.inputs?.value ?? {};
 const createTaskParameters = createTaskAction?.inputs?.parameters ?? {};

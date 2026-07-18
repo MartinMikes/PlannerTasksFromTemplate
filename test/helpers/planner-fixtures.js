@@ -23,14 +23,29 @@ const connector = readJson([
 ]);
 
 const rootActions = workflow.properties.definition.actions;
-const generateConcertPlanActions = rootActions.GenerateConcertPlan?.actions ?? {};
 
-function getRootAction(actionName) {
-  return rootActions[actionName];
+function getAction(actionCollection, actionName) {
+  return actionCollection?.[actionName];
 }
 
-function getGenerateConcertPlanAction(actionName) {
-  return generateConcertPlanActions[actionName];
+function getRootAction(actionName) {
+  return getAction(rootActions, actionName);
+}
+
+function getWorkflowAction(...actionPath) {
+  let action = undefined;
+  let actionCollection = rootActions;
+
+  for (const actionName of actionPath) {
+    action = getAction(actionCollection, actionName);
+    actionCollection = action?.actions;
+  }
+
+  return action;
+}
+
+function getWorkflowActions(...actionPath) {
+  return getWorkflowAction(...actionPath)?.actions ?? {};
 }
 
 function readActionOperationId(action) {
@@ -44,10 +59,10 @@ function readActionParameters(action) {
 module.exports = {
   connector,
   getRootAction,
+  getWorkflowAction,
+  getWorkflowActions,
   readActionOperationId,
   readActionParameters,
   rootActions,
-  generateConcertPlanActions,
-  getGenerateConcertPlanAction,
   workflow,
 };

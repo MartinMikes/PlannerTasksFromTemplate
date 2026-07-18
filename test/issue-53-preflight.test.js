@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { getRootAction, getGenerateConcertPlanAction } = require('./helpers/planner-fixtures');
+const { getRootAction, getWorkflowAction } = require('./helpers/planner-fixtures');
 const requiredWorkbookReads = [
   'ListRowsTasksTemplate',
   'ListRowsGroups',
@@ -110,7 +110,10 @@ test('classifies selected rows before plan creation and stops when none are vali
 });
 
 test('creates tasks only from validated rows and reports skipped selected rows', () => {
-  const applyToEachTemplateTask = getGenerateConcertPlanAction('Apply_to_each_template_task');
+  const applyToEachTemplateTask = getWorkflowAction(
+    'GenerateConcertPlan',
+    'Apply_to_each_template_task',
+  );
   const notifyConcertPlanOutcome = getRootAction('NotifyConcertPlanOutcome');
   const classifySelectedRows =
     getSelectedRowValidationActions().ApplyToEachSelectedTemplateRow;
