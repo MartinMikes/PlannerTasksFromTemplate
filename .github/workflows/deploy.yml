@@ -21,6 +21,7 @@ concurrency:
 env:
   SOLUTION_NAME: CampanulaPlannerFlows
   SOLUTION_FOLDER: src/CampanulaPlannerFlows
+  SOLUTION_PACK_FOLDER: out/CampanulaPlannerFlows
   SOLUTION_ZIP: out/CampanulaPlannerFlows.zip
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -98,6 +99,13 @@ jobs:
             --clientSecret  "${{ secrets.PP_CLIENT_SECRET }}" \
             --tenant        "${{ vars.PP_TENANT_ID }}"
 
+      - name: Prepare staged solution source
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
+        run: |
+          mkdir -p out
+          rm -rf "${{ env.SOLUTION_PACK_FOLDER }}"
+          cp -R "${{ env.SOLUTION_FOLDER }}" "${{ env.SOLUTION_PACK_FOLDER }}"
+
       - name: Inject connector app ID
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         env:
@@ -107,7 +115,7 @@ jobs:
             echo "::error::PP_CONNECTOR_APP_ID variable is not set. Add it under Settings → Secrets and variables → Actions → Variables before deploying."
             exit 1
           fi
-          PARAMS_FILE="${{ env.SOLUTION_FOLDER }}/Connectors/campa_planner_graph_connectionparameters.json"
+          PARAMS_FILE="${{ env.SOLUTION_PACK_FOLDER }}/Connectors/campa_planner_graph_connectionparameters.json"
           if ! grep -Fq '${MICROSOFT_ENTRA_APP_ID}' "$PARAMS_FILE"; then
             echo "::error::Expected placeholder \${MICROSOFT_ENTRA_APP_ID} not found in $PARAMS_FILE. Ensure the connector source still contains the placeholder."
             exit 1
@@ -122,10 +130,9 @@ jobs:
       - name: Create solution zip
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
-          mkdir -p out
           "$POWERPLATFORMTOOLS_PACPATH" solution pack \
             --zipFile "${{ env.SOLUTION_ZIP }}" \
-            --folder "${{ env.SOLUTION_FOLDER }}" \
+            --folder "${{ env.SOLUTION_PACK_FOLDER }}" \
             --packageType Managed
 
       - name: Upload packed solution as artifact
@@ -152,5 +159,6 @@ jobs:
           client-secret: ${{ secrets.PP_CLIENT_SECRET }}
           tenant-id: ${{ vars.PP_TENANT_ID }}
           solution-file: ${{ env.SOLUTION_ZIP }}
+          activate-plugins: true
           force-overwrite: true
           publish-changes: true
