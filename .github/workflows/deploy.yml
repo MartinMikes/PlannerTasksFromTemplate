@@ -93,6 +93,16 @@ jobs:
           echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
           echo "pack_source=true" >> "$GITHUB_OUTPUT"
 
+      - name: Validate required configuration
+        if: github.event_name == 'push'
+        env:
+          PP_CONNECTOR_APP_ID: ${{ vars.PP_CONNECTOR_APP_ID }}
+        run: |
+          if [ -z "$PP_CONNECTOR_APP_ID" ]; then
+            echo "::error::PP_CONNECTOR_APP_ID variable is not set. Add it under Settings → Secrets and variables → Actions → Variables before deploying."
+            exit 1
+          fi
+
       - name: Determine release version
         if: github.event_name == 'push'
         id: semanticRelease

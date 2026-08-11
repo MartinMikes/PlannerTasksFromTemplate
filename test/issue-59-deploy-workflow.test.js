@@ -55,6 +55,21 @@ test('redeploys the latest published release without a version input', () => {
   assert.doesNotMatch(deployWorkflow, /Create manual GitHub release/);
 });
 
+test('validates required configuration before semantic-release to prevent orphaned releases', () => {
+  assertMatchesAllPatterns(deployWorkflow, [
+    /- name: Validate required configuration/,
+    /if: github\.event_name == 'push'/,
+    /PP_CONNECTOR_APP_ID: \$\{\{ vars\.PP_CONNECTOR_APP_ID \}\}/,
+    /PP_CONNECTOR_APP_ID variable is not set/,
+  ]);
+  const validateIdx = deployWorkflow.indexOf('- name: Validate required configuration');
+  const semanticReleaseIdx = deployWorkflow.indexOf('- name: Determine release version');
+  assert.ok(
+    validateIdx < semanticReleaseIdx,
+    'Validate step must appear before Determine release version to prevent orphaned releases',
+  );
+});
+
 test('keeps the checked-in connector source on the placeholder contract', () => {
   assert.match(connectorParams, /\$\{MICROSOFT_ENTRA_APP_ID\}/);
 });
