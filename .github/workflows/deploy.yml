@@ -58,8 +58,7 @@ jobs:
           release_version="${release_tag#v}"
           asset_name="${SOLUTION_NAME}.zip"
           asset_url="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${release_tag}" \
-            --jq '.assets[] | select(.name == "CampanulaPlannerFlows.zip") | .browser_download_url' \
-            | head -n1)"
+            --jq ".assets[] | select(.name == \"${asset_name}\") | .browser_download_url")"
 
           mkdir -p out
           rm -f "${SOLUTION_ZIP}"
