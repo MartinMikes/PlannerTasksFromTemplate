@@ -39,6 +39,22 @@ test('packages a staged managed solution artifact and imports that exact zip', (
   assertMatchesAllPatterns(deployWorkflow, stagedSolutionWorkflowPatterns);
 });
 
+test('redeploys the latest published release without a version input', () => {
+  assertMatchesAllPatterns(deployWorkflow, [
+    /ref: \$\{\{ github\.event_name == 'workflow_dispatch' && 'main' \|\| github\.ref \}\}/,
+    /- name: Resolve last published release/,
+    /id: manualRelease/,
+    /gh api "repos\/\$\{GITHUB_REPOSITORY\}\/releases\/latest" --jq '\.tag_name'/,
+    /gh release download "\$release_tag"/,
+    /git checkout --detach "\$version_commit"/,
+    /echo "pack_source=false" >> "\$GITHUB_OUTPUT"/,
+    /echo "pack_source=true" >> "\$GITHUB_OUTPUT"/,
+    /steps\.manualRelease\.outputs\.pack_source == 'true'/,
+  ]);
+  assert.doesNotMatch(deployWorkflow, /inputs\.release_version|^\s+release_version:/m);
+  assert.doesNotMatch(deployWorkflow, /Create manual GitHub release/);
+});
+
 test('keeps the checked-in connector source on the placeholder contract', () => {
   assert.match(connectorParams, /\$\{MICROSOFT_ENTRA_APP_ID\}/);
 });

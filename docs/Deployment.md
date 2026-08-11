@@ -230,32 +230,36 @@ There are two separate Entra app registrations for this project.
 | Event | Action |
 | --- | --- |
 | Push to `main` | Runs semantic-release. If a release is published, GitHub Actions updates the solution version, stages the source, packs one **Managed** package, attaches that exact zip to the GitHub release, and imports the same zip into production. |
-| `workflow_dispatch` | Ad hoc production deploy. GitHub Actions stages the selected ref, packs one **Managed** package, and imports that same zip into production even when semantic-release does not publish a release. |
+| `workflow_dispatch` | Redeploys the latest published release. GitHub Actions downloads that release's managed package, or rebuilds it from the matching solution-version commit when the release has no attached package, and imports it into production. |
 
 The workflow allows only one production deployment to run at a time.
 
-### Ad hoc production deploy
+### Redeploy the last published release
 
-Use the manual workflow when production needs the current solution source even
-though the latest commit does not trigger a semantic-release release.
+Use the manual workflow when production needs the last published solution
+deployed again, for example after a transient Power Platform import failure.
+The workflow resolves the latest published GitHub release automatically; you do
+not enter an `X.Y.Z` version.
 
 From GitHub:
 
 1. Open **Actions**.
 2. Select **Deploy Power Platform Solution**.
 3. Click **Run workflow**.
-4. Select the branch or tag to deploy, usually `main`.
-5. Enter a short deployment reason and click **Run workflow**.
+4. Enter a short deployment reason and click **Run workflow**.
 
 With GitHub CLI:
 
 ```bash
-gh workflow run deploy.yml --ref main -f reason="Ad hoc production deploy"
+gh workflow run deploy.yml --ref main -f reason="Redeploy the last published solution"
 ```
 
-Manual ad hoc deploys do not create a GitHub release or change the solution
-version in source control. They use the version already present in
-`src\CampanulaPlannerFlows\Other\Solution.xml`.
+Manual redeploys do not create a new GitHub release, change the solution
+version, or deploy the current unreleased contents of `main`. When the latest
+published release contains `CampanulaPlannerFlows.zip`, the workflow imports
+that exact asset. For older releases without an attached asset, it rebuilds the
+managed package from the matching automatic solution-version commit before
+importing it.
 
 ---
 
