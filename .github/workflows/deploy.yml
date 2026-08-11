@@ -39,6 +39,60 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0 # semantic-release needs full history
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
+
+      - name: Resolve last published release
+        if: github.event_name == 'workflow_dispatch'
+        id: manualRelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          release_tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name')"
+          if [[ ! "$release_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Latest published release has an unexpected tag: ${release_tag}."
+            exit 1
+          fi
+
+          release_version="${release_tag#v}"
+          asset_name="${SOLUTION_NAME}.zip"
+          asset_url="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${release_tag}" \
+            --jq '.assets[] | select(.name == "CampanulaPlannerFlows.zip") | .browser_download_url' \
+            | head -n1)"
+
+          mkdir -p out
+          rm -f "${SOLUTION_ZIP}"
+
+          if [[ -n "$asset_url" ]]; then
+            gh release download "$release_tag" \
+              --pattern "$asset_name" \
+              --dir out \
+              --clobber
+            if [[ ! -s "${SOLUTION_ZIP}" ]]; then
+              echo "::error::Release ${release_tag} did not provide a usable ${asset_name} asset."
+              exit 1
+            fi
+            echo "Downloaded the managed solution asset from ${release_tag}."
+            echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
+            echo "pack_source=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          version_commit="$(
+            git log --all --format='%H%x09%s' |
+              awk -F '\t' -v expected="chore: update solution version to ${release_version}.0 [skip ci]" \
+                '$2 == expected { print $1; exit }'
+          )"
+          if [[ -z "$version_commit" ]]; then
+            echo "::error::Release ${release_tag} has no managed solution asset and no matching solution-version commit."
+            exit 1
+          fi
+
+          git checkout --detach "$version_commit"
+          echo "Release ${release_tag} has no asset; rebuilding from ${version_commit}."
+          echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
+          echo "pack_source=true" >> "$GITHUB_OUTPUT"
 
       - name: Determine release version
         if: github.event_name == 'push'
@@ -65,7 +119,7 @@ jobs:
           echo "::${stop_marker}::"
 
       - name: Install Power Platform CLI
-        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
+        if: steps.manualRelease.outputs.pack_source == 'true' || steps.semanticRelease.outputs.new_release_published == 'true'
         uses: microsoft/powerplatform-actions/actions-install@v1
 
       - name: Set solution version
@@ -91,7 +145,7 @@ jobs:
           fi
 
       - name: Authenticate with Power Platform
-        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
+        if: steps.manualRelease.outputs.pack_source == 'true' || steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           "$POWERPLATFORMTOOLS_PACPATH" auth create \
             --environment   "${{ vars.PP_ENVIRONMENT_URL }}" \
@@ -100,14 +154,14 @@ jobs:
             --tenant        "${{ vars.PP_TENANT_ID }}"
 
       - name: Prepare staged solution source
-        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
+        if: steps.manualRelease.outputs.pack_source == 'true' || steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           mkdir -p out
           rm -rf "${{ env.SOLUTION_PACK_FOLDER }}"
           cp -R "${{ env.SOLUTION_FOLDER }}" "${{ env.SOLUTION_PACK_FOLDER }}"
 
       - name: Inject connector app ID
-        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
+        if: steps.manualRelease.outputs.pack_source == 'true' || steps.semanticRelease.outputs.new_release_published == 'true'
         env:
           PP_CONNECTOR_APP_ID: ${{ vars.PP_CONNECTOR_APP_ID }}
         run: |
@@ -128,7 +182,7 @@ jobs:
           echo "Connector app ID injected into ${PARAMS_FILE}."
 
       - name: Create solution zip
-        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
+        if: steps.manualRelease.outputs.pack_source == 'true' || steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           "$POWERPLATFORMTOOLS_PACPATH" solution pack \
             --zipFile "${{ env.SOLUTION_ZIP }}" \
@@ -145,7 +199,7 @@ jobs:
 
       - name: Attach solution zip to GitHub release
         if: steps.semanticRelease.outputs.new_release_published == 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.semanticRelease.outputs.new_release_git_tag }}
           files: ${{ env.SOLUTION_ZIP }}
