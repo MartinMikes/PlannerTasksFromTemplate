@@ -8,7 +8,7 @@ Power Platform Solution with custom Flow and custom Connector. How to properly d
 
 ### Overview
 
-Below is a practical, step‑by‑step deployment checklist to take a **Power Platform solution** stored in **GitHub** (including a **solution-aware Power Automate flow** and a **custom connector**) and deploy it into a target environment, enable it, and make it ready for a user. I include the key commands, ALM options, and the configuration items you must set after import (connection references, environment variables, permissions). The most important claims are cited to Microsoft docs and authoritative community guidance.
+Below is a practical, step‑by‑step deployment checklist to take a **Power Platform solution** stored in **GitHub** (including a **solution-aware Power Automate flow** and a **custom connector**) and deploy it into a target environment, enable it, and make it ready for a user. I include the key commands, ALM options, and the configuration items you must set after import (connection references, environment variables, permissions).
 
 ---
 
