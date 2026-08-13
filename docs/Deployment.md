@@ -269,6 +269,11 @@ be usable by the connection-reference owner; `deploy.yml` maps them during
 import but does not create delegated OAuth connections or grant consent on a
 user's behalf.
 
+The deploy workflow now rejects placeholder values such as `ToDo` and any
+non-GUID connection or app IDs before `semantic-release` publishes a release.
+If deployment fails at configuration validation, replace the GitHub Actions
+variable with the real target-environment ID and re-run the workflow.
+
 ### Repair an existing imported version
 
 If the target environment already contains `CampanulaPlannerFlows` version

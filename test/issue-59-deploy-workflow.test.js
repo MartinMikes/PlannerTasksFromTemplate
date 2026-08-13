@@ -122,8 +122,12 @@ test('validates required configuration before semantic-release to prevent orphan
   assertMatchesAllPatterns(deployWorkflow, [
     /- name: Validate required configuration/,
     /if: github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'/,
+    /require_guid\(\) \{/,
     /PP_CONNECTOR_APP_ID: \$\{\{ vars\.PP_CONNECTOR_APP_ID \}\}/,
     /PP_CONNECTOR_APP_ID variable is not set/,
+    /is still set to the placeholder value/,
+    /must be a GUID/,
+    /require_guid "PP_GRAPH_CONNECTION_ID" "\$PP_GRAPH_CONNECTION_ID"/,
   ]);
   const validateIdx = deployWorkflow.indexOf('- name: Validate required configuration');
   const semanticReleaseIdx = deployWorkflow.indexOf('- name: Determine release version');

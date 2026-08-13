@@ -136,18 +136,35 @@ jobs:
             fi
           }
 
+          require_guid() {
+            local name="$1"
+            local value="$2"
+            require_value "$name" "$value"
+            local normalized="${value,,}"
+            case "$normalized" in
+              todo|to-do|tbd|change-me|changeme|placeholder|example|sample|dummy|set-me)
+                echo "::error::${name} is still set to the placeholder value '${value}'. Replace it with the real target-environment ID before deploying."
+                exit 1
+                ;;
+            esac
+            if [[ ! "$value" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+              echo "::error::${name} must be a GUID. Copy the real target-environment ID from Power Apps or Microsoft Entra before deploying."
+              exit 1
+            fi
+          }
+
           require_value "PP_ENVIRONMENT_URL" "$PP_ENVIRONMENT_URL"
-          require_value "PP_APP_ID" "$PP_APP_ID"
-          require_value "PP_TENANT_ID" "$PP_TENANT_ID"
+          require_guid "PP_APP_ID" "$PP_APP_ID"
+          require_guid "PP_TENANT_ID" "$PP_TENANT_ID"
           require_value "PP_CLIENT_SECRET" "$PP_CLIENT_SECRET"
-          require_value "PP_FORMS_CONNECTION_ID" "$PP_FORMS_CONNECTION_ID"
-          require_value "PP_EXCEL_CONNECTION_ID" "$PP_EXCEL_CONNECTION_ID"
-          require_value "PP_PLANNER_CONNECTION_ID" "$PP_PLANNER_CONNECTION_ID"
-          require_value "PP_GRAPH_CONNECTION_ID" "$PP_GRAPH_CONNECTION_ID"
-          require_value "PP_OUTLOOK_CONNECTION_ID" "$PP_OUTLOOK_CONNECTION_ID"
+          require_guid "PP_FORMS_CONNECTION_ID" "$PP_FORMS_CONNECTION_ID"
+          require_guid "PP_EXCEL_CONNECTION_ID" "$PP_EXCEL_CONNECTION_ID"
+          require_guid "PP_PLANNER_CONNECTION_ID" "$PP_PLANNER_CONNECTION_ID"
+          require_guid "PP_GRAPH_CONNECTION_ID" "$PP_GRAPH_CONNECTION_ID"
+          require_guid "PP_OUTLOOK_CONNECTION_ID" "$PP_OUTLOOK_CONNECTION_ID"
 
           if [[ "$GITHUB_EVENT_NAME" == "push" || "$PACK_SOURCE" == "true" ]]; then
-            require_value "PP_CONNECTOR_APP_ID" "$PP_CONNECTOR_APP_ID"
+            require_guid "PP_CONNECTOR_APP_ID" "$PP_CONNECTOR_APP_ID"
           fi
 
       - name: Determine release version
