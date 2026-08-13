@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImportExportXml version="9.2.0.0" SolutionPackageVersion="9.2" languagecode="1033"
+  generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SolutionManifest>
+    <UniqueName>CampanulaPlannerGraphConnector</UniqueName>
+    <LocalizedNames>
+      <LocalizedName description="Campanula Planner Graph Connector" languagecode="1033" />
+      <LocalizedName description="Campanula Planner Graph Connector" languagecode="1029" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description
+        description="Prerequisite custom connector for Microsoft Graph Planner operations."
+        languagecode="1033" />
+      <Description
+        description="Prerequisite custom connector for Microsoft Graph Planner operations."
+        languagecode="1029" />
+    </Descriptions>
+    <Version>1.0.0.0</Version>
+    <Managed>1</Managed>
+    <Publisher>
+      <UniqueName>MartiX</UniqueName>
+      <LocalizedNames>
+        <LocalizedName description="MartiX" languagecode="1033" />
+        <LocalizedName description="MartiX" languagecode="1029" />
+      </LocalizedNames>
+      <Descriptions />
+      <EMailAddress>info@martix.dev</EMailAddress>
+      <SupportingWebsiteUrl>https://martix.dev</SupportingWebsiteUrl>
+      <CustomizationPrefix>campa</CustomizationPrefix>
+      <CustomizationOptionValuePrefix>12345</CustomizationOptionValuePrefix>
+      <Addresses />
+    </Publisher>
+    <RootComponents>
+      <RootComponent type="372" id="{aa5c469a-b5dd-4963-917c-66bf35639bb3}"
+        schemaName="campa_planner_graph" behavior="0" />
+    </RootComponents>
+    <MissingDependencies />
+  </SolutionManifest>
+</ImportExportXml>

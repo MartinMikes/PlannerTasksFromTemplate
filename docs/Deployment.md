@@ -2,9 +2,11 @@
 
 ## Overview
 
-`src\CampanulaPlannerFlows` is the production Power Platform solution source.
-GitHub Actions packs this folder as a managed solution and imports it directly
-into the production environment.
+The repository ships two production Power Platform solutions. The
+`CampanulaPlannerGraphConnector` solution installs the custom connector as a
+prerequisite. The `CampanulaPlannerFlows` solution contains the Flow and its
+connection references. GitHub Actions packs both folders as managed solutions
+and imports them in that order.
 
 The docs, Microsoft Form definition, and Excel template are the source
 specification for the first Flow,
@@ -23,18 +25,30 @@ solution.
 
 ---
 
-## Current source folder
+## Current source folders
 
-The `src\CampanulaPlannerFlows` folder is the production unpacked solution source. GitHub Actions packs and imports this folder as a managed solution. It can contain multiple Flow components later; currently it contains the first Flow.
+The `src\CampanulaPlannerGraphConnector` folder is the production unpacked
+source for the prerequisite custom connector. The
+`src\CampanulaPlannerFlows` folder contains the first Flow and its connection
+references. The Flow solution intentionally does not own the connector root
+component; this lets the connector be installed before a delegated connection
+is created.
 
 Unpacked solution source structure:
 
 ```text
+src\CampanulaPlannerGraphConnector
+├── Connectors\
+└── Other\
+   ├── Customizations.xml
+   └── Solution.xml
+
 src\CampanulaPlannerFlows
 ├── [Content_Types].xml
-├── Connectors\
 ├── customizations.xml
-├── solution.xml
+├── Other\
+│   ├── Customizations.xml
+│   └── Solution.xml
 └── Workflows\
     └── <flow-name>.json
 ```
@@ -91,22 +105,27 @@ pac auth create \
   --tenant        "$PP_TENANT_ID"
 ```
 
-### 3. Inject connector app ID and create the managed solution zip
+### 3. Inject connector app ID and create the managed solution zips
 
 The connector source contains the placeholder `${MICROSOFT_ENTRA_APP_ID}`.
 Replace it in a temporary pack folder before packing, using the connector app
-registration ID from `.env`:
+registration ID from `.env`. Keep the connector and Flow packages separate:
 
 ```bash
 : "${PP_CONNECTOR_APP_ID:?PP_CONNECTOR_APP_ID is required}"
 mkdir -p out
-rm -rf out/CampanulaPlannerFlows
+rm -rf out/CampanulaPlannerGraphConnector out/CampanulaPlannerFlows
+cp -R src/CampanulaPlannerGraphConnector out/CampanulaPlannerGraphConnector
 cp -R src/CampanulaPlannerFlows out/CampanulaPlannerFlows
 
 # macOS (BSD sed): use `sed -i '' ...` or install GNU sed (`brew install gnu-sed`) and use `gsed -i ...`.
 sed -i "s|\${MICROSOFT_ENTRA_APP_ID}|${PP_CONNECTOR_APP_ID}|g" \
-  out/CampanulaPlannerFlows/Connectors/campa_planner_graph_connectionparameters.json
+   out/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_connectionparameters.json
 
+pac solution pack \
+   --zipFile out/CampanulaPlannerGraphConnector.zip \
+   --folder out/CampanulaPlannerGraphConnector \
+   --packageType Managed
 pac solution pack \
   --zipFile out/CampanulaPlannerFlows.zip \
   --folder out/CampanulaPlannerFlows \
@@ -121,6 +140,9 @@ pac solution pack \
 
 ```bash
 pac solution import \
+   --path        out/CampanulaPlannerGraphConnector.zip \
+   --environment "$PP_ENVIRONMENT_URL"
+pac solution import \
   --path        out/CampanulaPlannerFlows.zip \
   --environment "$PP_ENVIRONMENT_URL" \
   --activate-plugins
@@ -134,13 +156,25 @@ pac solution list --environment "$PP_ENVIRONMENT_URL"
 
 ### 6. Create or refresh the connector connection
 
-After importing a version that contains the custom connector for the first time or after any auth change:
+The connector solution must be imported before the Flow solution can bind its
+Graph connection reference. After importing the connector for the first time
+or after any auth change:
 
-1. Open Power Platform and navigate to the `CampanulaPlannerFlows` solution.
-2. Open **Connection References**.
-3. For `Campanula Planner Graph - CampanulaCreateConcertPlanFromTemplate`, create a new connection using the `Campanula Planner Graph` connector.
-4. Sign in with an account that is a member of the Microsoft 365 group used for Planner plan creation.
-5. Confirm the connection reference shows a healthy connection.
+1. Open Power Platform and navigate to the `CampanulaPlannerGraphConnector`
+   solution or the environment's **Custom connectors** list.
+2. Create a connection using the `Campanula Planner Graph` connector.
+3. Sign in with an account that is a member of the Microsoft 365 group used
+   for Planner plan creation and grant the requested delegated Graph consent.
+4. Test the connection and confirm it is healthy.
+5. If the deployment service principal is not the connection owner, share the
+   connection with its Power Platform application user and grant **Can use**.
+6. Open the `CampanulaPlannerFlows` solution and verify that
+   `Campanula Planner Graph - CampanulaCreateConcertPlanFromTemplate` points to
+   the healthy connection reference.
+7. Copy the connection resource ID from the connection details URL and save it
+   as `PP_GRAPH_CONNECTION_ID` in GitHub Actions repository variables. This is
+   the connection resource ID, not the connector ID, app ID, or connection
+   reference logical name.
 
 ### 7. Validate with a temporary test plan
 
@@ -169,27 +203,47 @@ every `pac` command manually:
 
 ## GitHub Actions CI/CD
 
-The workflow file `.github/workflows/deploy.yml` automates creating a solution
-zip from the production solution source folder and importing it:
+The workflow file `.github/workflows/deploy.yml` stages and packs two managed
+solution assets:
 
 ```text
+src\CampanulaPlannerGraphConnector
 src\CampanulaPlannerFlows
 ```
 
-The solution may contain multiple Flow components later. The current scope is the
-first Flow, `CampanulaCreateConcertPlanFromTemplate`.
+It attaches both zips to a release, imports the connector prerequisite first,
+then maps the five existing connection resources and imports the Flow solution.
+The separate `.github/workflows/deploy-connector.yml` workflow is a manual
+bootstrap path for an environment that does not yet have the custom connector.
+It installs only `CampanulaPlannerGraphConnector` and does not require
+`PP_GRAPH_CONNECTION_ID`.
 
-The solution source now also includes the `Campanula Planner Graph` custom
-connector under `src\CampanulaPlannerFlows\Connectors`.
-
-The deployment workflow automatically injects the connector OAuth app ID before
-packing into a temporary staging copy of the solution source. If
-`PP_CONNECTOR_APP_ID` is not set as a GitHub Actions variable, the
-workflow fails with an explicit error before packing starts. The placeholder
+Both workflows inject the connector OAuth app ID before packing into a temporary
+staging copy. If `PP_CONNECTOR_APP_ID` is not set as a GitHub Actions variable,
+the workflow fails before packing starts. The placeholder
 `${MICROSOFT_ENTRA_APP_ID}` in
-`src\CampanulaPlannerFlows\Connectors\campa_planner_graph_connectionparameters.json`
-must never be replaced manually in source control; only the deployment pipeline
+`src\CampanulaPlannerGraphConnector\Connectors\campa_planner_graph_connectionparameters.json`
+must never be replaced manually in source control; only a deployment workflow
 may replace it at pack time.
+
+### First-time target setup
+
+Complete these steps once per target Power Platform environment:
+
+1. Add the deployment and connector app settings listed below.
+2. Run **Actions → Bootstrap Graph Connector → Run workflow** and provide a
+   short reason. This workflow does not need a Graph connection ID because it
+   only installs the connector definition.
+3. In the target environment, create and authenticate the delegated
+   `Campanula Planner Graph` connection as described in the local setup above.
+4. Test the connection, then copy its connection resource ID into the
+   `PP_GRAPH_CONNECTION_ID` repository variable.
+5. Publish a release or run **Actions → Deploy Power Platform Solution → Run
+   workflow** to import the Flow solution with all five connection mappings.
+
+The normal deployment workflow also includes the connector package in every new
+release, so subsequent releases keep the prerequisite solution updated before
+the Flow import.
 
 ### Required GitHub variables and secrets
 
@@ -205,15 +259,15 @@ Go to **Settings → Secrets and variables → Actions** in this repository and 
 | `PP_FORMS_CONNECTION_ID` | Variable | ID of the existing Microsoft Forms connection in the target environment |
 | `PP_EXCEL_CONNECTION_ID` | Variable | ID of the existing Excel Online Business connection in the target environment |
 | `PP_PLANNER_CONNECTION_ID` | Variable | ID of the existing Planner connection in the target environment |
-| `PP_GRAPH_CONNECTION_ID` | Variable | ID of the existing `Campanula Planner Graph` connection in the target environment |
+| `PP_GRAPH_CONNECTION_ID` | Variable | ID of the existing authenticated `Campanula Planner Graph` connection in the target environment; required by `deploy.yml`, not by `deploy-connector.yml` |
 | `PP_OUTLOOK_CONNECTION_ID` | Variable | ID of the existing Office 365 Outlook connection in the target environment |
 
 The five connection IDs are connection resource IDs, not connection-reference
-logical names and not Entra application IDs. They can be read from the target
-connection URL in Power Apps. The connections must already exist and be usable
-by the connection-reference owner; the workflow maps them during import but
-does not create delegated OAuth connections or grant consent on a user's
-behalf.
+logical names, connector IDs, or Entra application IDs. They can be read from
+the target connection URL in Power Apps. The connections must already exist and
+be usable by the connection-reference owner; `deploy.yml` maps them during
+import but does not create delegated OAuth connections or grant consent on a
+user's behalf.
 
 ### Repair an existing imported version
 
@@ -269,8 +323,9 @@ There are two separate Entra app registrations for this project.
 
 | Event | Action |
 | --- | --- |
-| Push to `main` | Runs semantic-release. If a release is published, GitHub Actions updates the solution version, stages the source, packs one **Managed** package, attaches that exact zip to the GitHub release, and imports the same zip into production. |
-| `workflow_dispatch` | Redeploys the latest published release. GitHub Actions downloads that release's managed package, or rebuilds it from the matching solution-version commit when the release has no attached package, and imports it into production. |
+| Push to `main` | Runs semantic-release. If a release is published, GitHub Actions updates both solution versions, stages both sources, packs two **Managed** packages, attaches the exact zips to the GitHub release, and imports the connector before the Flow solution. |
+| `deploy.yml` `workflow_dispatch` | Redeploys the latest split release. GitHub Actions downloads both managed packages, or rebuilds them from the matching solution-version commit when the release has no attached package, and imports them in prerequisite order. |
+| `deploy-connector.yml` `workflow_dispatch` | Bootstraps or refreshes only the Graph connector prerequisite. It does not read or require `PP_GRAPH_CONNECTION_ID`. |
 
 The workflow allows only one production deployment to run at a time.
 
@@ -294,28 +349,33 @@ With GitHub CLI:
 gh workflow run deploy.yml --ref main -f reason="Redeploy the last published solution"
 ```
 
-Manual redeploys do not create a new GitHub release, change the solution
-version, or deploy the current unreleased contents of `main`. When the latest
-published release contains `CampanulaPlannerFlows.zip`, the workflow imports
-that exact asset. For older releases without an attached asset, it rebuilds the
-managed package from the matching automatic solution-version commit before
-importing it.
+Manual redeploys do not create a new GitHub release, change either solution
+version, or deploy the current unreleased contents of `main`. The latest
+published release must contain both `CampanulaPlannerGraphConnector.zip` and
+`CampanulaPlannerFlows.zip`; otherwise the workflow rebuilds from the matching
+solution-version commit only when that commit contains the split prerequisite
+solution.
 
 ---
 
 ## Solution and package folder structure
 
-Production solution source folder:
+Production solution source folders:
 
 ```text
-src\CampanulaPlannerFlows
-├── [Content_Types].xml
-├── customizations.xml
+src\CampanulaPlannerGraphConnector
 ├── Connectors\
 │   ├── campa_planner_graph.xml
 │   ├── campa_planner_graph_openapidefinition.json
 │   ├── campa_planner_graph_connectionparameters.json   ← contains ${MICROSOFT_ENTRA_APP_ID} placeholder in source
 │   └── campa_planner_graph_policytemplateinstances.json
+└── Other\
+   ├── Customizations.xml
+   └── Solution.xml
+
+src\CampanulaPlannerFlows
+├── [Content_Types].xml
+├── customizations.xml
 ├── Other\
 │   ├── Customizations.xml
 │   └── Solution.xml
@@ -323,19 +383,21 @@ src\CampanulaPlannerFlows
     └── CampanulaCreateConcertPlanFromTemplate.json
 ```
 
-The production folder is zipped by GitHub Actions and imported with Power
-Platform Tools. Before import, the workflow creates a deployment-settings file
-from the exact managed zip and fills all five connection references from the
-target-environment GitHub variables. The import step uses that file, activates
-solution workflows, and publishes changes. The checked-in workflow metadata
-marks the Forms-triggered Flow active, so a successful import with healthy
-connections leaves it available to run. Resolve environment-specific form,
-Excel, Planner, and notification values before running the Flow in a live
-environment.
+The two production folders are packed by GitHub Actions and imported with Power
+Platform Tools. Before the Flow import, the workflow creates a
+deployment-settings file from the exact managed Flow zip and fills all five
+connection references from the target-environment GitHub variables. The
+connector package is imported first, then the Flow package uses those existing
+connections. The import step activates solution workflows and publishes
+changes. The checked-in workflow metadata marks the Forms-triggered Flow
+active, so a successful import with healthy connections leaves it available to
+run. Resolve environment-specific form, Excel, Planner, and notification
+values before running the Flow in a live environment.
 
-After importing a version that contains the custom connector, open Power
-Platform and create or refresh the `Campanula Planner Graph` connection so the
-Flow can call Microsoft Graph with delegated `Tasks.ReadWrite`.
+After importing the connector prerequisite, create or refresh the
+`Campanula Planner Graph` connection so the Flow can call Microsoft Graph with
+delegated `Tasks.ReadWrite`. Store the resulting connection resource ID as
+`PP_GRAPH_CONNECTION_ID` before running `deploy.yml`.
 
 Managed production imports are solution-aware cloud flows. In the target
 environment, expect to find them primarily under **Solutions**. A managed flow
@@ -435,8 +497,9 @@ After changing `templates/PlannerTasksTemplate.xlsx`:
 
 ## Versioning
 
-For the `CampanulaPlannerFlows` solution, maintain the solution version in the
-unpacked solution's `solution.xml` (`<Version>`).
+Maintain the solution version in each unpacked solution's `Solution.xml`
+(`<Version>`). GitHub Actions keeps the connector prerequisite and Flow
+solution on the same release version.
 Increment the version number before every release following
 [Semantic Versioning](https://semver.org/):
 
