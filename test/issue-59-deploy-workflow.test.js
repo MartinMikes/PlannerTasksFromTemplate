@@ -131,8 +131,26 @@ test('applies the tracked connector icon after importing the prerequisite', () =
   const deployConnectorImportIdx = deployWorkflow.indexOf('- name: Import Graph connector prerequisite solution');
   const bootstrapIconIdx = connectorBootstrapWorkflow.indexOf('- name: Apply Graph connector icon');
   const bootstrapImportIdx = connectorBootstrapWorkflow.indexOf('- name: Import Graph connector prerequisite solution');
-  assert.ok(deployConnectorImportIdx < deployIconIdx, 'Normal deployment must import before applying the icon');
-  assert.ok(bootstrapImportIdx < bootstrapIconIdx, 'Bootstrap must import before applying the icon');
+  assert.notStrictEqual(
+    deployConnectorImportIdx,
+    -1,
+    'Expected connector import step to exist',
+  );
+  assert.notStrictEqual(deployIconIdx, -1, 'Expected icon step to exist');
+  assert.ok(
+    deployConnectorImportIdx < deployIconIdx,
+    'Normal deployment must import before applying the icon',
+  );
+  assert.notStrictEqual(
+    bootstrapImportIdx,
+    -1,
+    'Expected connector import step to exist',
+  );
+  assert.notStrictEqual(bootstrapIconIdx, -1, 'Expected icon step to exist');
+  assert.ok(
+    bootstrapImportIdx < bootstrapIconIdx,
+    'Bootstrap must import before applying the icon',
+  );
 });
 
 test('redeploys the latest published release without a version input', () => {
