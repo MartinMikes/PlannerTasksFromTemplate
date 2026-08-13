@@ -9,7 +9,7 @@ on:
         type: string
 
 concurrency:
-  group: power-platform-graph-connector
+  group: power-platform-production
   cancel-in-progress: false
 
 env:

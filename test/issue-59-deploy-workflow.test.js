@@ -164,6 +164,8 @@ test('maps target connections and imports the Flow as active', () => {
   ]);
   const connectorImportIdx = deployWorkflow.indexOf('- name: Import Graph connector prerequisite solution');
   const flowImportIdx = deployWorkflow.indexOf('- name: Import solution to Power Platform');
+  assert.notStrictEqual(connectorImportIdx, -1, 'Expected connector import step to exist');
+  assert.notStrictEqual(flowImportIdx, -1, 'Expected Flow import step to exist');
   assert.ok(connectorImportIdx < flowImportIdx, 'Connector prerequisite must import before the Flow solution');
   assert.doesNotMatch(deployWorkflow, /microsoft\/powerplatform-actions\/import-solution@/);
   assert.doesNotMatch(deployWorkflow, /convert-to-managed/);
