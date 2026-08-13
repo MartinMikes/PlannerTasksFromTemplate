@@ -188,6 +188,30 @@ test('validates required configuration before semantic-release to prevent orphan
   );
 });
 
+test('raises and commits the same release version for both solutions', () => {
+  const versionStepStart = deployWorkflow.indexOf('- name: Set solution versions');
+  const versionStepEnd = deployWorkflow.indexOf(
+    '- name: Commit updated solution versions',
+    versionStepStart,
+  );
+  assert.notStrictEqual(versionStepStart, -1, 'Expected solution version step to exist');
+  assert.notStrictEqual(versionStepEnd, -1, 'Expected solution version commit step to exist');
+
+  const versionStep = deployWorkflow.slice(versionStepStart, versionStepEnd);
+  assert.match(versionStep, /steps\.semanticRelease\.outputs\.new_release_version/);
+  assert.match(versionStep, /env\.SOLUTION_FOLDER/);
+  assert.match(versionStep, /env\.CONNECTOR_SOLUTION_FOLDER/);
+  assert.match(versionStep, /Missing <Version> element/);
+  assert.match(versionStep, /Failed to set .* to version/);
+
+  const commitStepEnd = deployWorkflow.indexOf('\n\n      - name:', versionStepEnd);
+  const commitStep = deployWorkflow.slice(versionStepEnd, commitStepEnd);
+  assert.match(commitStep, /SOLUTION_FOLDER.*Other\/Solution\.xml/);
+  assert.match(commitStep, /CONNECTOR_SOLUTION_FOLDER.*Other\/Solution\.xml/);
+  assert.match(flowSolutionMetadata, /<Version>[^<]+<\/Version>/);
+  assert.match(connectorSolutionMetadata, /<Version>[^<]+<\/Version>/);
+});
+
 test('keeps the checked-in connector source on the placeholder contract', () => {
   assert.match(connectorParams, /\$\{MICROSOFT_ENTRA_APP_ID\}/);
   assert.match(connectorSolutionMetadata, /<UniqueName>CampanulaPlannerGraphConnector<\/UniqueName>/);

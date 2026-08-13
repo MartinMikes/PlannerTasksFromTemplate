@@ -583,10 +583,16 @@ After changing `templates/PlannerTasksTemplate.xlsx`:
 
 ## Versioning
 
-Maintain the solution version in each unpacked solution's `Solution.xml`
-(`<Version>`). GitHub Actions keeps the connector prerequisite and Flow
-solution on the same release version.
-Increment the version number before every release following
+GitHub Actions derives the next release version with semantic-release, then
+writes `${new_release_version}.0` to the `<Version>` element in both unpacked
+solutions: `CampanulaPlannerFlows` and `CampanulaPlannerGraphConnector`. It
+commits both updated `Solution.xml` files with `[skip ci]`, so the connector
+prerequisite and Flow solution always share one release version. The workflow
+fails before packaging if either solution is missing its `<Version>` element.
+
+Do not manually increment the solution versions for a normal release. Classify
+the change with a Conventional Commit and let semantic-release determine the
+next version following
 [Semantic Versioning](https://semver.org/):
 
 - **Patch** (x.x.x+1) – bug fixes, description corrections, task additions/removals.

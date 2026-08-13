@@ -197,19 +197,28 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         uses: microsoft/powerplatform-actions/actions-install@v1
 
-      - name: Set solution version
+      - name: Set solution versions
         if: steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
+          set -euo pipefail
           VER="${{ steps.semanticRelease.outputs.new_release_version }}.0"
           for solution_folder in \
             "${{ env.SOLUTION_FOLDER }}" \
             "${{ env.CONNECTOR_SOLUTION_FOLDER }}"; do
-            sed -i "s|<Version>.*</Version>|<Version>${VER}</Version>|" \
-              "${solution_folder}/Other/Solution.xml"
+            solution_file="${solution_folder}/Other/Solution.xml"
+            if ! grep -Eq '<Version>[^<]+</Version>' "$solution_file"; then
+              echo "::error::Missing <Version> element in ${solution_file}."
+              exit 1
+            fi
+            sed -i "s|<Version>.*</Version>|<Version>${VER}</Version>|" "$solution_file"
+            if ! grep -Fq "<Version>${VER}</Version>" "$solution_file"; then
+              echo "::error::Failed to set ${solution_file} to version ${VER}."
+              exit 1
+            fi
           done
           echo "Solution versions: ${VER}"
 
-      - name: Commit updated solution version
+      - name: Commit updated solution versions
         if: steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           VER="${{ steps.semanticRelease.outputs.new_release_version }}.0"
