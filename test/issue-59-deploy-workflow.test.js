@@ -18,6 +18,13 @@ const connectorParamsPath = path.join(
   'Connectors',
   'campa_planner_graph_connectionparameters.json',
 );
+const connectorIconPath = path.join(
+  workspaceRoot,
+  'src',
+  'CampanulaPlannerGraphConnector',
+  'Connectors',
+  'campa_planner_graph_icon.png',
+);
 const flowSolutionMetadataPath = path.join(
   workspaceRoot,
   'src',
@@ -102,6 +109,50 @@ test('bootstraps the connector without requiring a delegated Graph connection', 
   assert.doesNotMatch(connectorBootstrapWorkflow, /PP_GRAPH_CONNECTION_ID/);
 });
 
+test('applies the tracked connector icon after importing the prerequisite', () => {
+  const icon = fs.readFileSync(connectorIconPath);
+  assert.deepEqual([...icon.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+
+  for (const workflow of [deployWorkflow, connectorBootstrapWorkflow]) {
+    assert.match(
+      workflow,
+      /CONNECTOR_ID:\s*aa5c469a-b5dd-4963-917c-66bf35639bb3/,
+    );
+    assert.match(
+      workflow,
+      /CONNECTOR_ICON_FILE:\s*src\/CampanulaPlannerGraphConnector\/Connectors\/campa_planner_graph_icon\.png/,
+    );
+    assert.match(workflow, /connector update/);
+    assert.match(workflow, /--connector-id "\$\{\{ env\.CONNECTOR_ID \}\}"/);
+    assert.match(workflow, /--icon-file "\$icon_file"/);
+  }
+
+  const deployIconIdx = deployWorkflow.indexOf('- name: Apply Graph connector icon');
+  const deployConnectorImportIdx = deployWorkflow.indexOf('- name: Import Graph connector prerequisite solution');
+  const bootstrapIconIdx = connectorBootstrapWorkflow.indexOf('- name: Apply Graph connector icon');
+  const bootstrapImportIdx = connectorBootstrapWorkflow.indexOf('- name: Import Graph connector prerequisite solution');
+  assert.notStrictEqual(
+    deployConnectorImportIdx,
+    -1,
+    'Expected connector import step to exist',
+  );
+  assert.notStrictEqual(deployIconIdx, -1, 'Expected icon step to exist');
+  assert.ok(
+    deployConnectorImportIdx < deployIconIdx,
+    'Normal deployment must import before applying the icon',
+  );
+  assert.notStrictEqual(
+    bootstrapImportIdx,
+    -1,
+    'Expected connector import step to exist',
+  );
+  assert.notStrictEqual(bootstrapIconIdx, -1, 'Expected icon step to exist');
+  assert.ok(
+    bootstrapImportIdx < bootstrapIconIdx,
+    'Bootstrap must import before applying the icon',
+  );
+});
+
 test('redeploys the latest published release without a version input', () => {
   assertMatchesAllPatterns(deployWorkflow, [
     /ref: \$\{\{ github\.event_name == 'workflow_dispatch' && 'main' \|\| github\.ref \}\}/,
@@ -135,6 +186,30 @@ test('validates required configuration before semantic-release to prevent orphan
     validateIdx < semanticReleaseIdx,
     'Validate step must appear before Determine release version to prevent orphaned releases',
   );
+});
+
+test('raises and commits the same release version for both solutions', () => {
+  const versionStepStart = deployWorkflow.indexOf('- name: Set solution versions');
+  const versionStepEnd = deployWorkflow.indexOf(
+    '- name: Commit updated solution versions',
+    versionStepStart,
+  );
+  assert.notStrictEqual(versionStepStart, -1, 'Expected solution version step to exist');
+  assert.notStrictEqual(versionStepEnd, -1, 'Expected solution version commit step to exist');
+
+  const versionStep = deployWorkflow.slice(versionStepStart, versionStepEnd);
+  assert.match(versionStep, /steps\.semanticRelease\.outputs\.new_release_version/);
+  assert.match(versionStep, /env\.SOLUTION_FOLDER/);
+  assert.match(versionStep, /env\.CONNECTOR_SOLUTION_FOLDER/);
+  assert.match(versionStep, /Missing <Version> element/);
+  assert.match(versionStep, /Failed to set .* to version/);
+
+  const commitStepEnd = deployWorkflow.indexOf('\n\n      - name:', versionStepEnd);
+  const commitStep = deployWorkflow.slice(versionStepEnd, commitStepEnd);
+  assert.match(commitStep, /SOLUTION_FOLDER.*Other\/Solution\.xml/);
+  assert.match(commitStep, /CONNECTOR_SOLUTION_FOLDER.*Other\/Solution\.xml/);
+  assert.match(flowSolutionMetadata, /<Version>[^<]+<\/Version>/);
+  assert.match(connectorSolutionMetadata, /<Version>[^<]+<\/Version>/);
 });
 
 test('keeps the checked-in connector source on the placeholder contract', () => {

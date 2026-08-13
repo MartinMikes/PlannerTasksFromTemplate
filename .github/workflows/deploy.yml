@@ -27,6 +27,8 @@ env:
   CONNECTOR_SOLUTION_FOLDER: src/CampanulaPlannerGraphConnector
   CONNECTOR_SOLUTION_PACK_FOLDER: out/CampanulaPlannerGraphConnector
   CONNECTOR_SOLUTION_ZIP: out/CampanulaPlannerGraphConnector.zip
+  CONNECTOR_ID: aa5c469a-b5dd-4963-917c-66bf35639bb3
+  CONNECTOR_ICON_FILE: src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_icon.png
   DEPLOYMENT_SETTINGS_FILE: out/CampanulaPlannerFlows.deployment-settings.json
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -195,19 +197,28 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         uses: microsoft/powerplatform-actions/actions-install@v1
 
-      - name: Set solution version
+      - name: Set solution versions
         if: steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
+          set -euo pipefail
           VER="${{ steps.semanticRelease.outputs.new_release_version }}.0"
           for solution_folder in \
             "${{ env.SOLUTION_FOLDER }}" \
             "${{ env.CONNECTOR_SOLUTION_FOLDER }}"; do
-            sed -i "s|<Version>.*</Version>|<Version>${VER}</Version>|" \
-              "${solution_folder}/Other/Solution.xml"
+            solution_file="${solution_folder}/Other/Solution.xml"
+            if ! grep -Eq '<Version>[^<]+</Version>' "$solution_file"; then
+              echo "::error::Missing <Version> element in ${solution_file}."
+              exit 1
+            fi
+            sed -i "s|<Version>.*</Version>|<Version>${VER}</Version>|" "$solution_file"
+            if ! grep -Fq "<Version>${VER}</Version>" "$solution_file"; then
+              echo "::error::Failed to set ${solution_file} to version ${VER}."
+              exit 1
+            fi
           done
           echo "Solution versions: ${VER}"
 
-      - name: Commit updated solution version
+      - name: Commit updated solution versions
         if: steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           VER="${{ steps.semanticRelease.outputs.new_release_version }}.0"
@@ -350,6 +361,20 @@ jobs:
             --path "${{ env.CONNECTOR_SOLUTION_ZIP }}" \
             --force-overwrite \
             --publish-changes
+
+      - name: Apply Graph connector icon
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
+        run: |
+          set -euo pipefail
+          icon_file="${{ env.CONNECTOR_ICON_FILE }}"
+          if [ ! -s "$icon_file" ]; then
+            echo "::error::Connector icon file is missing or empty: $icon_file"
+            exit 1
+          fi
+          "$POWERPLATFORMTOOLS_PACPATH" connector update \
+            --environment "${{ vars.PP_ENVIRONMENT_URL }}" \
+            --connector-id "${{ env.CONNECTOR_ID }}" \
+            --icon-file "$icon_file"
 
       - name: Import solution to Power Platform
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'

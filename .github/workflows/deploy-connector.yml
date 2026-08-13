@@ -17,6 +17,8 @@ env:
   CONNECTOR_SOLUTION_FOLDER: src/CampanulaPlannerGraphConnector
   CONNECTOR_SOLUTION_PACK_FOLDER: out/CampanulaPlannerGraphConnector
   CONNECTOR_SOLUTION_ZIP: out/CampanulaPlannerGraphConnector.zip
+  CONNECTOR_ID: aa5c469a-b5dd-4963-917c-66bf35639bb3
+  CONNECTOR_ICON_FILE: src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_icon.png
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -116,3 +118,16 @@ jobs:
             --path "${{ env.CONNECTOR_SOLUTION_ZIP }}" \
             --force-overwrite \
             --publish-changes
+
+      - name: Apply Graph connector icon
+        run: |
+          set -euo pipefail
+          icon_file="${{ env.CONNECTOR_ICON_FILE }}"
+          if [ ! -s "$icon_file" ]; then
+            echo "::error::Connector icon file is missing or empty: $icon_file"
+            exit 1
+          fi
+          "$POWERPLATFORMTOOLS_PACPATH" connector update \
+            --environment "${{ vars.PP_ENVIRONMENT_URL }}" \
+            --connector-id "${{ env.CONNECTOR_ID }}" \
+            --icon-file "$icon_file"

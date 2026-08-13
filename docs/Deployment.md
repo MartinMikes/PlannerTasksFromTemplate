@@ -148,6 +148,26 @@ pac solution import \
   --activate-plugins
 ```
 
+### Apply the connector icon
+
+The checked-in Planner icon is
+`src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_icon.png`.
+PAC solution pack includes the file as an unreferenced connector asset, but the
+current source format does not associate it with the connector icon metadata.
+Apply the icon to the imported connector record with the supported connector
+command:
+
+```bash
+pac connector update \
+    --environment  "$PP_ENVIRONMENT_URL" \
+    --connector-id aa5c469a-b5dd-4963-917c-66bf35639bb3 \
+    --icon-file    src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_icon.png
+```
+
+Both GitHub Actions deployment workflows run this update immediately after the
+connector prerequisite import. Re-run it after manually importing the
+connector package or after replacing the icon.
+
 ### 5. Check solution status
 
 ```bash
@@ -216,7 +236,8 @@ then maps the five existing connection resources and imports the Flow solution.
 The separate `.github/workflows/deploy-connector.yml` workflow is a manual
 bootstrap path for an environment that does not yet have the custom connector.
 It installs only `CampanulaPlannerGraphConnector` and does not require
-`PP_GRAPH_CONNECTION_ID`.
+`PP_GRAPH_CONNECTION_ID`. Both workflows apply the tracked connector icon with
+`pac connector update` after the prerequisite import.
 
 Both workflows inject the connector OAuth app ID before packing into a temporary
 staging copy. If `PP_CONNECTOR_APP_ID` is not set as a GitHub Actions variable,
@@ -562,10 +583,16 @@ After changing `templates/PlannerTasksTemplate.xlsx`:
 
 ## Versioning
 
-Maintain the solution version in each unpacked solution's `Solution.xml`
-(`<Version>`). GitHub Actions keeps the connector prerequisite and Flow
-solution on the same release version.
-Increment the version number before every release following
+GitHub Actions derives the next release version with semantic-release, then
+writes `${new_release_version}.0` to the `<Version>` element in both unpacked
+solutions: `CampanulaPlannerFlows` and `CampanulaPlannerGraphConnector`. It
+commits both updated `Solution.xml` files with `[skip ci]`, so the connector
+prerequisite and Flow solution always share one release version. The workflow
+fails before packaging if either solution is missing its `<Version>` element.
+
+Do not manually increment the solution versions for a normal release. Classify
+the change with a Conventional Commit and let semantic-release determine the
+next version following
 [Semantic Versioning](https://semver.org/):
 
 - **Patch** (x.x.x+1) – bug fixes, description corrections, task additions/removals.
