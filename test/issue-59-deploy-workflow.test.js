@@ -18,6 +18,13 @@ const connectorParamsPath = path.join(
   'Connectors',
   'campa_planner_graph_connectionparameters.json',
 );
+const connectorIconPath = path.join(
+  workspaceRoot,
+  'src',
+  'CampanulaPlannerGraphConnector',
+  'Connectors',
+  'campa_planner_graph_icon.png',
+);
 const flowSolutionMetadataPath = path.join(
   workspaceRoot,
   'src',
@@ -100,6 +107,32 @@ test('bootstraps the connector without requiring a delegated Graph connection', 
     /--path "\$\{\{ env\.CONNECTOR_SOLUTION_ZIP \}\}"/,
   );
   assert.doesNotMatch(connectorBootstrapWorkflow, /PP_GRAPH_CONNECTION_ID/);
+});
+
+test('applies the tracked connector icon after importing the prerequisite', () => {
+  const icon = fs.readFileSync(connectorIconPath);
+  assert.deepEqual([...icon.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+
+  for (const workflow of [deployWorkflow, connectorBootstrapWorkflow]) {
+    assert.match(
+      workflow,
+      /CONNECTOR_ID:\s*aa5c469a-b5dd-4963-917c-66bf35639bb3/,
+    );
+    assert.match(
+      workflow,
+      /CONNECTOR_ICON_FILE:\s*src\/CampanulaPlannerGraphConnector\/Connectors\/campa_planner_graph_icon\.png/,
+    );
+    assert.match(workflow, /connector update/);
+    assert.match(workflow, /--connector-id "\$\{\{ env\.CONNECTOR_ID \}\}"/);
+    assert.match(workflow, /--icon-file "\$icon_file"/);
+  }
+
+  const deployIconIdx = deployWorkflow.indexOf('- name: Apply Graph connector icon');
+  const deployConnectorImportIdx = deployWorkflow.indexOf('- name: Import Graph connector prerequisite solution');
+  const bootstrapIconIdx = connectorBootstrapWorkflow.indexOf('- name: Apply Graph connector icon');
+  const bootstrapImportIdx = connectorBootstrapWorkflow.indexOf('- name: Import Graph connector prerequisite solution');
+  assert.ok(deployConnectorImportIdx < deployIconIdx, 'Normal deployment must import before applying the icon');
+  assert.ok(bootstrapImportIdx < bootstrapIconIdx, 'Bootstrap must import before applying the icon');
 });
 
 test('redeploys the latest published release without a version input', () => {
