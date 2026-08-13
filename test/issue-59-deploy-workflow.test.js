@@ -5,12 +5,32 @@ const path = require('node:path');
 
 const workspaceRoot = path.join(__dirname, '..');
 const deployWorkflowPath = path.join(workspaceRoot, '.github', 'workflows', 'deploy.yml');
+const connectorBootstrapWorkflowPath = path.join(
+  workspaceRoot,
+  '.github',
+  'workflows',
+  'deploy-connector.yml',
+);
 const connectorParamsPath = path.join(
   workspaceRoot,
   'src',
-  'CampanulaPlannerFlows',
+  'CampanulaPlannerGraphConnector',
   'Connectors',
   'campa_planner_graph_connectionparameters.json',
+);
+const flowSolutionMetadataPath = path.join(
+  workspaceRoot,
+  'src',
+  'CampanulaPlannerFlows',
+  'Other',
+  'Solution.xml',
+);
+const connectorSolutionMetadataPath = path.join(
+  workspaceRoot,
+  'src',
+  'CampanulaPlannerGraphConnector',
+  'Other',
+  'Solution.xml',
 );
 const workflowMetadataPath = path.join(
   workspaceRoot,
@@ -21,19 +41,29 @@ const workflowMetadataPath = path.join(
 );
 
 const deployWorkflow = fs.readFileSync(deployWorkflowPath, 'utf8');
+const connectorBootstrapWorkflow = fs.readFileSync(connectorBootstrapWorkflowPath, 'utf8');
 const connectorParams = fs.readFileSync(connectorParamsPath, 'utf8');
+const flowSolutionMetadata = fs.readFileSync(flowSolutionMetadataPath, 'utf8');
+const connectorSolutionMetadata = fs.readFileSync(connectorSolutionMetadataPath, 'utf8');
 const workflowMetadata = fs.readFileSync(workflowMetadataPath, 'utf8');
 
 const stagedSolutionWorkflowPatterns = [
   /SOLUTION_PACK_FOLDER:\s*out\/CampanulaPlannerFlows\b/,
+  /CONNECTOR_SOLUTION_PACK_FOLDER:\s*out\/CampanulaPlannerGraphConnector\b/,
+  /CONNECTOR_SOLUTION_ZIP:\s*out\/CampanulaPlannerGraphConnector\.zip/,
   /- name: Prepare staged solution source/,
   /rm -rf "\$\{\{ env\.SOLUTION_PACK_FOLDER \}\}"/,
+  /rm -rf "\$\{\{ env\.CONNECTOR_SOLUTION_PACK_FOLDER \}\}"/,
   /cp -R "\$\{\{ env\.SOLUTION_FOLDER \}\}" "\$\{\{ env\.SOLUTION_PACK_FOLDER \}\}"/,
-  /PARAMS_FILE="\$\{\{ env\.SOLUTION_PACK_FOLDER \}\}\/Connectors\/campa_planner_graph_connectionparameters\.json"/,
+  /cp -R "\$\{\{ env\.CONNECTOR_SOLUTION_FOLDER \}\}" "\$\{\{ env\.CONNECTOR_SOLUTION_PACK_FOLDER \}\}"/,
+  /PARAMS_FILE="\$\{\{ env\.CONNECTOR_SOLUTION_PACK_FOLDER \}\}\/Connectors\/campa_planner_graph_connectionparameters\.json"/,
   /--folder "\$\{\{ env\.SOLUTION_PACK_FOLDER \}\}"/,
-  /path:\s*\$\{\{ env\.SOLUTION_ZIP \}\}/,
+  /--folder "\$\{\{ env\.CONNECTOR_SOLUTION_PACK_FOLDER \}\}"/,
+  /path:\s*\|[\s\S]*\$\{\{ env\.SOLUTION_ZIP \}\}/,
+  /path:\s*\|[\s\S]*\$\{\{ env\.CONNECTOR_SOLUTION_ZIP \}\}/,
   /"\$POWERPLATFORMTOOLS_PACPATH" solution import/,
   /--path "\$\{\{ env\.SOLUTION_ZIP \}\}"/,
+  /--path "\$\{\{ env\.CONNECTOR_SOLUTION_ZIP \}\}"/,
   /--activate-plugins/,
   /--publish-changes/,
 ];
@@ -46,6 +76,30 @@ function assertMatchesAllPatterns(text, patterns) {
 
 test('packages a staged managed solution artifact and imports that exact zip', () => {
   assertMatchesAllPatterns(deployWorkflow, stagedSolutionWorkflowPatterns);
+});
+
+test('bootstraps the connector without requiring a delegated Graph connection', () => {
+  assert.match(connectorBootstrapWorkflow, /on:\s+\n\s+workflow_dispatch:/);
+  assert.match(
+    connectorBootstrapWorkflow,
+    /CONNECTOR_SOLUTION_FOLDER:\s*src\/CampanulaPlannerGraphConnector/,
+  );
+  assert.match(
+    connectorBootstrapWorkflow,
+    /CONNECTOR_SOLUTION_ZIP:\s*out\/CampanulaPlannerGraphConnector\.zip/,
+  );
+  assert.match(
+    connectorBootstrapWorkflow,
+    /PP_CONNECTOR_APP_ID: \$\{\{ vars\.PP_CONNECTOR_APP_ID \}\}/,
+  );
+  assert.match(connectorBootstrapWorkflow, /Expected placeholder/);
+  assert.match(connectorBootstrapWorkflow, /solution pack/);
+  assert.match(connectorBootstrapWorkflow, /solution import/);
+  assert.match(
+    connectorBootstrapWorkflow,
+    /--path "\$\{\{ env\.CONNECTOR_SOLUTION_ZIP \}\}"/,
+  );
+  assert.doesNotMatch(connectorBootstrapWorkflow, /PP_GRAPH_CONNECTION_ID/);
 });
 
 test('redeploys the latest published release without a version input', () => {
@@ -85,6 +139,12 @@ test('validates required configuration before semantic-release to prevent orphan
 
 test('keeps the checked-in connector source on the placeholder contract', () => {
   assert.match(connectorParams, /\$\{MICROSOFT_ENTRA_APP_ID\}/);
+  assert.match(connectorSolutionMetadata, /<UniqueName>CampanulaPlannerGraphConnector<\/UniqueName>/);
+  assert.match(
+    connectorSolutionMetadata,
+    /<RootComponent type="372" id="\{aa5c469a-b5dd-4963-917c-66bf35639bb3\}"/,
+  );
+  assert.doesNotMatch(flowSolutionMetadata, /<RootComponent type="372"/);
 });
 
 test('maps target connections and imports the Flow as active', () => {
@@ -103,7 +163,14 @@ test('maps target connections and imports the Flow as active', () => {
     /Deployment settings must contain exactly the five expected connection references/,
     /--settings-file "\$\{\{ env\.DEPLOYMENT_SETTINGS_FILE \}\}"/,
     /--activate-plugins/,
+    /- name: Import Graph connector prerequisite solution/,
+    /CONNECTOR_SOLUTION_ZIP/,
   ]);
+  const connectorImportIdx = deployWorkflow.indexOf('- name: Import Graph connector prerequisite solution');
+  const flowImportIdx = deployWorkflow.indexOf('- name: Import solution to Power Platform');
+  assert.notStrictEqual(connectorImportIdx, -1, 'Expected connector import step to exist');
+  assert.notStrictEqual(flowImportIdx, -1, 'Expected Flow import step to exist');
+  assert.ok(connectorImportIdx < flowImportIdx, 'Connector prerequisite must import before the Flow solution');
   assert.doesNotMatch(deployWorkflow, /microsoft\/powerplatform-actions\/import-solution@/);
   assert.doesNotMatch(deployWorkflow, /convert-to-managed/);
   assert.match(workflowMetadata, /<StateCode>0<\/StateCode>/);

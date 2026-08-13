@@ -1,0 +1,118 @@
+name: Bootstrap Graph Connector
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: Reason for importing the Graph connector prerequisite
+        required: true
+        type: string
+
+concurrency:
+  group: power-platform-production
+  cancel-in-progress: false
+
+env:
+  CONNECTOR_SOLUTION_NAME: CampanulaPlannerGraphConnector
+  CONNECTOR_SOLUTION_FOLDER: src/CampanulaPlannerGraphConnector
+  CONNECTOR_SOLUTION_PACK_FOLDER: out/CampanulaPlannerGraphConnector
+  CONNECTOR_SOLUTION_ZIP: out/CampanulaPlannerGraphConnector.zip
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  bootstrap-connector:
+    name: Pack & Import Graph Connector
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Validate required configuration
+        env:
+          PP_ENVIRONMENT_URL: ${{ vars.PP_ENVIRONMENT_URL }}
+          PP_APP_ID: ${{ vars.PP_APP_ID }}
+          PP_TENANT_ID: ${{ vars.PP_TENANT_ID }}
+          PP_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          PP_CONNECTOR_APP_ID: ${{ vars.PP_CONNECTOR_APP_ID }}
+          DEPLOY_REASON: ${{ inputs.reason }}
+        run: |
+          set -euo pipefail
+
+          require_value() {
+            local name="$1"
+            local value="$2"
+            if [ -z "$value" ]; then
+              echo "::error::${name} is not set. Add it under Settings -> Secrets and variables -> Actions before bootstrapping the connector."
+              exit 1
+            fi
+          }
+
+          require_value "PP_ENVIRONMENT_URL" "$PP_ENVIRONMENT_URL"
+          require_value "PP_APP_ID" "$PP_APP_ID"
+          require_value "PP_TENANT_ID" "$PP_TENANT_ID"
+          require_value "PP_CLIENT_SECRET" "$PP_CLIENT_SECRET"
+          require_value "PP_CONNECTOR_APP_ID" "$PP_CONNECTOR_APP_ID"
+          require_value "DEPLOY_REASON" "$DEPLOY_REASON"
+
+      - name: Install Power Platform CLI
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - name: Authenticate with Power Platform
+        run: |
+          "$POWERPLATFORMTOOLS_PACPATH" auth create \
+            --environment   "${{ vars.PP_ENVIRONMENT_URL }}" \
+            --applicationId "${{ vars.PP_APP_ID }}" \
+            --clientSecret  "${{ secrets.PP_CLIENT_SECRET }}" \
+            --tenant        "${{ vars.PP_TENANT_ID }}"
+
+      - name: Prepare staged connector source
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          rm -rf "${{ env.CONNECTOR_SOLUTION_PACK_FOLDER }}"
+          cp -R "${{ env.CONNECTOR_SOLUTION_FOLDER }}" "${{ env.CONNECTOR_SOLUTION_PACK_FOLDER }}"
+
+      - name: Inject connector app ID
+        env:
+          PP_CONNECTOR_APP_ID: ${{ vars.PP_CONNECTOR_APP_ID }}
+        run: |
+          set -euo pipefail
+          params_file="${{ env.CONNECTOR_SOLUTION_PACK_FOLDER }}/Connectors/campa_planner_graph_connectionparameters.json"
+          if ! grep -Fq '${MICROSOFT_ENTRA_APP_ID}' "$params_file"; then
+            echo "::error::Expected placeholder \${MICROSOFT_ENTRA_APP_ID} not found in $params_file."
+            exit 1
+          fi
+          sed -i "s|\${MICROSOFT_ENTRA_APP_ID}|${PP_CONNECTOR_APP_ID}|g" "$params_file"
+          if grep -Fq '${MICROSOFT_ENTRA_APP_ID}' "$params_file" || ! grep -Fq "$PP_CONNECTOR_APP_ID" "$params_file"; then
+            echo "::error::Connector app ID injection did not take effect in $params_file."
+            exit 1
+          fi
+
+      - name: Create connector solution zip
+        run: |
+          set -euo pipefail
+          "$POWERPLATFORMTOOLS_PACPATH" solution pack \
+            --zipFile "${{ env.CONNECTOR_SOLUTION_ZIP }}" \
+            --folder "${{ env.CONNECTOR_SOLUTION_PACK_FOLDER }}" \
+            --packageType Managed
+
+      - name: Upload connector package as artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.CONNECTOR_SOLUTION_NAME }}
+          path: ${{ env.CONNECTOR_SOLUTION_ZIP }}
+          retention-days: 30
+
+      - name: Import Graph connector prerequisite solution
+        run: |
+          set -euo pipefail
+          "$POWERPLATFORMTOOLS_PACPATH" solution import \
+            --path "${{ env.CONNECTOR_SOLUTION_ZIP }}" \
+            --force-overwrite \
+            --publish-changes

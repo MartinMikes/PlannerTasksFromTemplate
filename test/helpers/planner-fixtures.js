@@ -17,7 +17,7 @@ const workflow = readJson([
 
 const connector = readJson([
   'src',
-  'CampanulaPlannerFlows',
+  'CampanulaPlannerGraphConnector',
   'Connectors',
   'campa_planner_graph_openapidefinition.json',
 ]);

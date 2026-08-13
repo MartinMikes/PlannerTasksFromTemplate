@@ -23,6 +23,10 @@ env:
   SOLUTION_FOLDER: src/CampanulaPlannerFlows
   SOLUTION_PACK_FOLDER: out/CampanulaPlannerFlows
   SOLUTION_ZIP: out/CampanulaPlannerFlows.zip
+  CONNECTOR_SOLUTION_NAME: CampanulaPlannerGraphConnector
+  CONNECTOR_SOLUTION_FOLDER: src/CampanulaPlannerGraphConnector
+  CONNECTOR_SOLUTION_PACK_FOLDER: out/CampanulaPlannerGraphConnector
+  CONNECTOR_SOLUTION_ZIP: out/CampanulaPlannerGraphConnector.zip
   DEPLOYMENT_SETTINGS_FILE: out/CampanulaPlannerFlows.deployment-settings.json
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -58,22 +62,30 @@ jobs:
 
           release_version="${release_tag#v}"
           asset_name="${SOLUTION_NAME}.zip"
+          connector_asset_name="${CONNECTOR_SOLUTION_NAME}.zip"
           asset_url="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${release_tag}" \
             --jq ".assets[] | select(.name == \"${asset_name}\") | .browser_download_url")"
+          connector_asset_url="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${release_tag}" \
+            --jq ".assets[] | select(.name == \"${connector_asset_name}\") | .browser_download_url")"
 
           mkdir -p out
           rm -f "${SOLUTION_ZIP}"
+          rm -f "${CONNECTOR_SOLUTION_ZIP}"
 
-          if [[ -n "$asset_url" ]]; then
+          if [[ -n "$asset_url" && -n "$connector_asset_url" ]]; then
             gh release download "$release_tag" \
               --pattern "$asset_name" \
               --dir out \
               --clobber
-            if [[ ! -s "${SOLUTION_ZIP}" ]]; then
-              echo "::error::Release ${release_tag} did not provide a usable ${asset_name} asset."
+            gh release download "$release_tag" \
+              --pattern "$connector_asset_name" \
+              --dir out \
+              --clobber
+            if [[ ! -s "${SOLUTION_ZIP}" || ! -s "${CONNECTOR_SOLUTION_ZIP}" ]]; then
+              echo "::error::Release ${release_tag} did not provide usable managed solution assets."
               exit 1
             fi
-            echo "Downloaded the managed solution asset from ${release_tag}."
+            echo "Downloaded the managed solution assets from ${release_tag}."
             echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
             echo "pack_source=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -90,6 +102,10 @@ jobs:
           fi
 
           git checkout --detach "$version_commit"
+          if [[ ! -f "${CONNECTOR_SOLUTION_FOLDER}/Other/Solution.xml" ]]; then
+            echo "::error::Release ${release_tag} predates the prerequisite connector solution. Publish a new split release before using this manual deployment path."
+            exit 1
+          fi
           echo "Release ${release_tag} has no asset; rebuilding from ${version_commit}."
           echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
           echo "pack_source=true" >> "$GITHUB_OUTPUT"
@@ -183,9 +199,13 @@ jobs:
         if: steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           VER="${{ steps.semanticRelease.outputs.new_release_version }}.0"
-          sed -i "s|<Version>.*</Version>|<Version>${VER}</Version>|" \
-            "${{ env.SOLUTION_FOLDER }}/Other/Solution.xml"
-          echo "Solution version: ${VER}"
+          for solution_folder in \
+            "${{ env.SOLUTION_FOLDER }}" \
+            "${{ env.CONNECTOR_SOLUTION_FOLDER }}"; do
+            sed -i "s|<Version>.*</Version>|<Version>${VER}</Version>|" \
+              "${solution_folder}/Other/Solution.xml"
+          done
+          echo "Solution versions: ${VER}"
 
       - name: Commit updated solution version
         if: steps.semanticRelease.outputs.new_release_published == 'true'
@@ -193,7 +213,9 @@ jobs:
           VER="${{ steps.semanticRelease.outputs.new_release_version }}.0"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "${{ env.SOLUTION_FOLDER }}/Other/Solution.xml"
+          git add \
+            "${{ env.SOLUTION_FOLDER }}/Other/Solution.xml" \
+            "${{ env.CONNECTOR_SOLUTION_FOLDER }}/Other/Solution.xml"
           if git diff --cached --quiet; then
             echo "Solution.xml already at ${VER}, nothing to commit."
           else
@@ -215,7 +237,9 @@ jobs:
         run: |
           mkdir -p out
           rm -rf "${{ env.SOLUTION_PACK_FOLDER }}"
+          rm -rf "${{ env.CONNECTOR_SOLUTION_PACK_FOLDER }}"
           cp -R "${{ env.SOLUTION_FOLDER }}" "${{ env.SOLUTION_PACK_FOLDER }}"
+          cp -R "${{ env.CONNECTOR_SOLUTION_FOLDER }}" "${{ env.CONNECTOR_SOLUTION_PACK_FOLDER }}"
 
       - name: Inject connector app ID
         if: steps.manualRelease.outputs.pack_source == 'true' || steps.semanticRelease.outputs.new_release_published == 'true'
@@ -226,7 +250,7 @@ jobs:
             echo "::error::PP_CONNECTOR_APP_ID variable is not set. Add it under Settings → Secrets and variables → Actions → Variables before deploying."
             exit 1
           fi
-          PARAMS_FILE="${{ env.SOLUTION_PACK_FOLDER }}/Connectors/campa_planner_graph_connectionparameters.json"
+          PARAMS_FILE="${{ env.CONNECTOR_SOLUTION_PACK_FOLDER }}/Connectors/campa_planner_graph_connectionparameters.json"
           if ! grep -Fq '${MICROSOFT_ENTRA_APP_ID}' "$PARAMS_FILE"; then
             echo "::error::Expected placeholder \${MICROSOFT_ENTRA_APP_ID} not found in $PARAMS_FILE. Ensure the connector source still contains the placeholder."
             exit 1
@@ -238,12 +262,16 @@ jobs:
           fi
           echo "Connector app ID injected into ${PARAMS_FILE}."
 
-      - name: Create solution zip
+      - name: Create solution zips
         if: steps.manualRelease.outputs.pack_source == 'true' || steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           "$POWERPLATFORMTOOLS_PACPATH" solution pack \
             --zipFile "${{ env.SOLUTION_ZIP }}" \
             --folder "${{ env.SOLUTION_PACK_FOLDER }}" \
+            --packageType Managed
+          "$POWERPLATFORMTOOLS_PACPATH" solution pack \
+            --zipFile "${{ env.CONNECTOR_SOLUTION_ZIP }}" \
+            --folder "${{ env.CONNECTOR_SOLUTION_PACK_FOLDER }}" \
             --packageType Managed
 
       - name: Create deployment settings file
@@ -300,7 +328,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.SOLUTION_NAME }}
-          path: ${{ env.SOLUTION_ZIP }}
+          path: |
+            ${{ env.SOLUTION_ZIP }}
+            ${{ env.CONNECTOR_SOLUTION_ZIP }}
           retention-days: 30
 
       - name: Attach solution zip to GitHub release
@@ -308,7 +338,18 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.semanticRelease.outputs.new_release_git_tag }}
-          files: ${{ env.SOLUTION_ZIP }}
+          files: |
+            ${{ env.SOLUTION_ZIP }}
+            ${{ env.CONNECTOR_SOLUTION_ZIP }}
+
+      - name: Import Graph connector prerequisite solution
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
+        run: |
+          set -euo pipefail
+          "$POWERPLATFORMTOOLS_PACPATH" solution import \
+            --path "${{ env.CONNECTOR_SOLUTION_ZIP }}" \
+            --force-overwrite \
+            --publish-changes
 
       - name: Import solution to Power Platform
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
