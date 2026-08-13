@@ -295,15 +295,11 @@ jobs:
 
       - name: Import solution to Power Platform
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
-        uses: microsoft/powerplatform-actions/import-solution@v1
-        with:
-          environment-url: ${{ vars.PP_ENVIRONMENT_URL }}
-          app-id: ${{ vars.PP_APP_ID }}
-          client-secret: ${{ secrets.PP_CLIENT_SECRET }}
-          tenant-id: ${{ vars.PP_TENANT_ID }}
-          solution-file: ${{ env.SOLUTION_ZIP }}
-          activate-plugins: true
-          force-overwrite: true
-          publish-changes: true
-          use-deployment-settings-file: true
-          deployment-settings-file: ${{ env.DEPLOYMENT_SETTINGS_FILE }}
+        run: |
+          set -euo pipefail
+          "$POWERPLATFORMTOOLS_PACPATH" solution import \
+            --path "${{ env.SOLUTION_ZIP }}" \
+            --force-overwrite \
+            --publish-changes \
+            --activate-plugins \
+            --settings-file "${{ env.DEPLOYMENT_SETTINGS_FILE }}"

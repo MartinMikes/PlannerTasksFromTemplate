@@ -32,9 +32,10 @@ const stagedSolutionWorkflowPatterns = [
   /PARAMS_FILE="\$\{\{ env\.SOLUTION_PACK_FOLDER \}\}\/Connectors\/campa_planner_graph_connectionparameters\.json"/,
   /--folder "\$\{\{ env\.SOLUTION_PACK_FOLDER \}\}"/,
   /path:\s*\$\{\{ env\.SOLUTION_ZIP \}\}/,
-  /solution-file:\s*\$\{\{ env\.SOLUTION_ZIP \}\}/,
-  /activate-plugins:\s*true/,
-  /publish-changes:\s*true/,
+  /"\$POWERPLATFORMTOOLS_PACPATH" solution import/,
+  /--path "\$\{\{ env\.SOLUTION_ZIP \}\}"/,
+  /--activate-plugins/,
+  /--publish-changes/,
 ];
 
 function assertMatchesAllPatterns(text, patterns) {
@@ -96,10 +97,11 @@ test('maps target connections and imports the Flow as active', () => {
     /campa_sharedcampanulaplannergraph_createconcertplan/,
     /campa_sharedoffice365_createconcertplan/,
     /Deployment settings must contain exactly the five expected connection references/,
-    /use-deployment-settings-file:\s*true/,
-    /deployment-settings-file:/,
-    /activate-plugins:\s*true/,
+    /--settings-file "\$\{\{ env\.DEPLOYMENT_SETTINGS_FILE \}\}"/,
+    /--activate-plugins/,
   ]);
+  assert.doesNotMatch(deployWorkflow, /microsoft\/powerplatform-actions\/import-solution@/);
+  assert.doesNotMatch(deployWorkflow, /convert-to-managed/);
   assert.match(workflowMetadata, /<StateCode>0<\/StateCode>/);
   assert.match(workflowMetadata, /<StatusCode>1<\/StatusCode>/);
 });
