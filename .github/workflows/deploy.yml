@@ -23,6 +23,7 @@ env:
   SOLUTION_FOLDER: src/CampanulaPlannerFlows
   SOLUTION_PACK_FOLDER: out/CampanulaPlannerFlows
   SOLUTION_ZIP: out/CampanulaPlannerFlows.zip
+  DEPLOYMENT_SETTINGS_FILE: out/CampanulaPlannerFlows.deployment-settings.json
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -58,7 +59,7 @@ jobs:
           release_version="${release_tag#v}"
           asset_name="${SOLUTION_NAME}.zip"
           asset_url="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${release_tag}" \
-            --jq ".assets[] | select(.name == \"${asset_name}\") | .browser_download_url")"
+            --jq ".assets[] | select(.name == \"${asset_name}\") | .browser_download_url")"
 
           mkdir -p out
           rm -f "${SOLUTION_ZIP}"
@@ -94,13 +95,43 @@ jobs:
           echo "pack_source=true" >> "$GITHUB_OUTPUT"
 
       - name: Validate required configuration
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         env:
+          PACK_SOURCE: ${{ steps.manualRelease.outputs.pack_source }}
+          PP_ENVIRONMENT_URL: ${{ vars.PP_ENVIRONMENT_URL }}
+          PP_APP_ID: ${{ vars.PP_APP_ID }}
+          PP_TENANT_ID: ${{ vars.PP_TENANT_ID }}
+          PP_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
           PP_CONNECTOR_APP_ID: ${{ vars.PP_CONNECTOR_APP_ID }}
+          PP_FORMS_CONNECTION_ID: ${{ vars.PP_FORMS_CONNECTION_ID }}
+          PP_EXCEL_CONNECTION_ID: ${{ vars.PP_EXCEL_CONNECTION_ID }}
+          PP_PLANNER_CONNECTION_ID: ${{ vars.PP_PLANNER_CONNECTION_ID }}
+          PP_GRAPH_CONNECTION_ID: ${{ vars.PP_GRAPH_CONNECTION_ID }}
+          PP_OUTLOOK_CONNECTION_ID: ${{ vars.PP_OUTLOOK_CONNECTION_ID }}
         run: |
-          if [ -z "$PP_CONNECTOR_APP_ID" ]; then
-            echo "::error::PP_CONNECTOR_APP_ID variable is not set. Add it under Settings → Secrets and variables → Actions → Variables before deploying."
-            exit 1
+          set -euo pipefail
+
+          require_value() {
+            local name="$1"
+            local value="$2"
+            if [ -z "$value" ]; then
+              echo "::error::${name} is not set. Add it under Settings → Secrets and variables → Actions before deploying."
+              exit 1
+            fi
+          }
+
+          require_value "PP_ENVIRONMENT_URL" "$PP_ENVIRONMENT_URL"
+          require_value "PP_APP_ID" "$PP_APP_ID"
+          require_value "PP_TENANT_ID" "$PP_TENANT_ID"
+          require_value "PP_CLIENT_SECRET" "$PP_CLIENT_SECRET"
+          require_value "PP_FORMS_CONNECTION_ID" "$PP_FORMS_CONNECTION_ID"
+          require_value "PP_EXCEL_CONNECTION_ID" "$PP_EXCEL_CONNECTION_ID"
+          require_value "PP_PLANNER_CONNECTION_ID" "$PP_PLANNER_CONNECTION_ID"
+          require_value "PP_GRAPH_CONNECTION_ID" "$PP_GRAPH_CONNECTION_ID"
+          require_value "PP_OUTLOOK_CONNECTION_ID" "$PP_OUTLOOK_CONNECTION_ID"
+
+          if [[ "$GITHUB_EVENT_NAME" == "push" || "$PACK_SOURCE" == "true" ]]; then
+            require_value "PP_CONNECTOR_APP_ID" "$PP_CONNECTOR_APP_ID"
           fi
 
       - name: Determine release version
@@ -128,7 +159,7 @@ jobs:
           echo "::${stop_marker}::"
 
       - name: Install Power Platform CLI
-        if: steps.manualRelease.outputs.pack_source == 'true' || steps.semanticRelease.outputs.new_release_published == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         uses: microsoft/powerplatform-actions/actions-install@v1
 
       - name: Set solution version
@@ -154,7 +185,7 @@ jobs:
           fi
 
       - name: Authenticate with Power Platform
-        if: steps.manualRelease.outputs.pack_source == 'true' || steps.semanticRelease.outputs.new_release_published == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           "$POWERPLATFORMTOOLS_PACPATH" auth create \
             --environment   "${{ vars.PP_ENVIRONMENT_URL }}" \
@@ -198,6 +229,55 @@ jobs:
             --folder "${{ env.SOLUTION_PACK_FOLDER }}" \
             --packageType Managed
 
+      - name: Create deployment settings file
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
+        env:
+          PP_FORMS_CONNECTION_ID: ${{ vars.PP_FORMS_CONNECTION_ID }}
+          PP_EXCEL_CONNECTION_ID: ${{ vars.PP_EXCEL_CONNECTION_ID }}
+          PP_PLANNER_CONNECTION_ID: ${{ vars.PP_PLANNER_CONNECTION_ID }}
+          PP_GRAPH_CONNECTION_ID: ${{ vars.PP_GRAPH_CONNECTION_ID }}
+          PP_OUTLOOK_CONNECTION_ID: ${{ vars.PP_OUTLOOK_CONNECTION_ID }}
+        run: |
+          set -euo pipefail
+
+          settings_file="${{ env.DEPLOYMENT_SETTINGS_FILE }}"
+          temporary_file="${settings_file}.tmp"
+          "$POWERPLATFORMTOOLS_PACPATH" solution create-settings \
+            --solution-zip "${{ env.SOLUTION_ZIP }}" \
+            --settings-file "$settings_file"
+
+          jq \
+            --arg forms "$PP_FORMS_CONNECTION_ID" \
+            --arg excel "$PP_EXCEL_CONNECTION_ID" \
+            --arg planner "$PP_PLANNER_CONNECTION_ID" \
+            --arg graph "$PP_GRAPH_CONNECTION_ID" \
+            --arg outlook "$PP_OUTLOOK_CONNECTION_ID" \
+            '
+              (.ConnectionReferences[] | select(.LogicalName == "campa_sharedmicrosoftforms_createconcertplan") | .ConnectionId) = $forms
+              | (.ConnectionReferences[] | select(.LogicalName == "campa_sharedexcelonlinebusiness_createconcertplan") | .ConnectionId) = $excel
+              | (.ConnectionReferences[] | select(.LogicalName == "campa_sharedplanner_createconcertplan") | .ConnectionId) = $planner
+              | (.ConnectionReferences[] | select(.LogicalName == "campa_sharedcampanulaplannergraph_createconcertplan") | .ConnectionId) = $graph
+              | (.ConnectionReferences[] | select(.LogicalName == "campa_sharedoffice365_createconcertplan") | .ConnectionId) = $outlook
+            ' "$settings_file" > "$temporary_file"
+          mv "$temporary_file" "$settings_file"
+
+          expected_references='[
+            "campa_sharedmicrosoftforms_createconcertplan",
+            "campa_sharedexcelonlinebusiness_createconcertplan",
+            "campa_sharedplanner_createconcertplan",
+            "campa_sharedcampanulaplannergraph_createconcertplan",
+            "campa_sharedoffice365_createconcertplan"
+          ]'
+          if ! jq -e --argjson expected "$expected_references" '
+            (.ConnectionReferences // []) as $references
+            | (($references | map(.LogicalName) | sort) == ($expected | sort))
+              and ([$references[]? | select((.ConnectionId // "") == "")] | length == 0)
+          ' "$settings_file" >/dev/null; then
+            echo "::error::Deployment settings must contain exactly the five expected connection references, each with a target connection ID."
+            exit 1
+          fi
+          echo "Deployment settings created for the five expected solution connection references."
+
       - name: Upload packed solution as artifact
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         uses: actions/upload-artifact@v7
@@ -225,3 +305,5 @@ jobs:
           activate-plugins: true
           force-overwrite: true
           publish-changes: true
+          use-deployment-settings-file: true
+          deployment-settings-file: ${{ env.DEPLOYMENT_SETTINGS_FILE }}

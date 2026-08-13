@@ -1,12 +1,12 @@
 {
   "schema": "1.0",
   "details": {
-    "displayName": "ExcelFlowTest02",
-    "description": "",
-    "createdTime": "2026-05-15T22:35:33.5616891Z",
-    "packageTelemetryId": "2c5352a1-42eb-4806-9f1b-59d7117db397",
+    "displayName": "ExcelTest20260812",
+    "description": "ExcelTest20260812",
+    "createdTime": "2026-08-12T08:04:15.6748194Z",
+    "packageTelemetryId": "8e35e65b-2549-4258-9724-7d19b9499ba8",
     "creator": "N/A",
-    "sourceEnvironment": "PROD"
+    "sourceEnvironment": "https://pvecksdruencampanulazsdefault.crm4.dynamics.com/"
   },
   "resources": {
     "f61681aa-4030-4730-a58b-e8d7a7764f6d": {
@@ -36,7 +36,7 @@
       "suggestedCreationType": "Existing",
       "details": {
         "displayName": "Microsoft Forms",
-        "iconUri": "https://conn-afd-prod-endpoint-bmc9bqahasf3grgk.b01.azurefd.net/v1.0.1774/1.0.1774.4397/microsoftforms/icon.png"
+        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1819/1.0.1819.4795/microsoftforms/icon.png"
       },
       "configurableBy": "System",
       "hierarchy": "Child",
@@ -48,7 +48,7 @@
       "creationType": "Existing",
       "details": {
         "displayName": "martin.mikes@campanulajihlava.cz",
-        "iconUri": "https://conn-afd-prod-endpoint-bmc9bqahasf3grgk.b01.azurefd.net/v1.0.1774/1.0.1774.4397/microsoftforms/icon.png"
+        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1819/1.0.1819.4795/microsoftforms/icon.png"
       },
       "configurableBy": "User",
       "hierarchy": "Child",
@@ -63,7 +63,7 @@
       "suggestedCreationType": "Existing",
       "details": {
         "displayName": "Excel Online (Business)",
-        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1808/1.0.1808.4695/excelonlinebusiness/icon.png"
+        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1820/1.0.1820.4843/excelonlinebusiness/icon.png"
       },
       "configurableBy": "System",
       "hierarchy": "Child",
@@ -75,7 +75,7 @@
       "creationType": "Existing",
       "details": {
         "displayName": "martin.mikes@campanulajihlava.cz",
-        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1808/1.0.1808.4695/excelonlinebusiness/icon.png"
+        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1820/1.0.1820.4843/excelonlinebusiness/icon.png"
       },
       "configurableBy": "User",
       "hierarchy": "Child",
@@ -90,7 +90,7 @@
       "suggestedCreationType": "Existing",
       "details": {
         "displayName": "Office 365 Outlook",
-        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1809/1.0.1809.4721/office365/icon.png"
+        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1819/1.0.1819.4795/office365/icon.png"
       },
       "configurableBy": "System",
       "hierarchy": "Child",
@@ -102,7 +102,7 @@
       "creationType": "Existing",
       "details": {
         "displayName": "martin.mikes@campanulajihlava.cz",
-        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1809/1.0.1809.4721/office365/icon.png"
+        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1819/1.0.1819.4795/office365/icon.png"
       },
       "configurableBy": "User",
       "hierarchy": "Child",

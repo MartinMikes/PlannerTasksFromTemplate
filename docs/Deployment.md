@@ -202,6 +202,46 @@ Go to **Settings → Secrets and variables → Actions** in this repository and 
 | `PP_TENANT_ID` | Variable | Microsoft Entra ID tenant ID |
 | `PP_CLIENT_SECRET` | Secret | Client secret of the deployment service principal |
 | `PP_CONNECTOR_APP_ID` | Variable | Application (client) ID of the Entra app registration for the `Campanula Planner Graph` custom connector OAuth (separate from the deployment service principal; requires delegated `Tasks.ReadWrite` on Microsoft Graph) |
+| `PP_FORMS_CONNECTION_ID` | Variable | ID of the existing Microsoft Forms connection in the target environment |
+| `PP_EXCEL_CONNECTION_ID` | Variable | ID of the existing Excel Online Business connection in the target environment |
+| `PP_PLANNER_CONNECTION_ID` | Variable | ID of the existing Planner connection in the target environment |
+| `PP_GRAPH_CONNECTION_ID` | Variable | ID of the existing `Campanula Planner Graph` connection in the target environment |
+| `PP_OUTLOOK_CONNECTION_ID` | Variable | ID of the existing Office 365 Outlook connection in the target environment |
+
+The five connection IDs are connection resource IDs, not connection-reference
+logical names and not Entra application IDs. They can be read from the target
+connection URL in Power Apps. The connections must already exist and be usable
+by the connection-reference owner; the workflow maps them during import but
+does not create delegated OAuth connections or grant consent on a user's
+behalf.
+
+### Repair an existing imported version
+
+If the target environment already contains `CampanulaPlannerFlows` version
+`1.3.2` with the Flow turned off, do not use **Redeploy the last published
+release** as the repair. That workflow intentionally reuses the exact package
+attached to the latest release, so importing the same `1.3.2` asset does not
+add the active Flow metadata or the connection-reference mappings introduced
+after that release.
+
+To repair the environment:
+
+1. Create and authenticate the five target connections listed above. The
+   `Campanula Planner Graph` connection requires delegated Graph consent and a
+   connection owner who can create Planner plans in the target group.
+2. Store each connection resource ID in the corresponding GitHub Actions
+   variable.
+3. Publish a new patch release, such as `1.3.3`, containing the active Flow
+   metadata and deployment-settings changes.
+4. Let the push deployment import that new managed package, or run the manual
+   workflow only after the new release is published.
+5. In the target environment, open the `CampanulaPlannerFlows` solution and
+   verify that the Flow is enabled and all five connection references are
+   healthy before submitting a real Form response.
+
+The deployment service principal can perform the package import and bind
+existing connections. It cannot replace the one-time delegated OAuth sign-in
+or user consent required by the custom connector connection.
 
 ### Service Principal Setup
 
@@ -284,10 +324,14 @@ src\CampanulaPlannerFlows
 ```
 
 The production folder is zipped by GitHub Actions and imported with Power
-Platform Tools. The import step explicitly activates solution workflows and
-publishes changes so connection references and the Forms-triggered Flow are
-ready for post-deploy verification. Resolve environment-specific form, Excel, Planner, and
-notification values before running the Flow in a live environment.
+Platform Tools. Before import, the workflow creates a deployment-settings file
+from the exact managed zip and fills all five connection references from the
+target-environment GitHub variables. The import step uses that file, activates
+solution workflows, and publishes changes. The checked-in workflow metadata
+marks the Forms-triggered Flow active, so a successful import with healthy
+connections leaves it available to run. Resolve environment-specific form,
+Excel, Planner, and notification values before running the Flow in a live
+environment.
 
 After importing a version that contains the custom connector, open Power
 Platform and create or refresh the `Campanula Planner Graph` connection so the

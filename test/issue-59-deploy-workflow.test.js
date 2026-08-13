@@ -12,9 +12,17 @@ const connectorParamsPath = path.join(
   'Connectors',
   'campa_planner_graph_connectionparameters.json',
 );
+const workflowMetadataPath = path.join(
+  workspaceRoot,
+  'src',
+  'CampanulaPlannerFlows',
+  'Workflows',
+  'CampanulaCreateConcertPlanFromTemplate.json.data.xml',
+);
 
 const deployWorkflow = fs.readFileSync(deployWorkflowPath, 'utf8');
 const connectorParams = fs.readFileSync(connectorParamsPath, 'utf8');
+const workflowMetadata = fs.readFileSync(workflowMetadataPath, 'utf8');
 
 const stagedSolutionWorkflowPatterns = [
   /SOLUTION_PACK_FOLDER:\s*out\/CampanulaPlannerFlows\b/,
@@ -58,7 +66,7 @@ test('redeploys the latest published release without a version input', () => {
 test('validates required configuration before semantic-release to prevent orphaned releases', () => {
   assertMatchesAllPatterns(deployWorkflow, [
     /- name: Validate required configuration/,
-    /if: github\.event_name == 'push'/,
+    /if: github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'/,
     /PP_CONNECTOR_APP_ID: \$\{\{ vars\.PP_CONNECTOR_APP_ID \}\}/,
     /PP_CONNECTOR_APP_ID variable is not set/,
   ]);
@@ -72,4 +80,26 @@ test('validates required configuration before semantic-release to prevent orphan
 
 test('keeps the checked-in connector source on the placeholder contract', () => {
   assert.match(connectorParams, /\$\{MICROSOFT_ENTRA_APP_ID\}/);
+});
+
+test('maps target connections and imports the Flow as active', () => {
+  assertMatchesAllPatterns(deployWorkflow, [
+    /PP_FORMS_CONNECTION_ID/,
+    /PP_EXCEL_CONNECTION_ID/,
+    /PP_PLANNER_CONNECTION_ID/,
+    /PP_GRAPH_CONNECTION_ID/,
+    /PP_OUTLOOK_CONNECTION_ID/,
+    /solution create-settings/,
+    /campa_sharedmicrosoftforms_createconcertplan/,
+    /campa_sharedexcelonlinebusiness_createconcertplan/,
+    /campa_sharedplanner_createconcertplan/,
+    /campa_sharedcampanulaplannergraph_createconcertplan/,
+    /campa_sharedoffice365_createconcertplan/,
+    /Deployment settings must contain exactly the five expected connection references/,
+    /use-deployment-settings-file:\s*true/,
+    /deployment-settings-file:/,
+    /activate-plugins:\s*true/,
+  ]);
+  assert.match(workflowMetadata, /<StateCode>0<\/StateCode>/);
+  assert.match(workflowMetadata, /<StatusCode>1<\/StatusCode>/);
 });
