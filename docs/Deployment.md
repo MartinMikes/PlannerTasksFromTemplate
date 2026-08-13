@@ -269,6 +269,66 @@ be usable by the connection-reference owner; `deploy.yml` maps them during
 import but does not create delegated OAuth connections or grant consent on a
 user's behalf.
 
+### Obtain `PP_GRAPH_CONNECTION_ID`
+
+`PP_GRAPH_CONNECTION_ID` is the ID of a **connection resource** in the target
+Power Platform environment. It is created after the `Campanula Planner Graph`
+custom connector has been installed and a user has completed its delegated
+Microsoft Graph sign-in. Follow this sequence before running `deploy.yml`:
+
+1. Confirm the target environment. Open the environment whose URL is stored in
+   `PP_ENVIRONMENT_URL`; do not create the connection in a development or
+   default environment by mistake.
+2. If `Campanula Planner Graph` is not available, run **Actions → Bootstrap
+   Graph Connector** first. That workflow installs the prerequisite connector
+   and deliberately does not require `PP_GRAPH_CONNECTION_ID`.
+3. In [Power Apps](https://make.powerapps.com), select the same target
+   environment, open **Connections**, and choose **New connection**. Search for
+   `Campanula Planner Graph` and create it.
+4. Complete the Microsoft sign-in and delegated consent using the account that
+   will own the connection. The account must be able to create Planner plans in
+   the target Microsoft 365 group. Test the connection and confirm it is
+   connected or healthy.
+5. If the deployment service principal is not the connection owner, share the
+   connection with its Power Platform application user and grant **Can use**.
+   Otherwise the solution import can map the ID but the Flow may not be able to
+   use the connection.
+6. Open the connection's **Details** page. Copy the GUID shown as **Connection
+   ID**, or copy the GUID segment from the browser URL. It commonly appears in
+   a URL shaped like:
+
+   ```text
+   https://make.powerapps.com/environments/<environment-id>/connections/<connection-id>/details
+   ```
+
+   Copy only `<connection-id>`, for example
+   `01234567-89ab-cdef-0123-456789abcdef`. Do not copy the whole URL or the
+   `<environment-id>` segment.
+7. In this repository, open **Settings → Secrets and variables → Actions →
+   Variables**, create or edit the repository variable named exactly
+   `PP_GRAPH_CONNECTION_ID`, and paste only that connection GUID as its value.
+   It is an Actions variable, not `PP_CONNECTOR_APP_ID`, `PP_APP_ID`, or a
+   GitHub secret. The workflow reads `${{ vars.PP_GRAPH_CONNECTION_ID }}`; it
+   does not read the local `.env` file.
+8. Run **Actions → Deploy Power Platform Solution**. The validation step should
+   accept the value and the deployment-settings file should map it to
+   `campa_sharedcampanulaplannergraph_createconcertplan`.
+
+The following values are different and must not be used for
+`PP_GRAPH_CONNECTION_ID`:
+
+| Value | Why it is wrong |
+| --- | --- |
+| `PP_CONNECTOR_APP_ID` | Entra client ID used to configure connector OAuth; it identifies an app, not a Power Platform connection. |
+| `aa5c469a-b5dd-4963-917c-66bf35639bb3` | Custom connector component ID stored in the solution metadata. |
+| `campa_sharedcampanulaplannergraph_createconcertplan` | Flow connection-reference logical name. |
+| `<environment-id>` | Power Platform environment ID, not the connection resource ID. |
+| `ToDo`, a blank value, or the full URL | Placeholder or wrong format; the workflow rejects it before release/import. |
+
+If the connection is deleted or recreated, repeat steps 6 and 7. A recreated
+connection receives a new resource ID even when it uses the same connector and
+the same delegated account.
+
 The deploy workflow now rejects placeholder values such as `ToDo` and any
 non-GUID connection or app IDs before `semantic-release` publishes a release.
 If deployment fails at configuration validation, replace the GitHub Actions
