@@ -121,6 +121,7 @@ jobs:
             --publish-changes
 
       - name: Apply Graph connector icon
+        run: |
           set -euo pipefail
           icon_file="${{ env.CONNECTOR_ICON_FILE }}"
           api_definition_file="${{ env.CONNECTOR_API_DEFINITION_FILE }}"

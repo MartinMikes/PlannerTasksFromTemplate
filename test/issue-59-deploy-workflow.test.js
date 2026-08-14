@@ -139,7 +139,7 @@ test('applies the tracked connector icon after importing the prerequisite', () =
     assert.match(workflow, /--icon-file "\$icon_file"/);
     assert.match(
       workflow,
-      /--api-definition-file "\$\{\{ env\.CONNECTOR_API_DEFINITION_FILE \}\}"/,
+      /--api-definition-file "(?:\$\{\{ env\.CONNECTOR_API_DEFINITION_FILE \}\}|\$api_definition_file)"/,
     );
   }
 
