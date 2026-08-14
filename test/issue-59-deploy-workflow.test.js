@@ -25,6 +25,13 @@ const connectorIconPath = path.join(
   'Connectors',
   'campa_planner_graph_icon.png',
 );
+const connectorDefinitionPath = path.join(
+  workspaceRoot,
+  'src',
+  'CampanulaPlannerGraphConnector',
+  'Connectors',
+  'campa_planner_graph_openapidefinition.json',
+);
 const flowSolutionMetadataPath = path.join(
   workspaceRoot,
   'src',
@@ -112,6 +119,7 @@ test('bootstraps the connector without requiring a delegated Graph connection', 
 test('applies the tracked connector icon after importing the prerequisite', () => {
   const icon = fs.readFileSync(connectorIconPath);
   assert.deepEqual([...icon.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.ok(fs.statSync(connectorDefinitionPath).size > 0);
 
   for (const workflow of [deployWorkflow, connectorBootstrapWorkflow]) {
     assert.match(
@@ -122,9 +130,17 @@ test('applies the tracked connector icon after importing the prerequisite', () =
       workflow,
       /CONNECTOR_ICON_FILE:\s*src\/CampanulaPlannerGraphConnector\/Connectors\/campa_planner_graph_icon\.png/,
     );
+    assert.match(
+      workflow,
+      /CONNECTOR_API_DEFINITION_FILE:\s*src\/CampanulaPlannerGraphConnector\/Connectors\/campa_planner_graph_openapidefinition\.json/,
+    );
     assert.match(workflow, /connector update/);
     assert.match(workflow, /--connector-id "\$\{\{ env\.CONNECTOR_ID \}\}"/);
     assert.match(workflow, /--icon-file "\$icon_file"/);
+    assert.match(
+      workflow,
+      /--api-definition-file "\$\{\{ env\.CONNECTOR_API_DEFINITION_FILE \}\}"/,
+    );
   }
 
   const deployIconIdx = deployWorkflow.indexOf('- name: Apply Graph connector icon');
