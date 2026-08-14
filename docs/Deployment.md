@@ -56,6 +56,27 @@ src\CampanulaPlannerFlows
 Power Platform CLI solution commands expect this unpacked solution source
 structure.
 
+### Planner group configuration
+
+The Microsoft 365 group used for the generated Planner plan is deployment
+configuration, not a value entered by each Form respondent. The Flow stores the
+default group ID in the `plannerGroupId` parameter in
+`src\CampanulaPlannerFlows\Workflows\CampanulaCreateConcertPlanFromTemplate.json`:
+
+```text
+a41f5114-a83e-48ae-8f09-6108674e138f
+```
+
+The Flow builds the required Graph group URL from this ID for `CreatePlan` and
+passes the same ID to Planner task creation. Do not add this value as a
+Microsoft Form question or maintain a second group setting.
+
+To deploy to a different group, change only the `plannerGroupId` default in the
+Flow source, commit the change, and deploy a new solution version. The current
+deployment workflow packs the Flow definition as-is and maps connection
+references; it does not currently define a Dataverse solution environment
+variable for this setting.
+
 ---
 
 ## Build the first Flow in Power Platform
@@ -159,10 +180,14 @@ command:
 
 ```bash
 pac connector update \
-  --environment "$PP_ENVIRONMENT_URL" \
-  --connector-id aa5c469a-b5dd-4963-917c-66bf35639bb3 \
-  --api-definition-file src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_openapidefinition.json \
-  --icon-file src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_icon.png
+  --environment "$PP_ENVIRONMENT_URL" \
+
+  --connector-id aa5c469a-b5dd-4963-917c-66bf35639bb3 \
+
+  --api-definition-file src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_openapidefinition.json \
+
+  --icon-file src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_icon.png
+
 ```
 
 PAC CLI requires either `--settings-file` or `--api-definition-file` for
@@ -229,6 +254,27 @@ Changing `PP_CONNECTOR_APP_ID` does not modify an already published release
 asset; use the bootstrap workflow for an immediate repair or publish a new
 release before using the normal release deployment path.
 
+If connection creation reports `AADSTS7000215` and says the client secret is
+invalid:
+
+1. Compare the application ID in the error with `PP_CONNECTOR_APP_ID`. Because
+   this error occurred while creating the custom connector connection, that ID
+   should be the connector OAuth app, not `PP_APP_ID`.
+2. In **Entra ID -> App registrations -> [connector app] -> Certificates &
+   secrets**, create a new client secret if the existing value is expired or
+   unavailable. Copy the secret **Value**, not the **Secret ID**.
+3. In Power Automate or Power Apps, open **Custom connectors -> Campanula
+   Planner Graph -> Edit -> Security**. Set **Client ID** to the connector
+   app's application ID and **Client secret** to the new secret value, then
+   save/update the connector.
+4. Delete the failed connection and create it again so the OAuth flow uses the
+   updated connector credentials. Complete delegated Graph consent.
+
+If `AADSTS7000215` occurs in a GitHub Actions step while PAC CLI authenticates
+to Power Platform, rather than while creating the Graph connection, update
+`PP_CLIENT_SECRET` with the **Value** of the deployment app's secret. That is a
+separate credential and must not be entered as the connector OAuth secret.
+
 ### 7. Validate with a temporary test plan
 
 1. Submit a test response from the Microsoft Form with a plan title clearly marked as temporary (e.g. `[TEST DELETE] <ConcertName>`).
@@ -290,6 +336,9 @@ Complete these steps once per target Power Platform environment:
    only installs the connector definition.
 3. In the target environment, create and authenticate the delegated
    `Campanula Planner Graph` connection as described in the local setup above.
+   Configure the connector's OAuth client secret in its Security settings
+   before creating the connection; the secret value is not stored in this
+   repository or in GitHub Actions.
 4. Test the connection, then copy its connection resource ID into the
    `PP_GRAPH_CONNECTION_ID` repository variable.
 5. Publish a release or run **Actions → Deploy Power Platform Solution → Run
@@ -315,6 +364,12 @@ Go to **Settings → Secrets and variables → Actions** in this repository and 
 | `PP_PLANNER_CONNECTION_ID` | Variable | ID of the existing Planner connection in the target environment |
 | `PP_GRAPH_CONNECTION_ID` | Variable | ID of the existing authenticated `Campanula Planner Graph` connection in the target environment; required by `deploy.yml`, not by `deploy-connector.yml` |
 | `PP_OUTLOOK_CONNECTION_ID` | Variable | ID of the existing Office 365 Outlook connection in the target environment |
+
+The connector OAuth client secret is deliberately not a repository variable or
+the `PP_CLIENT_SECRET` secret. Enter it in the `Campanula Planner Graph`
+custom connector's **Security** settings in the target environment. The
+deployment service principal secret and the connector OAuth secret belong to
+different app registrations.
 
 The five connection IDs are connection resource IDs, not connection-reference
 logical names, connector IDs, or Entra application IDs. They can be read from
@@ -430,7 +485,10 @@ There are two separate Entra app registrations for this project.
 
 This app registration is the OAuth client for the custom connector. It signs
 the connected Power Platform user in to Microsoft Graph with delegated access;
-it is not the PAC CLI deployment identity.
+it is not the PAC CLI deployment identity. Microsoft Entra OAuth for a custom
+connector requires both the application (client) ID and a client secret. The
+secret is configured on the custom connector and is intentionally excluded
+from the tracked connector source.
 
 1. Sign in to the [Microsoft Entra admin center](https://entra.microsoft.com)
    and switch to the directory that contains the target Power Platform
@@ -452,22 +510,29 @@ it is not the PAC CLI deployment identity.
    lack of a trailing slash. Do not register it as a SPA or mobile/desktop
    application.
 6. Select **Register**, then open the app registration's **Overview** page.
-   Copy **Application (client) ID**. Do not copy **Object ID**, **Directory
-   (tenant) ID**, the connector ID, or a client secret.
-7. Open **API permissions -> Add a permission -> Microsoft Graph -> Delegated
+   Copy **Application (client) ID**. Do not use **Object ID**, **Directory
+   (tenant) ID**, the connector ID, or a secret ID as the client ID.
+7. Open **Certificates & secrets -> New client secret**, create a secret, and
+   copy its **Value** immediately. The **Secret ID** is not the secret value,
+   and Entra does not display the value again after you leave the page. This
+   value will be entered in the custom connector's OAuth **Client secret**
+   field; do not commit it or put it in `PP_CLIENT_SECRET`.
+8. Open **API permissions -> Add a permission -> Microsoft Graph -> Delegated
    permissions**, select `Tasks.ReadWrite`, and choose **Add permissions**.
    Do not use the `Tasks.ReadWrite.All` application permission for this
    connector. The default `User.Read` permission, if present, is not a
    replacement for `Tasks.ReadWrite`.
-8. Select **Grant admin consent for your organization** if tenant policy requires
+9. Select **Grant admin consent for your organization** if tenant policy requires
    administrator approval or if you want consent completed before the first
    connection. Otherwise, the connection owner can complete delegated user
    consent when creating the Power Platform connection.
-9. On **Authentication**, verify that the **Web** redirect URI above is
-   present. Leave implicit-grant settings disabled. This repository's
-   connector source uses the client ID and delegated OAuth; it does not define
-   a connector client-secret variable.
-10. Add the copied **Application (client) ID** as the GitHub Actions repository
+10. On **Authentication**, verify that the **Web** redirect URI above is
+    present. Leave implicit-grant settings disabled. Then open the custom
+    connector's **Security** settings and set **Client ID** to the copied
+    application ID and **Client secret** to the secret **Value** from step 7.
+    A secret ID, an expired secret, or the deployment app's secret causes
+    `AADSTS7000215`.
+11. Add the copied **Application (client) ID** as the GitHub Actions repository
     variable `PP_CONNECTOR_APP_ID`. This is a variable, not a secret:
 
     ```text
@@ -476,15 +541,15 @@ it is not the PAC CLI deployment identity.
 
     Keep `PP_APP_ID` and `PP_CLIENT_SECRET` assigned to the separate PAC CLI
     deployment app.
-11. Run **Actions -> Bootstrap Graph Connector**. The workflow injects this
+12. Run **Actions -> Bootstrap Graph Connector**. The workflow injects this
     value into the temporary package, imports the connector, and applies the
     tracked icon. It does not rewrite the checked-in
     `${MICROSOFT_ENTRA_APP_ID}` placeholder.
-12. Delete any failed or stale `Campanula Planner Graph` connection, create a
+13. Delete any failed or stale `Campanula Planner Graph` connection, create a
     new connection, sign in with the intended Microsoft 365 user, and complete
     delegated Graph consent. The user must also be a member of the Microsoft
     365 group used for the Planner plan.
-13. Copy the new Power Platform connection resource ID from its details URL
+14. Copy the new Power Platform connection resource ID from its details URL
     into `PP_GRAPH_CONNECTION_ID`. This is a connection ID, not an app ID or
     connector ID.
 
