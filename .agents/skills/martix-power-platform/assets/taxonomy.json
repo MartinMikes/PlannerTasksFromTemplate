@@ -1,0 +1,35 @@
+{
+  "package": "martix-power-platform",
+  "mode": "standalone-first",
+  "root": "skills/martix-power-platform",
+  "sourceIndex": "references/doc-source-index.md",
+  "rulePrefixes": {
+    "foundation-flow-environments": "Power Platform product and environment boundaries plus Power Automate cloud-flow type selection",
+    "connector-authoring": "Custom connector lifecycle, API contract, OpenAPI 2.0, Postman checks, and paconn",
+    "authentication-connections": "Authentication models, connection parameters, redirects, and target-environment credentials",
+    "openapi-extensions": "OpenAPI schemas and x-ms metadata for designer behavior and runtime capabilities",
+    "triggers-runtime": "Webhook and polling trigger contracts, state, callbacks, and batching",
+    "policies-custom-code": "Runtime policies, expressions, ScriptBase custom code, and network constraints",
+    "testing-troubleshooting-limits": "Connector and flow tests, validation, errors, quotas, retries, and throttling",
+    "solutions-alm-versioning": "Solutions, references, variables, versioning, sharing, certification, and public lifecycle",
+    "sharing-certification": "Sharing scope, certification readiness, publisher boundaries, and product handoffs"
+  },
+  "tags": [
+    "Power Platform",
+    "Power Automate",
+    "custom connectors",
+    "OpenAPI 2.0",
+    "Swagger",
+    "paconn",
+    "Dataverse",
+    "solutions",
+    "ALM",
+    "OAuth",
+    "Microsoft Entra ID",
+    "webhooks",
+    "polling",
+    "policies",
+    "custom code",
+    "certification"
+  ]
+}

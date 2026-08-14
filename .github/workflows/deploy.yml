@@ -13,6 +13,11 @@ on:
         description: Reason for ad hoc production deployment
         required: true
         type: string
+      rebuild_from_source:
+        description: Rebuild both managed solutions from current main instead of downloading the latest release assets
+        required: true
+        default: false
+        type: boolean
 
 concurrency:
   group: power-platform-production
@@ -30,6 +35,7 @@ env:
   CONNECTOR_ID: aa5c469a-b5dd-4963-917c-66bf35639bb3
   CONNECTOR_ICON_FILE: src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_icon.png
   CONNECTOR_API_DEFINITION_FILE: src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_openapidefinition.json
+  CONNECTOR_METADATA_FOLDER: out/CampanulaPlannerGraphConnector-metadata
   DEPLOYMENT_SETTINGS_FILE: out/CampanulaPlannerFlows.deployment-settings.json
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -54,8 +60,15 @@ jobs:
         id: manualRelease
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REBUILD_FROM_SOURCE: ${{ inputs.rebuild_from_source }}
         run: |
           set -euo pipefail
+
+          if [[ "$REBUILD_FROM_SOURCE" == "true" ]]; then
+            echo "Manual deployment will rebuild both managed solution assets from current main."
+            echo "pack_source=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           release_tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name')"
           if [[ ! "$release_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -173,6 +186,22 @@ jobs:
           require_guid "PP_PLANNER_CONNECTION_ID" "$PP_PLANNER_CONNECTION_ID"
           require_guid "PP_GRAPH_CONNECTION_ID" "$PP_GRAPH_CONNECTION_ID"
           require_guid "PP_OUTLOOK_CONNECTION_ID" "$PP_OUTLOOK_CONNECTION_ID"
+
+          reject_connection_id_confusion() {
+            local connection_name="$1"
+            local connection_value="$2"
+            local other_name="$3"
+            local other_value="$4"
+            if [[ -n "$other_value" && "${connection_value,,}" == "${other_value,,}" ]]; then
+              echo "::error::${connection_name} must be the target Power Platform connection resource ID, not ${other_name}."
+              exit 1
+            fi
+          }
+
+          reject_connection_id_confusion "PP_GRAPH_CONNECTION_ID" "$PP_GRAPH_CONNECTION_ID" "PP_CONNECTOR_APP_ID" "$PP_CONNECTOR_APP_ID"
+          reject_connection_id_confusion "PP_GRAPH_CONNECTION_ID" "$PP_GRAPH_CONNECTION_ID" "PP_APP_ID" "$PP_APP_ID"
+          reject_connection_id_confusion "PP_GRAPH_CONNECTION_ID" "$PP_GRAPH_CONNECTION_ID" "PP_TENANT_ID" "$PP_TENANT_ID"
+          reject_connection_id_confusion "PP_GRAPH_CONNECTION_ID" "$PP_GRAPH_CONNECTION_ID" "the custom connector component ID" "$CONNECTOR_ID"
 
           if [[ "$GITHUB_EVENT_NAME" == "push" || "$PACK_SOURCE" == "true" ]]; then
             require_guid "PP_CONNECTOR_APP_ID" "$PP_CONNECTOR_APP_ID"
@@ -354,15 +383,6 @@ jobs:
             ${{ env.CONNECTOR_SOLUTION_ZIP }}
           retention-days: 30
 
-      - name: Attach solution zip to GitHub release
-        if: steps.semanticRelease.outputs.new_release_published == 'true'
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ steps.semanticRelease.outputs.new_release_git_tag }}
-          files: |
-            ${{ env.SOLUTION_ZIP }}
-            ${{ env.CONNECTOR_SOLUTION_ZIP }}
-
       - name: Import Graph connector prerequisite solution
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
@@ -372,20 +392,47 @@ jobs:
             --force-overwrite \
             --publish-changes
 
+      - name: Select connector metadata from deployed artifact
+        id: connectorMetadata
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ steps.manualRelease.outputs.pack_source }}" == "false" ]]; then
+            metadata_folder="${{ env.CONNECTOR_METADATA_FOLDER }}"
+            rm -rf "$metadata_folder"
+            mkdir -p "$metadata_folder"
+
+            api_definition_file="$metadata_folder/campa_planner_graph_openapidefinition.json"
+            icon_file="$metadata_folder/campa_planner_graph_icon.png"
+            unzip -p "${{ env.CONNECTOR_SOLUTION_ZIP }}" \
+              Connector/campa_planner_graph_openapidefinition.json > "$api_definition_file"
+
+            release_tag="${{ steps.manualRelease.outputs.release_tag }}"
+            git show "${release_tag}:src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_icon.png" > "$icon_file"
+          else
+            api_definition_file="${{ env.CONNECTOR_SOLUTION_PACK_FOLDER }}/Connectors/campa_planner_graph_openapidefinition.json"
+            icon_file="${{ env.CONNECTOR_SOLUTION_PACK_FOLDER }}/Connectors/campa_planner_graph_icon.png"
+          fi
+
+          if [ ! -s "$api_definition_file" ]; then
+            echo "::error::Connector API definition is missing or empty: $api_definition_file"
+            exit 1
+          fi
+          if [ ! -s "$icon_file" ]; then
+            echo "::error::Connector icon is missing or empty: $icon_file"
+            exit 1
+          fi
+
+          echo "api_definition_file=$api_definition_file" >> "$GITHUB_OUTPUT"
+          echo "icon_file=$icon_file" >> "$GITHUB_OUTPUT"
+
       - name: Apply Graph connector icon
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           set -euo pipefail
-          icon_file="${{ env.CONNECTOR_ICON_FILE }}"
-          api_definition_file="${{ env.CONNECTOR_API_DEFINITION_FILE }}"
-          if [ ! -s "$icon_file" ]; then
-            echo "::error::Connector icon file is missing or empty: $icon_file"
-            exit 1
-          fi
-          if [ ! -s "$api_definition_file" ]; then
-            echo "::error::Connector API definition file is missing or empty: $api_definition_file"
-            exit 1
-          fi
+          icon_file="${{ steps.connectorMetadata.outputs.icon_file }}"
+          api_definition_file="${{ steps.connectorMetadata.outputs.api_definition_file }}"
           "$POWERPLATFORMTOOLS_PACPATH" connector update \
             --environment "${{ vars.PP_ENVIRONMENT_URL }}" \
             --connector-id "${{ env.CONNECTOR_ID }}" \
@@ -402,3 +449,12 @@ jobs:
             --publish-changes \
             --activate-plugins \
             --settings-file "${{ env.DEPLOYMENT_SETTINGS_FILE }}"
+
+      - name: Attach validated solution zips to GitHub release
+        if: steps.semanticRelease.outputs.new_release_published == 'true'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.semanticRelease.outputs.new_release_git_tag }}
+          files: |
+            ${{ env.SOLUTION_ZIP }}
+            ${{ env.CONNECTOR_SOLUTION_ZIP }}

@@ -1,0 +1,28 @@
+{
+  "name": "martix-power-platform",
+  "description": "Definition-first Power Platform guidance for Power Automate cloud flows, environments, solutions, Dataverse ALM, and custom connector authoring, authentication, OpenAPI, triggers, policies, testing, versioning, and certification.",
+  "version": "0.1.0",
+  "author": {
+    "name": "MartiXDev"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "martix",
+    "power-platform",
+    "power-automate",
+    "custom-connectors",
+    "openapi",
+    "swagger",
+    "paconn",
+    "dataverse",
+    "solutions",
+    "alm",
+    "oauth",
+    "entra-id",
+    "webhooks",
+    "polling",
+    "standalone-skill"
+  ],
+  "repository": "https://github.com/MartiXDev/skills",
+  "skills": "skills/"
+}

@@ -53,10 +53,19 @@ selected location, then creates one Planner plan containing both task sets.
 
 ## Source folder role
 
-`src\CampanulaPlannerFlows` is the deployable unpacked Power Platform solution
-source. GitHub Actions packs and imports this folder as a managed solution. It
-can contain multiple flows later; currently it contains the first Flow
-implementation.
+The production assets are split into two deployable unpacked Power Platform
+solutions:
+
+- `src\CampanulaPlannerGraphConnector` contains the solution-aware custom
+  connector prerequisite. GitHub Actions imports it first because the Flow's
+  Graph connection reference depends on the connector being registered in the
+  target environment.
+- `src\CampanulaPlannerFlows` contains the Flow and its five connection
+  references. GitHub Actions imports it after the target connections exist and
+  maps those references with deployment settings.
+
+The Flow solution can contain multiple flows later; currently it contains the
+first Flow implementation.
 
 ## Flow description
 

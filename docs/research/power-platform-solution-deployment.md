@@ -1,5 +1,12 @@
 # Power Platform Solution Deployment - generic info
 
+> This file is retained as historical research and is not the supported
+> deployment runbook. Some commands are illustrative or obsolete for the
+> current PAC CLI and split-solution architecture. Use
+> [docs/Deployment.md](../Deployment.md) and
+> [docs/DeploymentReference.md](../DeploymentReference.md) for the current
+> workflow and recovery procedures.
+
 ## Prompts
 
 **Prompt 1**

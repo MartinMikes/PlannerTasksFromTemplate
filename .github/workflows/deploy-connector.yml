@@ -164,3 +164,13 @@ jobs:
             --connector-id "${{ env.CONNECTOR_ID }}" \
             --api-definition-file "$api_definition_file" \
             --icon-file "$icon_file"
+
+      - name: Summarize next clean-environment step
+        run: |
+          {
+            echo "## Graph connector bootstrap complete"
+            echo
+            echo "The connector definition is installed. Configure its OAuth client secret in the target environment, create and authenticate the five required connections, then save their connection resource IDs as GitHub Actions variables."
+            echo
+            echo "For a clean target, run **Deploy Power Platform Solution** with **Rebuild both managed solutions from current main** enabled after PP_GRAPH_CONNECTION_ID and the other connection IDs are set."
+          } >> "$GITHUB_STEP_SUMMARY"

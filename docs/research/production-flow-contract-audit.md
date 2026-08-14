@@ -7,6 +7,11 @@ the same source revision, while the required production contract has been
 updated to the KISS failure policy in
 [ADR 0002](../adr/0002-discard-failed-plans-and-resubmit.md).
 
+> This is a historical audit snapshot, not current deployment documentation.
+> The connector bootstrap split, preflight checks, task-field mapping, and
+> deployment settings have since evolved. Use [Deployment Guide](../Deployment.md)
+> and the current source for the supported release path.
+
 ## Question
 
 Which behaviors promised by the project documentation are implemented in the

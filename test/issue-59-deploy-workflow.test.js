@@ -113,7 +113,14 @@ test('bootstraps the connector without requiring a delegated Graph connection', 
     connectorBootstrapWorkflow,
     /--path "\$\{\{ env\.CONNECTOR_SOLUTION_ZIP \}\}"/,
   );
-  assert.doesNotMatch(connectorBootstrapWorkflow, /PP_GRAPH_CONNECTION_ID/);
+  assert.doesNotMatch(
+    connectorBootstrapWorkflow,
+    /PP_GRAPH_CONNECTION_ID:\s*\$\{\{ vars\.PP_GRAPH_CONNECTION_ID \}\}/,
+  );
+  assert.doesNotMatch(
+    connectorBootstrapWorkflow,
+    /require_guid "PP_GRAPH_CONNECTION_ID"/,
+  );
 });
 
 test('rejects the connector ID when used as the OAuth app ID', () => {
@@ -179,6 +186,41 @@ test('applies the tracked connector icon after importing the prerequisite', () =
   );
 });
 
+test('uses connector metadata from the selected release or staged package', () => {
+  const metadataStepIdx = deployWorkflow.indexOf(
+    '- name: Select connector metadata from deployed artifact',
+  );
+  const iconStepIdx = deployWorkflow.indexOf('- name: Apply Graph connector icon');
+  assert.notStrictEqual(metadataStepIdx, -1, 'Expected connector metadata selection step to exist');
+  assert.notStrictEqual(iconStepIdx, -1, 'Expected connector icon step to exist');
+  assert.ok(
+    metadataStepIdx < iconStepIdx,
+    'Connector metadata must be selected before the connector update',
+  );
+
+  const metadataStep = deployWorkflow.slice(metadataStepIdx, iconStepIdx);
+  assert.match(
+    metadataStep,
+    /steps\.manualRelease\.outputs\.pack_source.*== "false"/,
+  );
+  assert.match(
+    metadataStep,
+    /unzip -p "\$\{\{ env\.CONNECTOR_SOLUTION_ZIP \}\}" \\\s+Connector\/campa_planner_graph_openapidefinition\.json/,
+  );
+  assert.match(
+    metadataStep,
+    /git show "\$\{release_tag\}:src\/CampanulaPlannerGraphConnector\/Connectors\/campa_planner_graph_icon\.png"/,
+  );
+  assert.match(
+    deployWorkflow,
+    /api_definition_file="\$\{\{ steps\.connectorMetadata\.outputs\.api_definition_file \}\}"/,
+  );
+  assert.match(
+    deployWorkflow,
+    /icon_file="\$\{\{ steps\.connectorMetadata\.outputs\.icon_file \}\}"/,
+  );
+});
+
 test('redeploys the latest published release without a version input', () => {
   assertMatchesAllPatterns(deployWorkflow, [
     /ref: \$\{\{ github\.event_name == 'workflow_dispatch' && 'main' \|\| github\.ref \}\}/,
@@ -196,6 +238,29 @@ test('redeploys the latest published release without a version input', () => {
   assert.doesNotMatch(deployWorkflow, /Create manual GitHub release/);
 });
 
+test('attaches release assets only after both solution imports succeed', () => {
+  const connectorImportIdx = deployWorkflow.indexOf(
+    '- name: Import Graph connector prerequisite solution',
+  );
+  const flowImportIdx = deployWorkflow.indexOf('- name: Import solution to Power Platform');
+  const releaseAssetIdx = deployWorkflow.indexOf(
+    '- name: Attach validated solution zips to GitHub release',
+  );
+
+  assert.ok(connectorImportIdx < flowImportIdx, 'Connector import must precede Flow import');
+  assert.ok(flowImportIdx < releaseAssetIdx, 'Release assets must follow Flow import');
+});
+
+test('can rebuild current source for a clean target instead of reusing release assets', () => {
+  assertMatchesAllPatterns(deployWorkflow, [
+    /rebuild_from_source:/,
+    /type: boolean/,
+    /REBUILD_FROM_SOURCE: \$\{\{ inputs\.rebuild_from_source \}\}/,
+    /Manual deployment will rebuild both managed solution assets from current main\./,
+    /echo "pack_source=true" >> "\$GITHUB_OUTPUT"/,
+  ]);
+});
+
 test('validates required configuration before semantic-release to prevent orphaned releases', () => {
   assertMatchesAllPatterns(deployWorkflow, [
     /- name: Validate required configuration/,
@@ -206,6 +271,9 @@ test('validates required configuration before semantic-release to prevent orphan
     /is still set to the placeholder value/,
     /must be a GUID/,
     /require_guid "PP_GRAPH_CONNECTION_ID" "\$PP_GRAPH_CONNECTION_ID"/,
+    /reject_connection_id_confusion\(\)/,
+    /PP_GRAPH_CONNECTION_ID.*PP_CONNECTOR_APP_ID/,
+    /PP_GRAPH_CONNECTION_ID.*custom connector component ID/,
   ]);
   const validateIdx = deployWorkflow.indexOf('- name: Validate required configuration');
   const semanticReleaseIdx = deployWorkflow.indexOf('- name: Determine release version');
