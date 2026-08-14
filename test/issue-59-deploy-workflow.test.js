@@ -186,6 +186,7 @@ test('redeploys the latest published release without a version input', () => {
     /id: manualRelease/,
     /gh api "repos\/\$\{GITHUB_REPOSITORY\}\/releases\/latest" --jq '\.tag_name'/,
     /gh release download "\$release_tag"/,
+    /\$2 == expected && !found \{ print \$1; found=1 \}/,
     /git checkout --detach "\$version_commit"/,
     /echo "pack_source=false" >> "\$GITHUB_OUTPUT"/,
     /echo "pack_source=true" >> "\$GITHUB_OUTPUT"/,
