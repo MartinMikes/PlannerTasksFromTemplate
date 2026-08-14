@@ -29,6 +29,7 @@ env:
   CONNECTOR_SOLUTION_ZIP: out/CampanulaPlannerGraphConnector.zip
   CONNECTOR_ID: aa5c469a-b5dd-4963-917c-66bf35639bb3
   CONNECTOR_ICON_FILE: src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_icon.png
+  CONNECTOR_API_DEFINITION_FILE: src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_openapidefinition.json
   DEPLOYMENT_SETTINGS_FILE: out/CampanulaPlannerFlows.deployment-settings.json
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -374,6 +375,7 @@ jobs:
           "$POWERPLATFORMTOOLS_PACPATH" connector update \
             --environment "${{ vars.PP_ENVIRONMENT_URL }}" \
             --connector-id "${{ env.CONNECTOR_ID }}" \
+            --api-definition-file "${{ env.CONNECTOR_API_DEFINITION_FILE }}" \
             --icon-file "$icon_file"
 
       - name: Import solution to Power Platform
