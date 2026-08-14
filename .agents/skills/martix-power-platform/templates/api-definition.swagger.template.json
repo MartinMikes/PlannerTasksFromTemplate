@@ -1,0 +1,54 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Example API",
+    "description": "Replace with a concise connector description.",
+    "version": "1.0.0"
+  },
+  "host": "api.example.invalid",
+  "basePath": "/v1",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "x-ms-capabilities": {
+    "testConnection": {
+      "operationId": "TestExampleApiConnection",
+      "parameters": {}
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "TestExampleApiConnection",
+        "summary": "Test the API connection",
+        "description": "Return HTTP 200 without exposing secrets.",
+        "responses": {
+          "200": {
+            "description": "The API is reachable.",
+            "schema": {
+              "$ref": "#/definitions/HealthResponse"
+            }
+          }
+        },
+        "x-ms-visibility": "internal"
+      }
+    }
+  },
+  "definitions": {
+    "HealthResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "x-ms-summary": "Status"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "ruleSectionOrder": [
+    "Purpose",
+    "Default guidance",
+    "Avoid",
+    "Review checklist",
+    "Related files",
+    "Source anchors"
+  ],
+  "recommendedRuleOrder": [
+    "rules/foundation-flow-environments.md",
+    "rules/connector-authoring.md",
+    "rules/authentication-connections.md",
+    "rules/openapi-extensions.md",
+    "rules/triggers-runtime.md",
+    "rules/policies-custom-code.md",
+    "rules/testing-troubleshooting-limits.md",
+    "rules/solutions-alm-versioning.md",
+    "rules/sharing-certification.md"
+  ],
+  "referenceOrder": [
+    "references/doc-source-index.md",
+    "references/decision-map.md",
+    "references/volatile-values.md",
+    "references/flow-contract-checklist.md"
+  ],
+  "templateOrder": [
+    "templates/connector-plan.template.md",
+    "templates/api-definition.swagger.template.json"
+  ]
+}

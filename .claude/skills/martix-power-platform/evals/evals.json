@@ -1,0 +1,89 @@
+{
+  "skill": "martix-power-platform",
+  "evals": [
+    {
+      "id": "connector-auth-openapi-webhook",
+      "prompt": "I have an OpenAPI 3 document for a SaaS API and want a Power Automate custom connector that uses OAuth client credentials and starts a flow whenever a record changes. Give me an implementation plan and call out anything in my request that the platform does not support.",
+      "expected_sections": [
+        "Product and environment assumptions",
+        "OpenAPI 2.0 conversion boundary",
+        "OAuth grant decision",
+        "Webhook registration, callback, and deregistration contract",
+        "Validation and testing plan"
+      ],
+      "assertions": [
+        "Rejects OAuth client-credentials as unsupported for the documented custom-connector OAuth model.",
+        "Does not treat OpenAPI 3.0 as directly supported; recommends adapting and validating Swagger 2.0.",
+        "Includes webhook registration, HTTP 201, Location, callback URL, notification schema, and DELETE lifecycle requirements.",
+        "Separates volatile documentation claims from facts that should be rechecked in the target environment."
+      ],
+      "files": [],
+      "model_tier": "medium",
+      "token_budget": "medium",
+      "parallel_safe": true,
+      "negative_activation": false,
+      "escalation": null
+    },
+    {
+      "id": "solution-alm-flow-deployment",
+      "prompt": "We built a custom connector and a cloud flow in a development environment. Explain how to move them to test and production using Power Platform solutions, what happens to connections and secrets, how to handle environment-specific API URLs, and what checks are needed before the flow runs in the target environment.",
+      "expected_sections": [
+        "Unmanaged versus managed solution path",
+        "Connection references and secret boundary",
+        "Environment-specific values",
+        "Import order and target-environment checks",
+        "Flow validation and rollback considerations"
+      ],
+      "assertions": [
+        "States that solutions carry connector definitions and connection references, not credential-bearing connection secrets.",
+        "Requires rebinding or creating a target-environment connection before dependent flows run.",
+        "Warns that environment-variable support and resave behavior need current-page verification.",
+        "Checks environment role, license, DLP, gateway or VNet reachability, API permissions, and solution dependencies."
+      ],
+      "files": [],
+      "model_tier": "medium",
+      "token_budget": "medium",
+      "parallel_safe": true,
+      "negative_activation": false,
+      "escalation": null
+    },
+    {
+      "id": "policy-code-testing-diagnosis",
+      "prompt": "A custom connector returns an array shape that makes Power Automate add an unexpected Apply to each, and the API also needs a header rewrite and a small response transformation. Decide whether to fix the OpenAPI schema, use a policy template, or use custom C# code. Include a test and troubleshooting checklist and mention relevant runtime limits.",
+      "expected_sections": [
+        "Schema-first diagnosis",
+        "Policy versus custom-code decision",
+        "Custom-code constraints",
+        "Designer and static validation",
+        "Limits, retries, and raw-output troubleshooting"
+      ],
+      "assertions": [
+        "Diagnoses the unexpected Apply to each as a likely response-schema or array-shape issue before recommending code.",
+        "Uses policy templates for narrow header or routing changes and reserves custom code for transformations not expressible otherwise.",
+        "Mentions ScriptBase, the 1 MB or one-file constraint, public endpoint behavior of Context.SendAsync, and the documented timeout conflict.",
+        "Includes operation-level tests, Solution Checker or Swagger validation, representative failures, throttling, retries, and raw outputs."
+      ],
+      "files": [],
+      "model_tier": "medium",
+      "token_budget": "medium",
+      "parallel_safe": true,
+      "negative_activation": false,
+      "escalation": null
+    },
+    {
+      "id": "generic-rest-handoff",
+      "prompt": "Design a generic REST API in ASP.NET Core with OpenAPI, JWT authentication, and pagination. There is no Power Platform, Power Automate, connector, flow, or environment requirement.",
+      "expected_output": "A concise handoff explaining that the Power Platform skill is not the right default and that general .NET or API guidance should own the task.",
+      "assertions": [
+        "Does not force Power Platform connector guidance onto a generic ASP.NET Core API task.",
+        "Names the appropriate general .NET or API handoff boundary."
+      ],
+      "files": [],
+      "model_tier": "cheap",
+      "token_budget": "small",
+      "parallel_safe": true,
+      "negative_activation": true,
+      "escalation": null
+    }
+  ]
+}
