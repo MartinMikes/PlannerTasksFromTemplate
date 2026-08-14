@@ -97,7 +97,7 @@ jobs:
           version_commit="$(
             git log --all --format='%H%x09%s' |
               awk -F '\t' -v expected="chore: update solution version to ${release_version}.0 [skip ci]" \
-                '$2 == expected { print $1; exit }'
+                '$2 == expected && !found { print $1; found=1 }'
           )"
           if [[ -z "$version_commit" ]]; then
             echo "::error::Release ${release_tag} has no managed solution asset and no matching solution-version commit."
