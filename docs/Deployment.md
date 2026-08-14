@@ -186,6 +186,11 @@ The connector solution must be imported before the Flow solution can bind its
 Graph connection reference. After importing the connector for the first time
 or after any auth change:
 
+> `PP_CONNECTOR_APP_ID` must be the **Application (client) ID** of the Entra
+> app registration used by the `Campanula Planner Graph` connector. It must
+> not be the custom connector ID `aa5c469a-b5dd-4963-917c-66bf35639bb3`, the
+> deployment app ID, or the Flow connection-reference name.
+
 1. Open Power Platform and navigate to the `CampanulaPlannerGraphConnector`
    solution or the environment's **Custom connectors** list.
 2. Create a connection using the `Campanula Planner Graph` connector.
@@ -201,6 +206,28 @@ or after any auth change:
    as `PP_GRAPH_CONNECTION_ID` in GitHub Actions repository variables. This is
    the connection resource ID, not the connector ID, app ID, or connection
    reference logical name.
+
+If connection creation reports `AADSTS700016` with application identifier
+`aa5c469a-b5dd-4963-917c-66bf35639bb3`, the connector was packaged with its
+component ID in the OAuth client ID field. This is a configuration error, not
+an instruction to grant consent to the connector ID:
+
+1. In **Azure Portal -> App registrations**, open the app registration used by
+   the connector and copy its **Application (client) ID**.
+2. Set the GitHub Actions variable `PP_CONNECTOR_APP_ID` to that value. Do not
+   use the connector ID shown above.
+3. Run **Actions -> Bootstrap Graph Connector** again. It repacks the connector
+   from the staged source and injects the corrected OAuth client ID before
+   importing it.
+4. Delete any failed or stale `Campanula Planner Graph` connection, then create
+   a new connection and complete delegated Graph consent.
+
+If the error then names the real Entra application ID, verify that the app
+registration exists in the target tenant or is configured for multitenant use,
+and that its delegated `Tasks.ReadWrite` permission has the required consent.
+Changing `PP_CONNECTOR_APP_ID` does not modify an already published release
+asset; use the bootstrap workflow for an immediate repair or publish a new
+release before using the normal release deployment path.
 
 ### 7. Validate with a temporary test plan
 
@@ -401,11 +428,71 @@ There are two separate Entra app registrations for this project.
 
 #### Connector OAuth app registration (`PP_CONNECTOR_APP_ID`)
 
-1. In **Azure Portal → App registrations**, create a separate app registration for the custom connector (e.g. `CampanulaGraphConnector`).
-2. Under **API permissions**, add delegated permission **Microsoft Graph → Tasks.ReadWrite**. Grant admin consent if required by your tenant policy.
-3. Under **Authentication**, allow public client flows or configure a redirect URI depending on how Power Platform authenticates; the connector's `redirectUrl` is already set to `https://global.consent.azure-apim.net/redirect/campa-campanula-planner-graph-5f2d765a9c3b99d87d`.
-4. Copy the application (client) ID → `PP_CONNECTOR_APP_ID` (GitHub Actions variable, not a secret).
-5. There is no client secret needed for this registration; the connector uses delegated OAuth on behalf of the connecting user.
+This app registration is the OAuth client for the custom connector. It signs
+the connected Power Platform user in to Microsoft Graph with delegated access;
+it is not the PAC CLI deployment identity.
+
+1. Sign in to the [Microsoft Entra admin center](https://entra.microsoft.com)
+   and switch to the directory that contains the target Power Platform
+   environment. Registering the app in another tenant can cause
+   `AADSTS700016` when a connection is created.
+2. Open **Entra ID -> App registrations -> New registration**.
+3. Use a name such as `CampanulaPlannerGraphConnector-OAuth`.
+4. Select **Accounts in this organizational directory only** for a
+   target-tenant-only deployment. Select **Accounts in any organizational
+   directory** only when users from other Entra tenants must use the
+   connector; those tenants require their own consent.
+5. Under **Redirect URI**, select **Web** and enter this exact URI:
+
+   ```text
+   https://global.consent.azure-apim.net/redirect/campa-campanula-planner-graph-5f2d765a9c3b99d87d
+   ```
+
+   This must match the connector `redirectUrl` exactly, including its path and
+   lack of a trailing slash. Do not register it as a SPA or mobile/desktop
+   application.
+6. Select **Register**, then open the app registration's **Overview** page.
+   Copy **Application (client) ID**. Do not copy **Object ID**, **Directory
+   (tenant) ID**, the connector ID, or a client secret.
+7. Open **API permissions -> Add a permission -> Microsoft Graph -> Delegated
+   permissions**, select `Tasks.ReadWrite`, and choose **Add permissions**.
+   Do not use the `Tasks.ReadWrite.All` application permission for this
+   connector. The default `User.Read` permission, if present, is not a
+   replacement for `Tasks.ReadWrite`.
+8. Select **Grant admin consent for your organization** if tenant policy requires
+   administrator approval or if you want consent completed before the first
+   connection. Otherwise, the connection owner can complete delegated user
+   consent when creating the Power Platform connection.
+9. On **Authentication**, verify that the **Web** redirect URI above is
+   present. Leave implicit-grant settings disabled. This repository's
+   connector source uses the client ID and delegated OAuth; it does not define
+   a connector client-secret variable.
+10. Add the copied **Application (client) ID** as the GitHub Actions repository
+    variable `PP_CONNECTOR_APP_ID`. This is a variable, not a secret:
+
+    ```text
+    PP_CONNECTOR_APP_ID=<Application (client) ID of this connector app>
+    ```
+
+    Keep `PP_APP_ID` and `PP_CLIENT_SECRET` assigned to the separate PAC CLI
+    deployment app.
+11. Run **Actions -> Bootstrap Graph Connector**. The workflow injects this
+    value into the temporary package, imports the connector, and applies the
+    tracked icon. It does not rewrite the checked-in
+    `${MICROSOFT_ENTRA_APP_ID}` placeholder.
+12. Delete any failed or stale `Campanula Planner Graph` connection, create a
+    new connection, sign in with the intended Microsoft 365 user, and complete
+    delegated Graph consent. The user must also be a member of the Microsoft
+    365 group used for the Planner plan.
+13. Copy the new Power Platform connection resource ID from its details URL
+    into `PP_GRAPH_CONNECTION_ID`. This is a connection ID, not an app ID or
+    connector ID.
+
+For the underlying Microsoft procedures, see [register an app in Microsoft
+Entra ID](https://learn.microsoft.com/entra/identity-platform/quickstart-register-app),
+[add a redirect URI](https://learn.microsoft.com/entra/identity-platform/how-to-add-redirect-uri),
+and [authenticate a custom connector with Microsoft Entra
+ID](https://learn.microsoft.com/connectors/custom-connectors/azure-active-directory-authentication).
 
 > The deployment service principal (`PP_APP_ID`) is used only by PAC CLI and GitHub Actions to pack and import the solution.  
 > The connector app registration (`PP_CONNECTOR_APP_ID`) is used only by the `Campanula Planner Graph` Power Platform connection when the Flow signs in to Microsoft Graph on behalf of the connected user.  

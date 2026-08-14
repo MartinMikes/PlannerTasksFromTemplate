@@ -116,6 +116,16 @@ test('bootstraps the connector without requiring a delegated Graph connection', 
   assert.doesNotMatch(connectorBootstrapWorkflow, /PP_GRAPH_CONNECTION_ID/);
 });
 
+test('rejects the connector ID when used as the OAuth app ID', () => {
+  for (const workflow of [deployWorkflow, connectorBootstrapWorkflow]) {
+    assert.match(workflow, /reject_connector_id_as_app_id\(\)/);
+    assert.match(
+      workflow,
+      /PP_CONNECTOR_APP_ID is set to the custom connector ID/,
+    );
+  }
+});
+
 test('applies the tracked connector icon after importing the prerequisite', () => {
   const icon = fs.readFileSync(connectorIconPath);
   assert.deepEqual([...icon.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
@@ -226,6 +236,16 @@ test('raises and commits the same release version for both solutions', () => {
   assert.match(commitStep, /CONNECTOR_SOLUTION_FOLDER.*Other\/Solution\.xml/);
   assert.match(flowSolutionMetadata, /<Version>[^<]+<\/Version>/);
   assert.match(connectorSolutionMetadata, /<Version>[^<]+<\/Version>/);
+});
+
+test('keeps the checked-in Flow and connector solution versions aligned', () => {
+  const readSolutionVersion = (metadata) => metadata.match(/<Version>([^<]+)<\/Version>/)?.[1];
+  const flowVersion = readSolutionVersion(flowSolutionMetadata);
+  const connectorVersion = readSolutionVersion(connectorSolutionMetadata);
+
+  assert.ok(flowVersion, 'Flow solution must declare a version');
+  assert.ok(connectorVersion, 'Connector solution must declare a version');
+  assert.equal(connectorVersion, flowVersion);
 });
 
 test('keeps the checked-in connector source on the placeholder contract', () => {
