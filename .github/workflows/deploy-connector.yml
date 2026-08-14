@@ -121,15 +121,19 @@ jobs:
             --publish-changes
 
       - name: Apply Graph connector icon
-        run: |
           set -euo pipefail
           icon_file="${{ env.CONNECTOR_ICON_FILE }}"
+          api_definition_file="${{ env.CONNECTOR_API_DEFINITION_FILE }}"
           if [ ! -s "$icon_file" ]; then
             echo "::error::Connector icon file is missing or empty: $icon_file"
+            exit 1
+          fi
+          if [ ! -s "$api_definition_file" ]; then
+            echo "::error::Connector API definition file is missing or empty: $api_definition_file"
             exit 1
           fi
           "$POWERPLATFORMTOOLS_PACPATH" connector update \
             --environment "${{ vars.PP_ENVIRONMENT_URL }}" \
             --connector-id "${{ env.CONNECTOR_ID }}" \
-            --api-definition-file "${{ env.CONNECTOR_API_DEFINITION_FILE }}" \
+            --api-definition-file "$api_definition_file" \
             --icon-file "$icon_file"

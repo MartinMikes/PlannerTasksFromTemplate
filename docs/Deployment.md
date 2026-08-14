@@ -159,10 +159,10 @@ command:
 
 ```bash
 pac connector update \
-    --environment  "$PP_ENVIRONMENT_URL" \
-    --connector-id aa5c469a-b5dd-4963-917c-66bf35639bb3 \
-      --api-definition-file src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_openapidefinition.json \
-    --icon-file    src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_icon.png
+  --environment "$PP_ENVIRONMENT_URL" \
+  --connector-id aa5c469a-b5dd-4963-917c-66bf35639bb3 \
+  --api-definition-file src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_openapidefinition.json \
+  --icon-file src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_icon.png
 ```
 
 PAC CLI requires either `--settings-file` or `--api-definition-file` for
