@@ -5,8 +5,39 @@ const {
   getWorkflowAction,
   readActionOperationId,
   readActionParameters,
+  workflow,
 } = require('./helpers/planner-fixtures');
 const plannerPlanDetailsPath = '/v1.0/planner/plans/{planId}/details';
+const defaultPlannerGroupId = 'a41f5114-a83e-48ae-8f09-6108674e138f';
+
+test('uses one configurable Planner group ID for plan and task creation', () => {
+  const plannerGroupId = workflow?.properties?.definition?.parameters?.plannerGroupId;
+  const composePlannerGroupUrl = getWorkflowAction('Compose_PlannerGroupUrl');
+  const createPlan = getWorkflowAction('GenerateConcertPlan', 'Create_Planner_Plan');
+  const createTask = getWorkflowAction(
+    'GenerateConcertPlan',
+    'Apply_to_each_template_task',
+    'Create_Planner_Task',
+  );
+
+  assert.deepEqual(plannerGroupId, {
+    type: 'String',
+    defaultValue: defaultPlannerGroupId,
+  });
+  assert.equal(
+    composePlannerGroupUrl?.inputs,
+    "@concat('https://graph.microsoft.com/v1.0/groups/', parameters('plannerGroupId'))",
+  );
+  assert.equal(readActionOperationId(createPlan), 'CreatePlan');
+  assert.equal(
+    createPlan?.inputs?.parameters?.['body/container/url'],
+    "@outputs('Compose_PlannerGroupUrl')",
+  );
+  assert.equal(
+    createTask?.inputs?.parameters?.['body/groupId'],
+    "@parameters('plannerGroupId')",
+  );
+});
 
 test('configures populated Planner labels once before task creation', () => {
   const getPlanDetails = getWorkflowAction('GenerateConcertPlan', 'GetPlannerPlanDetails');

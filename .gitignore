@@ -6,6 +6,9 @@
 out/
 downloads/
 
+# Archive/unpack staging folders (generated artifacts)
+archive/unpack/
+
 # PAC auth profile and internal state
 pac-profile.json
 .pac/

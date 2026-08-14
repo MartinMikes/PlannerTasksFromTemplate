@@ -61,7 +61,7 @@
         },
         "security": [
           {
-            "oauth2_auth": []
+            "oauth2-auth": []
           }
         ]
       }
@@ -91,7 +91,7 @@
         },
         "security": [
           {
-            "oauth2_auth": []
+            "oauth2-auth": []
           }
         ]
       },
@@ -133,7 +133,7 @@
         },
         "security": [
           {
-            "oauth2_auth": []
+            "oauth2-auth": []
           }
         ]
       }
@@ -163,7 +163,7 @@
         },
         "security": [
           {
-            "oauth2_auth": []
+            "oauth2-auth": []
           }
         ]
       },
@@ -205,7 +205,7 @@
         },
         "security": [
           {
-            "oauth2_auth": []
+            "oauth2-auth": []
           }
         ]
       }
@@ -235,7 +235,7 @@
         },
         "security": [
           {
-            "oauth2_auth": []
+            "oauth2-auth": []
           }
         ]
       },
@@ -277,7 +277,7 @@
         },
         "security": [
           {
-            "oauth2_auth": []
+            "oauth2-auth": []
           }
         ]
       }
@@ -646,7 +646,7 @@
     }
   },
   "securityDefinitions": {
-    "oauth2_auth": {
+    "oauth2-auth": {
       "type": "oauth2",
       "flow": "accessCode",
       "authorizationUrl": "https://login.microsoftonline.com/common/oauth2/authorize",
@@ -656,7 +656,7 @@
   },
   "security": [
     {
-      "oauth2_auth": []
+      "oauth2-auth": []
     }
   ],
   "tags": [
