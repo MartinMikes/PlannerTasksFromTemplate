@@ -1,51 +1,52 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const {
-  connector,
-  getWorkflowAction,
-  readActionOperationId,
-  readActionParameters,
-  workflow,
-} = require('./helpers/planner-fixtures');
-const plannerPlanDetailsPath = '/v1.0/planner/plans/{planId}/details';
-const defaultPlannerGroupId = 'a41f5114-a83e-48ae-8f09-6108674e138f';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const {
+  connector,
+  getWorkflowAction,
+  readActionOperationId,
+  readActionParameters,
+  workflow,
+} = require('./helpers/planner-fixtures');
+const plannerPlanDetailsPath = '/v1.0/planner/plans/{planId}/details';
+const defaultPlannerGroupId = 'a41f5114-a83e-48ae-8f09-6108674e138f';
 
-test('uses one configurable Planner group ID for plan and task creation', () => {
-  const plannerGroupId = workflow?.properties?.definition?.parameters?.plannerGroupId;
-  const composePlannerGroupUrl = getWorkflowAction('Compose_PlannerGroupUrl');
-  const createPlan = getWorkflowAction('GenerateConcertPlan', 'Create_Planner_Plan');
-  const createTask = getWorkflowAction(
-    'GenerateConcertPlan',
-    'Apply_to_each_template_task',
-    'Create_Planner_Task',
-  );
+test('uses one configurable Planner group ID for plan and task creation', () => {
+  assert.ok(workflow, 'Expected planner workflow fixture to be loaded');
+  const plannerGroupId = workflow.properties.definition.parameters.plannerGroupId;
+  const composePlannerGroupUrl = getWorkflowAction('Compose_PlannerGroupUrl');
+  const createPlan = getWorkflowAction('GenerateConcertPlan', 'Create_Planner_Plan');
+  const createTask = getWorkflowAction(
+    'GenerateConcertPlan',
+    'Apply_to_each_template_task',
+    'Create_Planner_Task',
+  );
 
-  assert.deepEqual(plannerGroupId, {
-    type: 'String',
-    defaultValue: defaultPlannerGroupId,
-  });
-  assert.equal(
-    composePlannerGroupUrl?.inputs,
-    "@concat('https://graph.microsoft.com/v1.0/groups/', parameters('plannerGroupId'))",
-  );
-  assert.equal(readActionOperationId(createPlan), 'CreatePlan');
-  assert.equal(
-    createPlan?.inputs?.parameters?.['body/container/url'],
-    "@outputs('Compose_PlannerGroupUrl')",
-  );
-  assert.equal(
-    createTask?.inputs?.parameters?.['body/groupId'],
-    "@parameters('plannerGroupId')",
-  );
-});
-
-test('configures populated Planner labels once before task creation', () => {
-  const getPlanDetails = getWorkflowAction('GenerateConcertPlan', 'GetPlannerPlanDetails');
-  const updatePlanDetails = getWorkflowAction('GenerateConcertPlan', 'UpdatePlannerPlanDetails');
-  const createTasks = getWorkflowAction('GenerateConcertPlan', 'Apply_to_each_template_task');
-
-  assert.equal(readActionOperationId(getPlanDetails), 'GetPlanDetails');
-
+  assert.deepEqual(plannerGroupId, {
+    type: 'String',
+    defaultValue: defaultPlannerGroupId,
+  });
+  assert.equal(
+    composePlannerGroupUrl?.inputs,
+    "@concat('https://graph.microsoft.com/v1.0/groups/', parameters('plannerGroupId'))",
+  );
+  assert.equal(readActionOperationId(createPlan), 'CreatePlan');
+  assert.equal(
+    createPlan?.inputs?.parameters?.['body/container/url'],
+    "@outputs('Compose_PlannerGroupUrl')",
+  );
+  assert.equal(
+    createTask?.inputs?.parameters?.['body/groupId'],
+    "@parameters('plannerGroupId')",
+  );
+});
+
+test('configures populated Planner labels once before task creation', () => {
+  const getPlanDetails = getWorkflowAction('GenerateConcertPlan', 'GetPlannerPlanDetails');
+  const updatePlanDetails = getWorkflowAction('GenerateConcertPlan', 'UpdatePlannerPlanDetails');
+  const createTasks = getWorkflowAction('GenerateConcertPlan', 'Apply_to_each_template_task');
+
+  assert.equal(readActionOperationId(getPlanDetails), 'GetPlanDetails');
+
   assert.equal(readActionOperationId(updatePlanDetails), 'UpdatePlanDetails');
   assert.deepEqual(updatePlanDetails?.runAfter ?? {}, {
     GetPlannerPlanDetails: ['Succeeded'],
@@ -53,24 +54,24 @@ test('configures populated Planner labels once before task creation', () => {
   assert.match(readActionParameters(updatePlanDetails), /If-Match/i);
   assert.match(readActionParameters(updatePlanDetails), /categoryDescriptions/);
 
-  assert.deepEqual(createTasks?.runAfter ?? {}, {
-    SetGenerationStageCreatePlannerTasks: ['Succeeded'],
-  });
-  assert.equal(createTasks?.foreach, "@variables('validSelectedRows')");
-});
+  assert.deepEqual(createTasks?.runAfter ?? {}, {
+    SetGenerationStageCreatePlannerTasks: ['Succeeded'],
+  });
+  assert.equal(createTasks?.foreach, "@variables('validSelectedRows')");
+});
 
-test('creates every workbook bucket sequentially with the current Planner operation', () => {
-  const listBuckets = getWorkflowAction(
-    'GenerateConcertPlan',
-    'List_rows_present_in_a_table_-_Buckets',
-  );
-  const foreachBucket = getWorkflowAction('GenerateConcertPlan', 'Apply_to_each_bucket');
-  const createBucket = foreachBucket?.actions?.Create_Planner_Bucket;
-  const setBucketMap = foreachBucket?.actions?.Set_BucketMap;
-
-  assert.deepEqual(listBuckets?.runAfter ?? {}, {
-    SetGenerationStageCreatePlannerBuckets: ['Succeeded'],
-  });
+test('creates every workbook bucket sequentially with the current Planner operation', () => {
+  const listBuckets = getWorkflowAction(
+    'GenerateConcertPlan',
+    'List_rows_present_in_a_table_-_Buckets',
+  );
+  const foreachBucket = getWorkflowAction('GenerateConcertPlan', 'Apply_to_each_bucket');
+  const createBucket = foreachBucket?.actions?.Create_Planner_Bucket;
+  const setBucketMap = foreachBucket?.actions?.Set_BucketMap;
+
+  assert.deepEqual(listBuckets?.runAfter ?? {}, {
+    SetGenerationStageCreatePlannerBuckets: ['Succeeded'],
+  });
   assert.equal(foreachBucket?.operationOptions, 'Sequential');
   assert.equal(
     foreachBucket?.foreach,
@@ -82,20 +83,20 @@ test('creates every workbook bucket sequentially with the current Planner operat
   });
 });
 
-test('extends the Graph connector only with plan-details read and patch operations', () => {
-  const connectorPaths = Object.keys(connector.paths).sort();
+test('extends the Graph connector only with plan-details read and patch operations', () => {
+  const connectorPaths = Object.keys(connector.paths).sort();
 
-  assert.ok(
-    connectorPaths.includes('/v1.0/planner/plans'),
-    'missing Planner plan create path',
-  );
-  assert.ok(
-    connectorPaths.includes(plannerPlanDetailsPath),
-    'missing Planner plan-details path',
-  );
-
-  const planDetailsPath = connector.paths[plannerPlanDetailsPath];
-
+  assert.ok(
+    connectorPaths.includes('/v1.0/planner/plans'),
+    'missing Planner plan create path',
+  );
+  assert.ok(
+    connectorPaths.includes(plannerPlanDetailsPath),
+    'missing Planner plan-details path',
+  );
+
+  const planDetailsPath = connector.paths[plannerPlanDetailsPath];
+
   assert.ok(planDetailsPath.get, 'missing plan-details GET operation');
   assert.ok(planDetailsPath.patch, 'missing plan-details PATCH operation');
   assert.equal(planDetailsPath.get.operationId, 'GetPlanDetails');
