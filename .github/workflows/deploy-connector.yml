@@ -56,6 +56,23 @@ jobs:
             fi
           }
 
+          require_guid() {
+            local name="$1"
+            local value="$2"
+            require_value "$name" "$value"
+            local normalized="${value,,}"
+            case "$normalized" in
+              todo|to-do|tbd|change-me|changeme|placeholder|example|sample|dummy|set-me)
+                echo "::error::${name} is still set to the placeholder value '${value}'. Replace it with the real target-environment ID before deploying."
+                exit 1
+                ;;
+            esac
+            if [[ ! "$value" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+              echo "::error::${name} must be a GUID. Copy the real target-environment ID from Power Apps or Microsoft Entra before deploying."
+              exit 1
+            fi
+          }
+
           reject_connector_id_as_app_id() {
             local value="$1"
             if [[ "${value,,}" == "${CONNECTOR_ID,,}" ]]; then
@@ -65,10 +82,10 @@ jobs:
           }
 
           require_value "PP_ENVIRONMENT_URL" "$PP_ENVIRONMENT_URL"
-          require_value "PP_APP_ID" "$PP_APP_ID"
-          require_value "PP_TENANT_ID" "$PP_TENANT_ID"
+          require_guid "PP_APP_ID" "$PP_APP_ID"
+          require_guid "PP_TENANT_ID" "$PP_TENANT_ID"
           require_value "PP_CLIENT_SECRET" "$PP_CLIENT_SECRET"
-          require_value "PP_CONNECTOR_APP_ID" "$PP_CONNECTOR_APP_ID"
+          require_guid "PP_CONNECTOR_APP_ID" "$PP_CONNECTOR_APP_ID"
           reject_connector_id_as_app_id "$PP_CONNECTOR_APP_ID"
           require_value "DEPLOY_REASON" "$DEPLOY_REASON"
 
