@@ -270,7 +270,7 @@ test('validates required configuration before semantic-release to prevent orphan
     /PP_CONNECTOR_APP_ID variable is not set/,
     /is still set to the placeholder value/,
     /must be a GUID/,
-    /require_guid "PP_GRAPH_CONNECTION_ID" "\$PP_GRAPH_CONNECTION_ID"/,
+    /require_connection_resource_id "PP_GRAPH_CONNECTION_ID" "\$PP_GRAPH_CONNECTION_ID"/,
     /reject_connection_id_confusion\(\)/,
     /PP_GRAPH_CONNECTION_ID.*PP_CONNECTOR_APP_ID/,
     /PP_GRAPH_CONNECTION_ID.*custom connector component ID/,
@@ -281,6 +281,28 @@ test('validates required configuration before semantic-release to prevent orphan
     validateIdx < semanticReleaseIdx,
     'Validate step must appear before Determine release version to prevent orphaned releases',
   );
+});
+
+test('accepts connection resource IDs that contain a GUID', () => {
+  assert.match(deployWorkflow, /require_connection_resource_id\(\) \{/);
+  assert.match(deployWorkflow, /must contain a GUID/);
+
+  for (const connectionName of [
+    'PP_FORMS_CONNECTION_ID',
+    'PP_EXCEL_CONNECTION_ID',
+    'PP_PLANNER_CONNECTION_ID',
+    'PP_GRAPH_CONNECTION_ID',
+    'PP_OUTLOOK_CONNECTION_ID',
+  ]) {
+    assert.match(
+      deployWorkflow,
+      new RegExp(`require_connection_resource_id "${connectionName}" "\\$${connectionName}"`),
+    );
+    assert.doesNotMatch(
+      deployWorkflow,
+      new RegExp(`require_guid "${connectionName}" "\\$${connectionName}"`),
+    );
+  }
 });
 
 test('raises and commits the same release version for both solutions', () => {
