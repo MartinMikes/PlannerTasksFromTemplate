@@ -378,3 +378,16 @@ test('maps target connections and imports the Flow as active', () => {
   assert.match(workflowMetadata, /<StateCode>0<\/StateCode>/);
   assert.match(workflowMetadata, /<StatusCode>1<\/StatusCode>/);
 });
+
+test('prints PAC diagnostics when the Flow import fails', () => {
+  const flowImportIdx = deployWorkflow.indexOf('- name: Import solution to Power Platform');
+  assert.notStrictEqual(flowImportIdx, -1, 'Expected Flow import step to exist');
+  const nextStepIdx = deployWorkflow.indexOf('\n\n      - name:', flowImportIdx);
+  assert.notStrictEqual(nextStepIdx, -1, 'Expected another workflow step after the Flow import step');
+  const flowImportStep = deployWorkflow.slice(flowImportIdx, nextStepIdx);
+
+  assert.match(
+    flowImportStep,
+    /"\$POWERPLATFORMTOOLS_PACPATH" --log-to-console solution import/,
+  );
+});

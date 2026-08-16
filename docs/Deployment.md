@@ -200,6 +200,35 @@ imported by the Bootstrap workflow or is shared with that application user.
 Then verify that the connection owner has shared the connection with the
 connection-reference owner and granted **Can use**.
 
+### `ConnectionAuthorizationFailed` during Flow import
+
+The Flow import can stop at about 38.89% with PAC CLI reporting only
+`An unexpected error occurred`. The server-side import job will show
+`ConnectionAuthorizationFailed` when the deployment application's service
+principal cannot use one of the connections in the deployment settings file.
+
+In the target environment, open **Power Apps -> Connections**, share each of
+the five connections used by the Flow with the deployment application user,
+and grant **Can use**:
+
+- Microsoft Forms
+- Excel Online Business
+- Planner
+- Office 365 Outlook
+- Campanula Planner Graph
+
+In this tenant the application user is displayed as
+`GitHub-PowerPlatform-CICD`. For the Graph OAuth connection, sharing with the
+service principal is required when the connection owner is a different user.
+The failed run reported service-principal object ID
+`9be81f92-206c-4889-a1f4-4aa0f5aa21f7`; the configured `PP_APP_ID` is the
+separate client/application ID `860c6253-e153-4050-951a-6db6ef834829`. Share
+the connection with the application user identified by the object ID, and
+keep the client/application ID in `PP_APP_ID`.
+After sharing all five connections, rerun the deployment. Keep the full
+connection resource IDs in the corresponding `PP_*_CONNECTION_ID` variables;
+do not replace them with an app ID, connector ID, or connection-reference name.
+
 ### Flow import rejects a connection ID
 
 Confirm that the ID is the resource ID from the target environment's connection

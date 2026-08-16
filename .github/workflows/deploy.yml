@@ -460,7 +460,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
         run: |
           set -euo pipefail
-          "$POWERPLATFORMTOOLS_PACPATH" solution import \
+          "$POWERPLATFORMTOOLS_PACPATH" --log-to-console solution import \
             --path "${{ env.SOLUTION_ZIP }}" \
             --force-overwrite \
             --publish-changes \
