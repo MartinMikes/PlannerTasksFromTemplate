@@ -535,18 +535,19 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $guidPattern = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+          $environmentIdPattern = '^(?:Default-)?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
 
           foreach ($entry in @(
-            @{ Name = 'PP_ENVIRONMENT_ID'; Value = $env:PP_ENVIRONMENT_ID },
-            @{ Name = 'PP_TENANT_ID'; Value = $env:PP_TENANT_ID },
-            @{ Name = 'PP_APP_ID'; Value = $env:PP_APP_ID },
-            @{ Name = 'FLOW_SHARE_PRINCIPAL_OBJECT_ID'; Value = $env:FLOW_SHARE_PRINCIPAL_OBJECT_ID }
+            @{ Name = 'PP_ENVIRONMENT_ID'; Value = $env:PP_ENVIRONMENT_ID; Pattern = $environmentIdPattern },
+            @{ Name = 'PP_TENANT_ID'; Value = $env:PP_TENANT_ID; Pattern = $guidPattern },
+            @{ Name = 'PP_APP_ID'; Value = $env:PP_APP_ID; Pattern = $guidPattern },
+            @{ Name = 'FLOW_SHARE_PRINCIPAL_OBJECT_ID'; Value = $env:FLOW_SHARE_PRINCIPAL_OBJECT_ID; Pattern = $guidPattern }
           )) {
             if ([string]::IsNullOrWhiteSpace($entry.Value)) {
               throw "$($entry.Name) is not set."
             }
-            if ($entry.Value -notmatch $guidPattern) {
-              throw "$($entry.Name) must be a GUID."
+            if ($entry.Value -notmatch $entry.Pattern) {
+              throw "$($entry.Name) must be a GUID (optionally prefixed with 'Default-' for PP_ENVIRONMENT_ID)."
             }
           }
 
