@@ -266,8 +266,15 @@ test('validates required configuration before semantic-release to prevent orphan
     /- name: Validate required configuration/,
     /if: github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'/,
     /require_guid\(\) \{/,
+    /PP_ENVIRONMENT_ID: \$\{\{ vars\.PP_ENVIRONMENT_ID \}\}/,
+    /require_guid "PP_ENVIRONMENT_ID" "\$PP_ENVIRONMENT_ID"/,
     /PP_CONNECTOR_APP_ID: \$\{\{ vars\.PP_CONNECTOR_APP_ID \}\}/,
     /PP_CONNECTOR_APP_ID variable is not set/,
+    /FLOW_SHARE_PRINCIPAL_TYPE: \$\{\{ vars\.FLOW_SHARE_PRINCIPAL_TYPE \}\}/,
+    /FLOW_SHARE_PRINCIPAL_OBJECT_ID: \$\{\{ vars\.FLOW_SHARE_PRINCIPAL_OBJECT_ID \}\}/,
+    /FLOW_SHARE_ROLE: \$\{\{ vars\.FLOW_SHARE_ROLE \}\}/,
+    /require_guid "FLOW_SHARE_PRINCIPAL_OBJECT_ID" "\$FLOW_SHARE_PRINCIPAL_OBJECT_ID"/,
+    /FLOW_SHARE_ROLE must be CanView or CanEdit/,
     /is still set to the placeholder value/,
     /must be a GUID/,
     /require_connection_resource_id "PP_GRAPH_CONNECTION_ID" "\$PP_GRAPH_CONNECTION_ID"/,
@@ -349,7 +356,7 @@ test('keeps the checked-in connector source on the placeholder contract', () => 
   assert.doesNotMatch(flowSolutionMetadata, /<RootComponent type="372"/);
 });
 
-test('maps target connections and imports the Flow as active', () => {
+test('maps target connections and requests Flow activation during import', () => {
   assertMatchesAllPatterns(deployWorkflow, [
     /PP_FORMS_CONNECTION_ID/,
     /PP_EXCEL_CONNECTION_ID/,
@@ -379,10 +386,56 @@ test('maps target connections and imports the Flow as active', () => {
   assert.match(workflowMetadata, /<StatusCode>1<\/StatusCode>/);
 });
 
+test('activates and shares the imported Flow after solution deployment', () => {
+  const flowId = workflowMetadata.match(/WorkflowId="\{([^}]+)\}"/)?.[1];
+  assert.ok(flowId, 'Flow metadata must declare a workflow ID');
+
+  assertMatchesAllPatterns(deployWorkflow, [
+    /FLOW_NAME:\s*CampanulaCreateConcertPlanFromTemplate/,
+    new RegExp(`FLOW_ID:\\s*${flowId}`),
+    /FLOW_SHARE_PRINCIPAL_TYPE:\s*\$\{\{ vars\.FLOW_SHARE_PRINCIPAL_TYPE \}\}/,
+    /FLOW_SHARE_PRINCIPAL_OBJECT_ID:\s*\$\{\{ vars\.FLOW_SHARE_PRINCIPAL_OBJECT_ID \}\}/,
+    /FLOW_SHARE_ROLE:\s*\$\{\{ vars\.FLOW_SHARE_ROLE \}\}/,
+    /deployment_completed: \$\{\{ steps\.markDeploymentCompleted\.outputs\.deployment_completed \}\}/,
+    /environment_id: \$\{\{ steps\.markDeploymentCompleted\.outputs\.environment_id \}\}/,
+    /activate-and-share-flow:/,
+    /runs-on: windows-latest/,
+    /Microsoft\.PowerApps\.Administration\.PowerShell/,
+    /Add-PowerAppsAccount/,
+    /Get-AdminFlow/,
+    /Enable-AdminFlow/,
+    /Set-AdminFlowOwnerRole/,
+    /Get-AdminFlowOwnerRole/,
+    /-PrincipalType \$env:FLOW_SHARE_PRINCIPAL_TYPE/,
+    /-PrincipalObjectId \$env:FLOW_SHARE_PRINCIPAL_OBJECT_ID/,
+    /-RoleName \$env:FLOW_SHARE_ROLE/,
+    /FLOW_SHARE_ROLE must be CanView or CanEdit/,
+    /CanUse is a connection permission, not a Flow owner role/,
+    /\$_.DisplayName -eq \$env:FLOW_NAME/,
+    /if \(-not \$flowAfter\.Enabled\)/,
+    /\$_.RoleType -eq \$env:FLOW_SHARE_ROLE/,
+  ]);
+
+  const flowImportIdx = deployWorkflow.indexOf('- name: Import solution to Power Platform');
+  const completionIdx = deployWorkflow.indexOf('- name: Mark solution deployment complete');
+  const postDeployJobIdx = deployWorkflow.indexOf('  activate-and-share-flow:');
+  assert.ok(flowImportIdx < completionIdx, 'Deployment completion must follow the Flow import');
+  assert.ok(completionIdx < postDeployJobIdx, 'Activation and sharing must follow the deployment job');
+  assert.match(
+    deployWorkflow.slice(postDeployJobIdx),
+    /needs: build-and-deploy[\s\S]*if: needs\.build-and-deploy\.result == 'success'/,
+  );
+});
+
 test('prints PAC diagnostics when the Flow import fails', () => {
   const flowImportIdx = deployWorkflow.indexOf('- name: Import solution to Power Platform');
   assert.notStrictEqual(flowImportIdx, -1, 'Expected Flow import step to exist');
-  const nextStepIdx = deployWorkflow.indexOf('\n\n      - name:', flowImportIdx);
+  const nextStepMatch = deployWorkflow
+    .slice(flowImportIdx)
+    .match(/\r?\n\r?\n      - name:/);
+  const nextStepIdx = nextStepMatch
+    ? flowImportIdx + nextStepMatch.index
+    : -1;
   assert.notStrictEqual(nextStepIdx, -1, 'Expected another workflow step after the Flow import step');
   const flowImportStep = deployWorkflow.slice(flowImportIdx, nextStepIdx);
 

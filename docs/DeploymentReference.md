@@ -34,6 +34,8 @@ pac auth create `
 
 The service principal must be an application user in the target environment
 with enough privileges to import solutions and update the connector.
+For the post-deployment Flow operation, also set `PP_ENVIRONMENT_ID` to the
+target environment GUID. It is not interchangeable with `PP_ENVIRONMENT_URL`.
 
 ### Stage and pack managed solutions
 
@@ -97,6 +99,82 @@ The connector component ID is valid for `pac connector update`; it is not an
 OAuth application ID and must never be assigned to `PP_CONNECTOR_APP_ID`.
 PAC CLI requires an API definition or settings file for `connector update`, even
 when the requested change is only the icon.
+
+### Enable and share the modern Flow
+
+PAC CLI does not provide the required modern Flow activation and owner-sharing
+commands. Use the documented Power Platform administration module from Windows
+PowerShell 5.1. The deployment application must be authorized for Power
+Platform administration, and a service-principal-owned premium Flow may need a
+Process license or a designated licensed owner.
+
+```powershell
+Install-Module `
+  -Name Microsoft.PowerApps.Administration.PowerShell `
+  -Repository PSGallery `
+  -Scope CurrentUser `
+  -Force `
+  -AllowClobber
+Import-Module Microsoft.PowerApps.Administration.PowerShell
+
+Add-PowerAppsAccount `
+  -Endpoint prod `
+  -TenantID $env:PP_TENANT_ID `
+  -ApplicationId $env:PP_APP_ID `
+  -ClientSecret $env:PP_CLIENT_SECRET
+
+$flowId = '7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018'
+$flowName = 'CampanulaCreateConcertPlanFromTemplate'
+$principalType = $env:FLOW_SHARE_PRINCIPAL_TYPE
+$principalObjectId = $env:FLOW_SHARE_PRINCIPAL_OBJECT_ID
+$roleName = $env:FLOW_SHARE_ROLE
+$flow = Get-AdminFlow `
+  -EnvironmentName $env:PP_ENVIRONMENT_ID `
+  -FlowName $flowId
+if ($flow.DisplayName -ne $flowName) {
+  throw "Unexpected Flow display name: $($flow.DisplayName)"
+}
+
+Enable-AdminFlow `
+  -EnvironmentName $env:PP_ENVIRONMENT_ID `
+  -FlowName $flowId
+
+Set-AdminFlowOwnerRole `
+  -EnvironmentName $env:PP_ENVIRONMENT_ID `
+  -FlowName $flowId `
+  -PrincipalType $principalType `
+  -PrincipalObjectId $principalObjectId `
+  -RoleName $roleName
+
+$flowAfter = Get-AdminFlow `
+  -EnvironmentName $env:PP_ENVIRONMENT_ID `
+  -FlowName $flowId
+if (-not $flowAfter.Enabled) {
+  throw 'The Flow is still disabled.'
+}
+
+$ownerRoles = @(Get-AdminFlowOwnerRole `
+  -EnvironmentName $env:PP_ENVIRONMENT_ID `
+  -FlowName $flowId)
+if (-not ($ownerRoles | Where-Object {
+  $_.PrincipalObjectId -eq $principalObjectId -and
+  $_.PrincipalType -eq $principalType -and
+  $_.RoleType -eq $roleName
+})) {
+  throw 'The requested Flow owner role was not found.'
+}
+```
+
+Set `FLOW_SHARE_PRINCIPAL_TYPE`, `FLOW_SHARE_PRINCIPAL_OBJECT_ID`, and
+`FLOW_SHARE_ROLE` in the environment before running this fallback. The role
+must be `CanView` or `CanEdit`; `CanUse` is a connection permission, not a Flow
+owner role. The current values target the Entra security group `Pěvecké
+sdružení Campanula, z. s.` with `CanEdit`. To use Martin Mikes's account
+instead, set the principal type to `User` and provide Martin's Entra object ID.
+Do not pass `martin.mikes@campanulajihlava.cz` as
+`FLOW_SHARE_PRINCIPAL_OBJECT_ID`; the cmdlet requires the object ID. Flow owner
+sharing does not grant connection permissions, so the deployment application
+must still have `Can use` access to all five backing connections.
 
 ### Refresh the Graph connection
 
