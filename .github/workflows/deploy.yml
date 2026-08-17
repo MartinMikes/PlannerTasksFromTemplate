@@ -207,7 +207,7 @@ jobs:
           }
 
           require_value "PP_ENVIRONMENT_URL" "$PP_ENVIRONMENT_URL"
-          require_guid "PP_ENVIRONMENT_ID" "$PP_ENVIRONMENT_ID"
+          require_connection_resource_id "PP_ENVIRONMENT_ID" "$PP_ENVIRONMENT_ID"
           require_guid "PP_APP_ID" "$PP_APP_ID"
           require_guid "PP_TENANT_ID" "$PP_TENANT_ID"
           require_value "PP_CLIENT_SECRET" "$PP_CLIENT_SECRET"
