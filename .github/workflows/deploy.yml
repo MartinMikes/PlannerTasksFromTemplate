@@ -37,12 +37,20 @@ env:
   CONNECTOR_API_DEFINITION_FILE: src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_openapidefinition.json
   CONNECTOR_METADATA_FOLDER: out/CampanulaPlannerGraphConnector-metadata
   DEPLOYMENT_SETTINGS_FILE: out/CampanulaPlannerFlows.deployment-settings.json
+  FLOW_NAME: CampanulaCreateConcertPlanFromTemplate
+  FLOW_ID: 7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018
+  FLOW_SHARE_PRINCIPAL_TYPE: ${{ vars.FLOW_SHARE_PRINCIPAL_TYPE }}
+  FLOW_SHARE_PRINCIPAL_OBJECT_ID: ${{ vars.FLOW_SHARE_PRINCIPAL_OBJECT_ID }}
+  FLOW_SHARE_ROLE: ${{ vars.FLOW_SHARE_ROLE }}
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-and-deploy:
     name: Pack & Import Solution
     runs-on: ubuntu-latest
+    outputs:
+      deployment_completed: ${{ steps.markDeploymentCompleted.outputs.deployment_completed }}
+      environment_id: ${{ steps.markDeploymentCompleted.outputs.environment_id }}
     permissions:
       contents: write # create tags and releases
       issues: write # comment on released issues
@@ -131,9 +139,13 @@ jobs:
         env:
           PACK_SOURCE: ${{ steps.manualRelease.outputs.pack_source }}
           PP_ENVIRONMENT_URL: ${{ vars.PP_ENVIRONMENT_URL }}
+          PP_ENVIRONMENT_ID: ${{ vars.PP_ENVIRONMENT_ID }}
           PP_APP_ID: ${{ vars.PP_APP_ID }}
           PP_TENANT_ID: ${{ vars.PP_TENANT_ID }}
           PP_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          FLOW_SHARE_PRINCIPAL_TYPE: ${{ vars.FLOW_SHARE_PRINCIPAL_TYPE }}
+          FLOW_SHARE_PRINCIPAL_OBJECT_ID: ${{ vars.FLOW_SHARE_PRINCIPAL_OBJECT_ID }}
+          FLOW_SHARE_ROLE: ${{ vars.FLOW_SHARE_ROLE }}
           PP_CONNECTOR_APP_ID: ${{ vars.PP_CONNECTOR_APP_ID }}
           PP_FORMS_CONNECTION_ID: ${{ vars.PP_FORMS_CONNECTION_ID }}
           PP_EXCEL_CONNECTION_ID: ${{ vars.PP_EXCEL_CONNECTION_ID }}
@@ -195,9 +207,27 @@ jobs:
           }
 
           require_value "PP_ENVIRONMENT_URL" "$PP_ENVIRONMENT_URL"
+          require_guid "PP_ENVIRONMENT_ID" "$PP_ENVIRONMENT_ID"
           require_guid "PP_APP_ID" "$PP_APP_ID"
           require_guid "PP_TENANT_ID" "$PP_TENANT_ID"
           require_value "PP_CLIENT_SECRET" "$PP_CLIENT_SECRET"
+          require_value "FLOW_SHARE_PRINCIPAL_TYPE" "$FLOW_SHARE_PRINCIPAL_TYPE"
+          case "$FLOW_SHARE_PRINCIPAL_TYPE" in
+            User|Group) ;;
+            *)
+              echo "::error::FLOW_SHARE_PRINCIPAL_TYPE must be User or Group."
+              exit 1
+              ;;
+          esac
+          require_guid "FLOW_SHARE_PRINCIPAL_OBJECT_ID" "$FLOW_SHARE_PRINCIPAL_OBJECT_ID"
+          require_value "FLOW_SHARE_ROLE" "$FLOW_SHARE_ROLE"
+          case "$FLOW_SHARE_ROLE" in
+            CanView|CanEdit) ;;
+            *)
+              echo "::error::FLOW_SHARE_ROLE must be CanView or CanEdit. CanUse is a connection permission, not a Flow owner role."
+              exit 1
+              ;;
+          esac
           require_connection_resource_id "PP_FORMS_CONNECTION_ID" "$PP_FORMS_CONNECTION_ID"
           require_connection_resource_id "PP_EXCEL_CONNECTION_ID" "$PP_EXCEL_CONNECTION_ID"
           require_connection_resource_id "PP_PLANNER_CONNECTION_ID" "$PP_PLANNER_CONNECTION_ID"
@@ -467,6 +497,16 @@ jobs:
             --activate-plugins \
             --settings-file "${{ env.DEPLOYMENT_SETTINGS_FILE }}"
 
+      - name: Mark solution deployment complete
+        id: markDeploymentCompleted
+        if: github.event_name == 'workflow_dispatch' || steps.semanticRelease.outputs.new_release_published == 'true'
+        env:
+          PP_ENVIRONMENT_ID: ${{ vars.PP_ENVIRONMENT_ID }}
+        run: |
+          set -euo pipefail
+          echo "deployment_completed=true" >> "$GITHUB_OUTPUT"
+          echo "environment_id=$PP_ENVIRONMENT_ID" >> "$GITHUB_OUTPUT"
+
       - name: Attach validated solution zips to GitHub release
         if: steps.semanticRelease.outputs.new_release_published == 'true'
         uses: softprops/action-gh-release@v3
@@ -475,3 +515,122 @@ jobs:
           files: |
             ${{ env.SOLUTION_ZIP }}
             ${{ env.CONNECTOR_SOLUTION_ZIP }}
+
+  activate-and-share-flow:
+    name: Activate and Share Flow
+    needs: build-and-deploy
+    if: needs.build-and-deploy.result == 'success' && needs.build-and-deploy.outputs.deployment_completed == 'true'
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    env:
+      PP_ENVIRONMENT_ID: ${{ needs.build-and-deploy.outputs.environment_id }}
+      PP_TENANT_ID: ${{ vars.PP_TENANT_ID }}
+      PP_APP_ID: ${{ vars.PP_APP_ID }}
+      PP_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+
+    steps:
+      - name: Validate Flow post-deployment configuration
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $guidPattern = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+
+          foreach ($entry in @(
+            @{ Name = 'PP_ENVIRONMENT_ID'; Value = $env:PP_ENVIRONMENT_ID },
+            @{ Name = 'PP_TENANT_ID'; Value = $env:PP_TENANT_ID },
+            @{ Name = 'PP_APP_ID'; Value = $env:PP_APP_ID },
+            @{ Name = 'FLOW_SHARE_PRINCIPAL_OBJECT_ID'; Value = $env:FLOW_SHARE_PRINCIPAL_OBJECT_ID }
+          )) {
+            if ([string]::IsNullOrWhiteSpace($entry.Value)) {
+              throw "$($entry.Name) is not set."
+            }
+            if ($entry.Value -notmatch $guidPattern) {
+              throw "$($entry.Name) must be a GUID."
+            }
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:PP_CLIENT_SECRET)) {
+            throw 'PP_CLIENT_SECRET is not set.'
+          }
+          if (@('User', 'Group') -notcontains $env:FLOW_SHARE_PRINCIPAL_TYPE) {
+            throw 'FLOW_SHARE_PRINCIPAL_TYPE must be User or Group.'
+          }
+          if (@('CanView', 'CanEdit') -notcontains $env:FLOW_SHARE_ROLE) {
+            throw 'FLOW_SHARE_ROLE must be CanView or CanEdit. CanUse is a connection permission, not a Flow owner role.'
+          }
+
+      - name: Install Power Platform administration module
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Install-Module `
+            -Name Microsoft.PowerApps.Administration.PowerShell `
+            -Repository PSGallery `
+            -Scope CurrentUser `
+            -Force `
+            -AllowClobber
+          Import-Module Microsoft.PowerApps.Administration.PowerShell
+
+      - name: Authenticate Power Platform administration module
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Add-PowerAppsAccount `
+            -Endpoint prod `
+            -TenantID $env:PP_TENANT_ID `
+            -ApplicationId $env:PP_APP_ID `
+            -ClientSecret $env:PP_CLIENT_SECRET
+
+      - name: Enable and share deployed Flow
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $flowCandidates = @(Get-AdminFlow `
+            -EnvironmentName $env:PP_ENVIRONMENT_ID `
+            -FlowName $env:FLOW_ID)
+          $flowMatches = @($flowCandidates | Where-Object {
+            $_.FlowName -eq $env:FLOW_ID -and
+            $_.DisplayName -eq $env:FLOW_NAME
+          })
+          if ($flowMatches.Count -ne 1) {
+            throw "Expected Flow '$($env:FLOW_ID)' with display name '$($env:FLOW_NAME)' in environment '$($env:PP_ENVIRONMENT_ID)', found $($flowMatches.Count) matching result(s)."
+          }
+
+          $flowId = [string]$flowMatches[0].FlowName
+          if ($flowId -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
+            throw "Power Platform returned an invalid Flow ID for '$($env:FLOW_NAME)'."
+          }
+
+          Enable-AdminFlow `
+            -EnvironmentName $env:PP_ENVIRONMENT_ID `
+            -FlowName $flowId
+
+          Set-AdminFlowOwnerRole `
+            -EnvironmentName $env:PP_ENVIRONMENT_ID `
+            -FlowName $flowId `
+            -PrincipalType $env:FLOW_SHARE_PRINCIPAL_TYPE `
+            -RoleName $env:FLOW_SHARE_ROLE `
+            -PrincipalObjectId $env:FLOW_SHARE_PRINCIPAL_OBJECT_ID
+
+          $flowAfter = Get-AdminFlow `
+            -EnvironmentName $env:PP_ENVIRONMENT_ID `
+            -FlowName $flowId
+          if (-not $flowAfter.Enabled) {
+            throw "Flow '$($env:FLOW_NAME)' was not activated."
+          }
+
+          $ownerRoles = @(Get-AdminFlowOwnerRole `
+            -EnvironmentName $env:PP_ENVIRONMENT_ID `
+            -FlowName $flowId)
+          $matchingRoles = @($ownerRoles | Where-Object {
+            $_.PrincipalObjectId -eq $env:FLOW_SHARE_PRINCIPAL_OBJECT_ID -and
+            $_.PrincipalType -eq $env:FLOW_SHARE_PRINCIPAL_TYPE -and
+            $_.RoleType -eq $env:FLOW_SHARE_ROLE
+          })
+          if ($matchingRoles.Count -lt 1) {
+            throw "Flow '$($env:FLOW_NAME)' does not have the requested $($env:FLOW_SHARE_ROLE) role for $($env:FLOW_SHARE_PRINCIPAL_TYPE) '$($env:FLOW_SHARE_PRINCIPAL_OBJECT_ID)'."
+          }
+
+          Write-Host "Flow '$($env:FLOW_NAME)' is enabled and shared as $($env:FLOW_SHARE_ROLE) with $($env:FLOW_SHARE_PRINCIPAL_TYPE) '$($env:FLOW_SHARE_PRINCIPAL_OBJECT_ID)'."
