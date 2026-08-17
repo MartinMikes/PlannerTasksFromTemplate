@@ -423,7 +423,7 @@ test('activates and shares the imported Flow after solution deployment', () => {
   assert.ok(completionIdx < postDeployJobIdx, 'Activation and sharing must follow the deployment job');
   assert.match(
     deployWorkflow.slice(postDeployJobIdx),
-    /needs: build-and-deploy[\s\S]*if: needs\.build-and-deploy\.result == 'success'/,
+    /needs: build-and-deploy[\s\S]*if: needs\.build-and-deploy\.result == 'success'\s*&&\s*needs\.build-and-deploy\.outputs\.deployment_completed == 'true'/,
   );
 });
 
