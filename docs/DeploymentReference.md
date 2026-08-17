@@ -35,7 +35,9 @@ pac auth create `
 The service principal must be an application user in the target environment
 with enough privileges to import solutions and update the connector.
 For the post-deployment Flow operation, also set `PP_ENVIRONMENT_ID` to the
-target environment GUID. It is not interchangeable with `PP_ENVIRONMENT_URL`.
+target environment identifier containing the GUID, for example
+`Default-53357042-b087-461e-8519-b117a4e3a7ba`. It is not interchangeable with
+`PP_ENVIRONMENT_URL`.
 
 ### Stage and pack managed solutions
 

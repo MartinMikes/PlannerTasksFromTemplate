@@ -267,7 +267,7 @@ test('validates required configuration before semantic-release to prevent orphan
     /if: github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'/,
     /require_guid\(\) \{/,
     /PP_ENVIRONMENT_ID: \$\{\{ vars\.PP_ENVIRONMENT_ID \}\}/,
-    /require_guid "PP_ENVIRONMENT_ID" "\$PP_ENVIRONMENT_ID"/,
+    /require_connection_resource_id "PP_ENVIRONMENT_ID" "\$PP_ENVIRONMENT_ID"/,
     /PP_CONNECTOR_APP_ID: \$\{\{ vars\.PP_CONNECTOR_APP_ID \}\}/,
     /PP_CONNECTOR_APP_ID variable is not set/,
     /FLOW_SHARE_PRINCIPAL_TYPE: \$\{\{ vars\.FLOW_SHARE_PRINCIPAL_TYPE \}\}/,
@@ -290,9 +290,13 @@ test('validates required configuration before semantic-release to prevent orphan
   );
 });
 
-test('accepts connection resource IDs that contain a GUID', () => {
+test('accepts environment and connection resource IDs that contain a GUID', () => {
   assert.match(deployWorkflow, /require_connection_resource_id\(\) \{/);
   assert.match(deployWorkflow, /must contain a GUID/);
+  assert.match(
+    deployWorkflow,
+    /require_connection_resource_id "PP_ENVIRONMENT_ID" "\$PP_ENVIRONMENT_ID"/,
+  );
 
   for (const connectionName of [
     'PP_FORMS_CONNECTION_ID',

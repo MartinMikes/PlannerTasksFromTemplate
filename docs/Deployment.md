@@ -39,7 +39,7 @@ Create these repository variables and secret:
 | Name | Type | Value |
 | --- | --- | --- |
 | `PP_ENVIRONMENT_URL` | Variable | Target environment URL. |
-| `PP_ENVIRONMENT_ID` | Variable | Target environment GUID used by the administration PowerShell cmdlets. |
+| `PP_ENVIRONMENT_ID` | Variable | Target environment identifier containing its GUID, for example `Default-53357042-b087-461e-8519-b117a4e3a7ba`, used by the administration PowerShell cmdlets. |
 | `PP_APP_ID` | Variable | Client ID of the deployment app. |
 | `PP_TENANT_ID` | Variable | Entra tenant ID. |
 | `PP_CLIENT_SECRET` | Secret | Client secret **value** of the deployment app. |
@@ -295,7 +295,8 @@ workflow.
 
 ### The activation or sharing job fails
 
-Check that `PP_ENVIRONMENT_ID` is the target environment GUID, not
+Check that `PP_ENVIRONMENT_ID` contains the target environment GUID, for example
+`Default-53357042-b087-461e-8519-b117a4e3a7ba`. It is not
 `PP_ENVIRONMENT_URL`, the tenant ID, or an environment display name. Confirm
 that the deployment application can use the Power Platform administration
 PowerShell cmdlets and that the `Microsoft.PowerApps.Administration.PowerShell`
