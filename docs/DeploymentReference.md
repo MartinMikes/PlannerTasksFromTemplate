@@ -125,17 +125,20 @@ Add-PowerAppsAccount `
   -ApplicationId $env:PP_APP_ID `
   -ClientSecret $env:PP_CLIENT_SECRET
 
-$flowId = '7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018'
 $flowName = 'CampanulaCreateConcertPlanFromTemplate'
 $principalType = $env:FLOW_SHARE_PRINCIPAL_TYPE
 $principalObjectId = $env:FLOW_SHARE_PRINCIPAL_OBJECT_ID
 $roleName = $env:FLOW_SHARE_ROLE
-$flow = Get-AdminFlow `
+$flowCandidates = @(Get-AdminFlow `
   -EnvironmentName $env:PP_ENVIRONMENT_ID `
-  -FlowName $flowId
-if ($flow.DisplayName -ne $flowName) {
-  throw "Unexpected Flow display name: $($flow.DisplayName)"
+  -Filter $flowName)
+$flowMatches = @($flowCandidates | Where-Object {
+  $_.DisplayName -eq $flowName
+})
+if ($flowMatches.Count -ne 1) {
+  throw "Expected exactly one Flow with display name '$flowName', found $($flowMatches.Count)."
 }
+$flowId = [string]$flowMatches[0].FlowName
 
 Enable-AdminFlow `
   -EnvironmentName $env:PP_ENVIRONMENT_ID `
