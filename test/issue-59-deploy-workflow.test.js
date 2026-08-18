@@ -396,7 +396,7 @@ test('activates and shares the imported Flow after solution deployment', () => {
 
   assertMatchesAllPatterns(deployWorkflow, [
     /FLOW_NAME:\s*CampanulaCreateConcertPlanFromTemplate/,
-    new RegExp(`FLOW_ID:\\s*${flowId}`),
+    new RegExp(`FLOW_SOLUTION_WORKFLOW_ID:\\s*${flowId}`),
     /FLOW_SHARE_PRINCIPAL_TYPE:\s*\$\{\{ vars\.FLOW_SHARE_PRINCIPAL_TYPE \}\}/,
     /FLOW_SHARE_PRINCIPAL_OBJECT_ID:\s*\$\{\{ vars\.FLOW_SHARE_PRINCIPAL_OBJECT_ID \}\}/,
     /FLOW_SHARE_ROLE:\s*\$\{\{ vars\.FLOW_SHARE_ROLE \}\}/,
@@ -404,9 +404,11 @@ test('activates and shares the imported Flow after solution deployment', () => {
     /environment_id: \$\{\{ steps\.markDeploymentCompleted\.outputs\.environment_id \}\}/,
     /activate-and-share-flow:/,
     /runs-on: windows-latest/,
+    /timeout-minutes: 15/,
     /Microsoft\.PowerApps\.Administration\.PowerShell/,
     /Add-PowerAppsAccount/,
     /Get-AdminFlow/,
+    /-Filter \$env:FLOW_NAME/,
     /Enable-AdminFlow/,
     /Set-AdminFlowOwnerRole/,
     /Get-AdminFlowOwnerRole/,
@@ -416,9 +418,13 @@ test('activates and shares the imported Flow after solution deployment', () => {
     /FLOW_SHARE_ROLE must be CanView or CanEdit/,
     /CanUse is a connection permission, not a Flow owner role/,
     /\$_.DisplayName -eq \$env:FLOW_NAME/,
-    /if \(-not \$flowAfter\.Enabled\)/,
+    /if \(\$flowAfter\.Count -ne 1 -or -not \$flowAfter\[0\]\.Enabled\)/,
     /\$_.RoleType -eq \$env:FLOW_SHARE_ROLE/,
+    /Resolved cloud Flow ID/,
+    /Cloud Flow enable request completed/,
+    /Cloud Flow sharing request completed/,
   ]);
+  assert.doesNotMatch(deployWorkflow, /-FlowName \$env:FLOW_ID/);
 
   const flowImportIdx = deployWorkflow.indexOf('- name: Import solution to Power Platform');
   const completionIdx = deployWorkflow.indexOf('- name: Mark solution deployment complete');

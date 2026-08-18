@@ -38,7 +38,7 @@ env:
   CONNECTOR_METADATA_FOLDER: out/CampanulaPlannerGraphConnector-metadata
   DEPLOYMENT_SETTINGS_FILE: out/CampanulaPlannerFlows.deployment-settings.json
   FLOW_NAME: CampanulaCreateConcertPlanFromTemplate
-  FLOW_ID: 7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018
+  FLOW_SOLUTION_WORKFLOW_ID: 7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018
   FLOW_SHARE_PRINCIPAL_TYPE: ${{ vars.FLOW_SHARE_PRINCIPAL_TYPE }}
   FLOW_SHARE_PRINCIPAL_OBJECT_ID: ${{ vars.FLOW_SHARE_PRINCIPAL_OBJECT_ID }}
   FLOW_SHARE_ROLE: ${{ vars.FLOW_SHARE_ROLE }}
@@ -521,6 +521,7 @@ jobs:
     needs: build-and-deploy
     if: needs.build-and-deploy.result == 'success' && needs.build-and-deploy.outputs.deployment_completed == 'true'
     runs-on: windows-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     env:
@@ -588,43 +589,57 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
 
+          Write-Host "Resolving cloud Flow '$($env:FLOW_NAME)' in environment '$($env:PP_ENVIRONMENT_ID)' by display name."
+          Write-Host "Solution metadata workflow ID is '$($env:FLOW_SOLUTION_WORKFLOW_ID)'; the deployed cloud Flow ID is resolved from the administration API."
           $flowCandidates = @(Get-AdminFlow `
             -EnvironmentName $env:PP_ENVIRONMENT_ID `
-            -FlowName $env:FLOW_ID)
+            -Filter $env:FLOW_NAME `
+            -ErrorAction Stop)
           $flowMatches = @($flowCandidates | Where-Object {
-            $_.FlowName -eq $env:FLOW_ID -and
             $_.DisplayName -eq $env:FLOW_NAME
           })
           if ($flowMatches.Count -ne 1) {
-            throw "Expected Flow '$($env:FLOW_ID)' with display name '$($env:FLOW_NAME)' in environment '$($env:PP_ENVIRONMENT_ID)', found $($flowMatches.Count) matching result(s)."
+            throw "Expected exactly one Flow with display name '$($env:FLOW_NAME)' in environment '$($env:PP_ENVIRONMENT_ID)', found $($flowMatches.Count) matching result(s)."
           }
 
           $flowId = [string]$flowMatches[0].FlowName
           if ($flowId -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
-            throw "Power Platform returned an invalid Flow ID for '$($env:FLOW_NAME)'."
+            throw "Power Platform returned an invalid cloud Flow ID for '$($env:FLOW_NAME)'."
           }
+          Write-Host "Resolved cloud Flow ID '$flowId'."
 
+          Write-Host "Enabling cloud Flow '$flowId'."
           Enable-AdminFlow `
             -EnvironmentName $env:PP_ENVIRONMENT_ID `
-            -FlowName $flowId
+            -FlowName $flowId `
+            -ErrorAction Stop
+          Write-Host "Cloud Flow enable request completed."
 
+          Write-Host "Granting $env:FLOW_SHARE_ROLE to $env:FLOW_SHARE_PRINCIPAL_TYPE '$env:FLOW_SHARE_PRINCIPAL_OBJECT_ID' on cloud Flow '$flowId'."
           Set-AdminFlowOwnerRole `
             -EnvironmentName $env:PP_ENVIRONMENT_ID `
             -FlowName $flowId `
             -PrincipalType $env:FLOW_SHARE_PRINCIPAL_TYPE `
             -RoleName $env:FLOW_SHARE_ROLE `
-            -PrincipalObjectId $env:FLOW_SHARE_PRINCIPAL_OBJECT_ID
+            -PrincipalObjectId $env:FLOW_SHARE_PRINCIPAL_OBJECT_ID `
+            -ErrorAction Stop
+          Write-Host "Cloud Flow sharing request completed."
 
-          $flowAfter = Get-AdminFlow `
+          Write-Host "Verifying cloud Flow '$flowId' is enabled."
+          $flowAfter = @(Get-AdminFlow `
             -EnvironmentName $env:PP_ENVIRONMENT_ID `
-            -FlowName $flowId
-          if (-not $flowAfter.Enabled) {
+            -FlowName $flowId `
+            -ErrorAction Stop)
+          if ($flowAfter.Count -ne 1 -or -not $flowAfter[0].Enabled) {
             throw "Flow '$($env:FLOW_NAME)' was not activated."
           }
+          Write-Host "Cloud Flow is enabled."
 
+          Write-Host "Verifying cloud Flow owner role."
           $ownerRoles = @(Get-AdminFlowOwnerRole `
             -EnvironmentName $env:PP_ENVIRONMENT_ID `
-            -FlowName $flowId)
+            -FlowName $flowId `
+            -ErrorAction Stop)
           $matchingRoles = @($ownerRoles | Where-Object {
             $_.PrincipalObjectId -eq $env:FLOW_SHARE_PRINCIPAL_OBJECT_ID -and
             $_.PrincipalType -eq $env:FLOW_SHARE_PRINCIPAL_TYPE -and

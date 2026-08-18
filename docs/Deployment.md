@@ -86,15 +86,23 @@ solution import alone do not guarantee that the modern cloud Flow is running.
 After a successful import, the workflow's Windows PowerShell job uses the
 Microsoft.PowerApps.Administration.PowerShell module to:
 
-1. Resolve workflow ID `7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018` and verify its
-   display name is `CampanulaCreateConcertPlanFromTemplate`.
-2. Run `Enable-AdminFlow`.
+1. Resolve the deployed cloud Flow by the exact display name
+   `CampanulaCreateConcertPlanFromTemplate` and capture the cloud Flow ID.
+   The solution metadata workflow ID `7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018` is
+   retained as source metadata only; it is not passed directly to the admin
+   API because the deployed cloud Flow ID may differ.
+2. Run `Enable-AdminFlow` with the resolved cloud Flow ID.
 3. Grant the configured `FLOW_SHARE_PRINCIPAL_TYPE` and
    `FLOW_SHARE_PRINCIPAL_OBJECT_ID` the configured `FLOW_SHARE_ROLE` owner
    role. To keep the current group sharing, set those variables to `Group`,
    `a41f5114-a83e-48ae-8f09-6108674e138f`, and `CanEdit`.
 4. Re-read the Flow and its owner roles, failing the deployment if it is not
    enabled or the requested role is missing.
+
+The post-deployment job is limited to 15 minutes and writes a progress marker
+before and after each administration API operation. If a Power Platform API
+call stops responding, the job fails at that limit and the last marker identifies
+the operation that needs investigation.
 
 The principal ID is a non-secret repository configuration value. A `Group`
 principal must be an Entra security-enabled group because that is the group
@@ -302,12 +310,14 @@ that the deployment application can use the Power Platform administration
 PowerShell cmdlets and that the `Microsoft.PowerApps.Administration.PowerShell`
 module can authenticate with the configured tenant, application ID, and secret.
 
-If Flow lookup fails, verify that the imported solution contains workflow ID
-`7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018` and that its display name remains
-`CampanulaCreateConcertPlanFromTemplate`. If owner verification fails, confirm
-that `FLOW_SHARE_PRINCIPAL_TYPE`, `FLOW_SHARE_PRINCIPAL_OBJECT_ID`, and
-`FLOW_SHARE_ROLE` are set to the intended principal and one of the supported
-owner roles, `CanView` or `CanEdit`.
+If Flow lookup fails, verify that the imported solution contains the expected
+source workflow metadata and that the deployed display name is exactly
+`CampanulaCreateConcertPlanFromTemplate`. Also confirm that the deployment
+application can list Flows in the target environment. If owner verification
+fails, confirm that `FLOW_SHARE_PRINCIPAL_TYPE`,
+`FLOW_SHARE_PRINCIPAL_OBJECT_ID`, and `FLOW_SHARE_ROLE` are set to the
+intended principal and one of the supported owner roles, `CanView` or
+`CanEdit`.
 
 If activation succeeds but the Flow cannot run, troubleshoot the five backing
 connections separately. Flow owner access and connection `Can use` access are
