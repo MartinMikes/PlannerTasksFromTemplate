@@ -37,7 +37,9 @@ with enough privileges to import solutions and update the connector.
 For the post-deployment Flow operation, also set `PP_ENVIRONMENT_ID` to the
 target environment identifier containing the GUID, for example
 `Default-53357042-b087-461e-8519-b117a4e3a7ba`. It is not interchangeable with
-`PP_ENVIRONMENT_URL`.
+`PP_ENVIRONMENT_URL`. `PP_APP_ID` is the application (client) ID used to sign
+in. The service principal's separate object ID is only useful for manual
+connection troubleshooting; it is not a deployment prerequisite.
 
 ### Stage and pack managed solutions
 
@@ -76,7 +78,7 @@ pac solution pack `
 Keep the two packages separate. Import the connector before the Flow because
 the Flow connection reference depends on the connector.
 
-### Import and apply the connector icon
+### Import the connector, then bind and import the Flow
 
 ```powershell
 pac solution import `
@@ -89,9 +91,23 @@ pac connector update `
   --api-definition-file src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_openapidefinition.json `
   --icon-file src/CampanulaPlannerGraphConnector/Connectors/campa_planner_graph_icon.png
 
+pac solution create-settings `
+  --solution-zip out/CampanulaPlannerFlows.zip `
+  --settings-file out/CampanulaPlannerFlows.deployment-settings.json
+```
+
+In the settings file, set `ConnectionId` for all five references to the target
+connection resource IDs listed in the [deployment guide](Deployment.md#github-configuration).
+If a prior import reported `ConnectionAuthorizationFailed`, [repair the named
+connection](Deployment.md#connectionauthorizationfailed-during-flow-import)
+before retrying the import. Do not change connection permissions during ordinary
+deployments.
+
+```powershell
 pac solution import `
   --path out/CampanulaPlannerFlows.zip `
   --environment $env:PP_ENVIRONMENT_URL `
+  --settings-file out/CampanulaPlannerFlows.deployment-settings.json `
   --activate-plugins
 
 pac solution list --environment $env:PP_ENVIRONMENT_URL
@@ -108,7 +124,8 @@ PAC CLI does not provide the required modern Flow activation and owner-sharing
 commands. Use the documented Power Platform administration module from Windows
 PowerShell 5.1. The deployment application must be authorized for Power
 Platform administration, and a service-principal-owned premium Flow may need a
-Process license or a designated licensed owner.
+Process license or a designated licensed owner. Run login and all the Flow
+commands in the **same PowerShell process**.
 
 ```powershell
 Install-Module `
@@ -178,8 +195,7 @@ sdružení Campanula, z. s.` with `CanEdit`. To use Martin Mikes's account
 instead, set the principal type to `User` and provide Martin's Entra object ID.
 Do not pass `martin.mikes@campanulajihlava.cz` as
 `FLOW_SHARE_PRINCIPAL_OBJECT_ID`; the cmdlet requires the object ID. Flow owner
-sharing does not grant connection permissions, so the deployment application
-must still have `Can use` access to all five backing connections.
+sharing does not grant or verify access to an underlying connection.
 
 ### Refresh the Graph connection
 

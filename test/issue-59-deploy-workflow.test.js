@@ -53,6 +53,13 @@ const workflowMetadataPath = path.join(
   'Workflows',
   'CampanulaCreateConcertPlanFromTemplate.json.data.xml',
 );
+const flowDefinitionPath = path.join(
+  workspaceRoot,
+  'src',
+  'CampanulaPlannerFlows',
+  'Workflows',
+  'CampanulaCreateConcertPlanFromTemplate.json',
+);
 
 const deployWorkflow = fs.readFileSync(deployWorkflowPath, 'utf8');
 const connectorBootstrapWorkflow = fs.readFileSync(connectorBootstrapWorkflowPath, 'utf8');
@@ -60,6 +67,7 @@ const connectorParams = fs.readFileSync(connectorParamsPath, 'utf8');
 const flowSolutionMetadata = fs.readFileSync(flowSolutionMetadataPath, 'utf8');
 const connectorSolutionMetadata = fs.readFileSync(connectorSolutionMetadataPath, 'utf8');
 const workflowMetadata = fs.readFileSync(workflowMetadataPath, 'utf8');
+const flowDefinition = JSON.parse(fs.readFileSync(flowDefinitionPath, 'utf8'));
 
 const stagedSolutionWorkflowPatterns = [
   /SOLUTION_PACK_FOLDER:\s*out\/CampanulaPlannerFlows\b/,
@@ -360,6 +368,17 @@ test('keeps the checked-in connector source on the placeholder contract', () => 
   assert.doesNotMatch(flowSolutionMetadata, /<RootComponent type="372"/);
 });
 
+test('keeps the deployable Flow on its opaque source template identifier', () => {
+  assert.equal(
+    flowDefinition.properties.templateName,
+    'f06e6f8fbd3e49d5984858b3b54709b2',
+  );
+  assert.notEqual(
+    flowDefinition.properties.templateName,
+    'CampanulaCreateConcertPlanFromTemplate',
+  );
+});
+
 test('maps target connections and requests Flow activation during import', () => {
   assertMatchesAllPatterns(deployWorkflow, [
     /PP_FORMS_CONNECTION_ID/,
@@ -388,6 +407,29 @@ test('maps target connections and requests Flow activation during import', () =>
   assert.doesNotMatch(deployWorkflow, /convert-to-managed/);
   assert.match(workflowMetadata, /<StateCode>0<\/StateCode>/);
   assert.match(workflowMetadata, /<StatusCode>1<\/StatusCode>/);
+});
+
+test('deploys using existing connections without requiring or changing connection permissions', () => {
+  for (const workflow of [deployWorkflow, connectorBootstrapWorkflow]) {
+    assert.doesNotMatch(workflow, /PP_APP_OBJECT_ID|Set-AdminPowerAppConnectionRoleAssignment/);
+  }
+});
+
+test('authenticates before every Flow admin command in the same PowerShell step', () => {
+  const activationJob = deployWorkflow.split(/^  activate-and-share-flow:\s*$/m)[1];
+  assert.ok(activationJob, 'Expected a post-import activation job');
+  const adminSteps = activationJob.split(/^      - /m).filter(step =>
+    /\b(?:Get-AdminFlow(?:OwnerRole)?|Enable-AdminFlow|Set-AdminFlowOwnerRole)\b/.test(step)
+  );
+  assert.ok(adminSteps.length > 0, 'Expected activation and owner-role commands');
+  for (const step of adminSteps) {
+    assert.match(step, /shell: powershell/);
+    const login = step.search(/^\s*Add-PowerAppsAccount\b/m);
+    const firstAdminCall = step.search(/\b(?:Get-AdminFlow(?:OwnerRole)?|Enable-AdminFlow|Set-AdminFlowOwnerRole)\b/);
+    assert.ok(login !== -1 && login < firstAdminCall,
+      'A separate login step cannot authenticate the next PowerShell process');
+    assert.match(step.slice(login, firstAdminCall), /-ApplicationId \$env:PP_APP_ID[\s\S]*-ClientSecret \$env:PP_CLIENT_SECRET/);
+  }
 });
 
 test('activates and shares the imported Flow after solution deployment', () => {

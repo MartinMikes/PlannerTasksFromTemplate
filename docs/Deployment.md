@@ -79,12 +79,15 @@ The Flow's Planner group ID is stored in the `plannerGroupId` parameter in
 Change that source value and publish a new solution version when deploying to a
 different group.
 
-### Flow activation and sharing
+### Flow connection authorization, activation, and sharing
 
 The managed package contains the Flow with `StateCode=0`, so packaging and
 solution import alone do not guarantee that the modern cloud Flow is running.
-After a successful import, the workflow's Windows PowerShell job uses the
-Microsoft.PowerApps.Administration.PowerShell module to:
+Deployments bind existing connections; they do not change who can use them.
+After a successful import, the **Activate and Share Flow** job authenticates
+with `Add-PowerAppsAccount` in the same Windows PowerShell step as the admin
+commands below. Do not move login to a separate step: the module's session
+does not survive a change of PowerShell process.
 
 1. Resolve the deployed cloud Flow by the exact display name
    `CampanulaCreateConcertPlanFromTemplate` and capture the cloud Flow ID.
@@ -119,10 +122,10 @@ target only needs to invoke the Flow, configure a Power Automate run-only user
 through the product's run-only sharing experience instead; that is a different
 permission model and is not what this owner-role job configures.
 
-Flow owner sharing is separate from connection sharing. The deployment service
-principal still needs `Can use` access to each backing connection before the
-solution import can succeed. Giving the group owner access to the Flow does not
-grant it access to Forms, Excel, Planner, Outlook, or Graph connections.
+Flow owner sharing is separate from connection sharing. Giving the group owner
+access to the Flow does not grant it access to Forms, Excel, Planner, Outlook,
+or Graph connections. Repair a connection separately if the import reports
+[`ConnectionAuthorizationFailed`](#connectionauthorizationfailed-during-flow-import).
 
 The post-deployment job runs with Windows PowerShell 5.1 because the documented
 administration module targets Windows PowerShell. Confirm that the deployment
@@ -148,9 +151,8 @@ Use this path when the target has no connector, solutions, or connections.
    - Office 365 Outlook
    - Campanula Planner Graph
 4. For the Graph connection, complete delegated sign-in and consent with a
-   user who belongs to the target Planner group. If the deployment app is not
-   the connection owner, share each connection with its application user and
-   grant **Can use**.
+   user who belongs to the target Planner group. Confirm that the deployment
+   application can use the connection before importing the Flow.
 5. Copy each connection's resource ID into its matching GitHub variable. A
    deleted and recreated connection receives a new ID, even for the same user.
 6. Run **Actions -> Deploy Power Platform Solution -> Run workflow** with
@@ -272,27 +274,34 @@ The Flow import can stop at about 38.89% with PAC CLI reporting only
 `ConnectionAuthorizationFailed` when the deployment application's service
 principal cannot use one of the connections in the deployment settings file.
 
-In the target environment, open **Power Apps -> Connections**, share each of
-the five connections used by the Flow with the deployment application user,
-and grant **Can use**:
+Open the failed import in the target environment's **Solutions → See history**.
+Match the failing connection reference to its `PP_*_CONNECTION_ID`. Check that
+the connection is healthy, belongs to that environment, and is the one you
+intend to use. Have the connection owner repair or share **that connection**
+with the deployment application user where supported. If it cannot be shared,
+bind an authorized connection instead. Retry only after correcting the binding
+or access; do not grant rights to all five connections as a diagnostic step.
 
-- Microsoft Forms
-- Excel Online Business
-- Planner
-- Office 365 Outlook
-- Campanula Planner Graph
+To identify the deployment principal, open **Entra ID → Enterprise applications**
+in `PP_TENANT_ID`, find the application whose **Application ID** is `PP_APP_ID`,
+and copy its **Object ID**. This optional local lookup value (`PP_APP_OBJECT_ID`)
+is not required in GitHub Actions. Do not use the object ID from **App registrations**.
 
-In this tenant the application user is displayed as
-`GitHub-PowerPlatform-CICD`. For the Graph OAuth connection, sharing with the
-service principal is required when the connection owner is a different user.
-The failed run reported service-principal object ID
-`9be81f92-206c-4889-a1f4-4aa0f5aa21f7`; the configured `PP_APP_ID` is the
-separate client/application ID `860c6253-e153-4050-951a-6db6ef834829`. Share
-the connection with the application user identified by the object ID, and
-keep the client/application ID in `PP_APP_ID`.
-After sharing all five connections, rerun the deployment. Keep the full
-connection resource IDs in the corresponding `PP_*_CONNECTION_ID` variables;
-do not replace them with an app ID, connector ID, or connection-reference name.
+### `InvalidSourceTemplateName` during Flow import
+
+The deployable Flow definition must use its opaque source template identifier,
+not the Flow display name. Confirm that
+`src/CampanulaPlannerFlows/Workflows/CampanulaCreateConcertPlanFromTemplate.json`
+contains:
+
+```json
+"templateName": "f06e6f8fbd3e49d5984858b3b54709b2"
+```
+
+The display name remains `CampanulaCreateConcertPlanFromTemplate` in the
+companion `.json.data.xml`; it is what the activation job looks up. If the
+release ZIP predates this correction, select **Rebuild both managed solutions
+from current main** rather than redeploying that ZIP.
 
 ### Flow import rejects a connection ID
 
