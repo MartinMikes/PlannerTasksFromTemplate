@@ -520,6 +520,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
       - name: Enable and share deployed Flow
         env:
           PP_ENVIRONMENT_URL: ${{ vars.PP_ENVIRONMENT_URL }}
