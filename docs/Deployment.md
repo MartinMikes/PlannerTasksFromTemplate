@@ -219,7 +219,6 @@ The workflows automate the package work:
 - pack managed solution zips;
 - import the connector and apply its icon;
 - generate and validate deployment settings for all five connection references;
-- authorize the deployment service principal for all five backing connections;
 - import the Flow solution with `--activate-plugins`;
 - enable the imported modern Flow with `Enable-AdminFlow`;
 - grant and verify the configured Flow owner role with
