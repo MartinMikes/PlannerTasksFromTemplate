@@ -572,22 +572,19 @@ jobs:
             -Scope CurrentUser `
             -Force `
             -AllowClobber
-          Import-Module Microsoft.PowerApps.Administration.PowerShell
-
-      - name: Authenticate Power Platform administration module
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          Add-PowerAppsAccount `
-            -Endpoint prod `
-            -TenantID $env:PP_TENANT_ID `
-            -ApplicationId $env:PP_APP_ID `
-            -ClientSecret $env:PP_CLIENT_SECRET
 
       - name: Enable and share deployed Flow
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
+          Import-Module Microsoft.PowerApps.Administration.PowerShell
+          # The admin module keeps its login in this PowerShell process.
+          Write-Host 'Authenticating the deployment application for Flow administration.'
+          Add-PowerAppsAccount `
+            -Endpoint prod `
+            -TenantID $env:PP_TENANT_ID `
+            -ApplicationId $env:PP_APP_ID `
+            -ClientSecret $env:PP_CLIENT_SECRET
 
           Write-Host "Resolving cloud Flow '$($env:FLOW_NAME)' in environment '$($env:PP_ENVIRONMENT_ID)' by display name."
           Write-Host "Solution metadata workflow ID is '$($env:FLOW_SOLUTION_WORKFLOW_ID)'; the deployed cloud Flow ID is resolved from the administration API."
