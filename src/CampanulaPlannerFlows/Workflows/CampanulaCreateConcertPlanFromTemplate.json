@@ -1466,12 +1466,21 @@
               "foreach": "@body('FilterPopulatedPlannerLabelRows')",
               "operationOptions": "Sequential",
               "actions": {
-                "SetPlanCategoryDescriptions": {
+                "ComposeNextPlanCategoryDescriptions": {
                   "runAfter": {},
+                  "type": "Compose",
+                  "inputs": "@setProperty(variables('planCategoryDescriptions'), replace(toLower(trim(string(item()?['Label']))), 'label', 'category'), trim(string(item()?['Name'])))"
+                },
+                "SetPlanCategoryDescriptions": {
+                  "runAfter": {
+                    "ComposeNextPlanCategoryDescriptions": [
+                      "Succeeded"
+                    ]
+                  },
                   "type": "SetVariable",
                   "inputs": {
                     "name": "planCategoryDescriptions",
-                    "value": "@setProperty(variables('planCategoryDescriptions'), replace(toLower(trim(string(item()?['Label']))), 'label', 'category'), trim(string(item()?['Name'])))"
+                    "value": "@outputs('ComposeNextPlanCategoryDescriptions')"
                   }
                 }
               }
@@ -1587,16 +1596,25 @@
                     }
                   }
                 },
-                "Set_BucketMap": {
+                "ComposeNextBucketMap": {
                   "runAfter": {
                     "Create_Planner_Bucket": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@setProperty(variables('bucketMap'), item()?['Bucket'], body('Create_Planner_Bucket')?['id'])"
+                },
+                "Set_BucketMap": {
+                  "runAfter": {
+                    "ComposeNextBucketMap": [
                       "Succeeded"
                     ]
                   },
                   "type": "SetVariable",
                   "inputs": {
                     "name": "bucketMap",
-                    "value": "@setProperty(variables('bucketMap'), item()?['Bucket'], body('Create_Planner_Bucket')?['id'])"
+                    "value": "@outputs('ComposeNextBucketMap')"
                   }
                 },
                 "IncrementCreatedBucketCount": {
@@ -1806,12 +1824,21 @@
                         ]
                       },
                       "actions": {
-                        "SetTaskChecklistItems": {
+                        "ComposeNextTaskChecklistItems": {
                           "runAfter": {},
+                          "type": "Compose",
+                          "inputs": "@setProperty(variables('taskChecklistItems'), guid(), setProperty(setProperty(setProperty(json('{}'), '@odata.type', 'microsoft.graph.plannerChecklistItem'), 'isChecked', false), 'title', trim(item())))"
+                        },
+                        "SetTaskChecklistItems": {
+                          "runAfter": {
+                            "ComposeNextTaskChecklistItems": [
+                              "Succeeded"
+                            ]
+                          },
                           "type": "SetVariable",
                           "inputs": {
                             "name": "taskChecklistItems",
-                            "value": "@setProperty(variables('taskChecklistItems'), guid(), setProperty(setProperty(setProperty(json('{}'), '@odata.type', 'microsoft.graph.plannerChecklistItem'), 'isChecked', false), 'title', trim(item())))"
+                            "value": "@outputs('ComposeNextTaskChecklistItems')"
                           }
                         }
                       },
