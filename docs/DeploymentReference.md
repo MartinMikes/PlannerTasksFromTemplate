@@ -33,11 +33,8 @@ pac auth create `
 ```
 
 The service principal must be an application user in the target environment
-with enough privileges to import solutions and update the connector.
-For the post-deployment Flow operation, also set `PP_ENVIRONMENT_ID` to the
-target environment identifier containing the GUID, for example
-`Default-53357042-b087-461e-8519-b117a4e3a7ba`. It is not interchangeable with
-`PP_ENVIRONMENT_URL`. `PP_APP_ID` is the application (client) ID used to sign
+with enough privileges to import solutions, update the connector, and activate
+and share the workflow in Dataverse. `PP_APP_ID` is the application (client) ID used to sign
 in. The service principal's separate object ID is only useful for manual
 connection troubleshooting; it is not a deployment prerequisite.
 
@@ -120,82 +117,19 @@ when the requested change is only the icon.
 
 ### Enable and share the modern Flow
 
-PAC CLI does not provide the required modern Flow activation and owner-sharing
-commands. Use the documented Power Platform administration module from Windows
-PowerShell 5.1. The deployment application must be authorized for Power
-Platform administration, and a service-principal-owned premium Flow may need a
-Process license or a designated licensed owner. Run login and all the Flow
-commands in the **same PowerShell process**.
+From the repository root, use the same Dataverse operation as CI (Node.js 22+):
 
 ```powershell
-Install-Module `
-  -Name Microsoft.PowerApps.Administration.PowerShell `
-  -Repository PSGallery `
-  -Scope CurrentUser `
-  -Force `
-  -AllowClobber
-Import-Module Microsoft.PowerApps.Administration.PowerShell
-
-Add-PowerAppsAccount `
-  -Endpoint prod `
-  -TenantID $env:PP_TENANT_ID `
-  -ApplicationId $env:PP_APP_ID `
-  -ClientSecret $env:PP_CLIENT_SECRET
-
-$flowName = 'CampanulaCreateConcertPlanFromTemplate'
-$principalType = $env:FLOW_SHARE_PRINCIPAL_TYPE
-$principalObjectId = $env:FLOW_SHARE_PRINCIPAL_OBJECT_ID
-$roleName = $env:FLOW_SHARE_ROLE
-$flowCandidates = @(Get-AdminFlow `
-  -EnvironmentName $env:PP_ENVIRONMENT_ID `
-  -Filter $flowName)
-$flowMatches = @($flowCandidates | Where-Object {
-  $_.DisplayName -eq $flowName
-})
-if ($flowMatches.Count -ne 1) {
-  throw "Expected exactly one Flow with display name '$flowName', found $($flowMatches.Count)."
-}
-$flowId = [string]$flowMatches[0].FlowName
-
-Enable-AdminFlow `
-  -EnvironmentName $env:PP_ENVIRONMENT_ID `
-  -FlowName $flowId
-
-Set-AdminFlowOwnerRole `
-  -EnvironmentName $env:PP_ENVIRONMENT_ID `
-  -FlowName $flowId `
-  -PrincipalType $principalType `
-  -PrincipalObjectId $principalObjectId `
-  -RoleName $roleName
-
-$flowAfter = Get-AdminFlow `
-  -EnvironmentName $env:PP_ENVIRONMENT_ID `
-  -FlowName $flowId
-if (-not $flowAfter.Enabled) {
-  throw 'The Flow is still disabled.'
-}
-
-$ownerRoles = @(Get-AdminFlowOwnerRole `
-  -EnvironmentName $env:PP_ENVIRONMENT_ID `
-  -FlowName $flowId)
-if (-not ($ownerRoles | Where-Object {
-  $_.PrincipalObjectId -eq $principalObjectId -and
-  $_.PrincipalType -eq $principalType -and
-  $_.RoleType -eq $roleName
-})) {
-  throw 'The requested Flow owner role was not found.'
-}
+$env:FLOW_SOLUTION_WORKFLOW_ID = '7b7d1d61-5ad2-4a81-9ee8-3e6e7c829018'
+node scripts/activate-and-share-flow.js
 ```
 
-Set `FLOW_SHARE_PRINCIPAL_TYPE`, `FLOW_SHARE_PRINCIPAL_OBJECT_ID`, and
-`FLOW_SHARE_ROLE` in the environment before running this fallback. The role
-must be `CanView` or `CanEdit`; `CanUse` is a connection permission, not a Flow
-owner role. The current values target the Entra security group `Pěvecké
-sdružení Campanula, z. s.` with `CanEdit`. To use Martin Mikes's account
-instead, set the principal type to `User` and provide Martin's Entra object ID.
-Do not pass `martin.mikes@campanulajihlava.cz` as
-`FLOW_SHARE_PRINCIPAL_OBJECT_ID`; the cmdlet requires the object ID. Flow owner
-sharing does not grant or verify access to an underlying connection.
+Set the deployment credentials, organization URL, and three sharing variables
+from the [deployment guide](Deployment.md#github-configuration) in your process
+environment first. This command **changes the target environment**. It verifies
+the workflow is active and that the specified Dataverse user or group team has
+the requested direct record access. It does not change ownership, licensing, or
+connection permissions.
 
 ### Refresh the Graph connection
 

@@ -274,8 +274,6 @@ test('validates required configuration before semantic-release to prevent orphan
     /- name: Validate required configuration/,
     /if: github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'/,
     /require_guid\(\) \{/,
-    /PP_ENVIRONMENT_ID: \$\{\{ vars\.PP_ENVIRONMENT_ID \}\}/,
-    /require_connection_resource_id "PP_ENVIRONMENT_ID" "\$PP_ENVIRONMENT_ID"/,
     /PP_CONNECTOR_APP_ID: \$\{\{ vars\.PP_CONNECTOR_APP_ID \}\}/,
     /PP_CONNECTOR_APP_ID variable is not set/,
     /FLOW_SHARE_PRINCIPAL_TYPE: \$\{\{ vars\.FLOW_SHARE_PRINCIPAL_TYPE \}\}/,
@@ -298,13 +296,9 @@ test('validates required configuration before semantic-release to prevent orphan
   );
 });
 
-test('accepts environment and connection resource IDs that contain a GUID', () => {
+test('accepts connection resource IDs that contain a GUID', () => {
   assert.match(deployWorkflow, /require_connection_resource_id\(\) \{/);
   assert.match(deployWorkflow, /must contain a GUID/);
-  assert.match(
-    deployWorkflow,
-    /require_connection_resource_id "PP_ENVIRONMENT_ID" "\$PP_ENVIRONMENT_ID"/,
-  );
 
   for (const connectionName of [
     'PP_FORMS_CONNECTION_ID',
@@ -415,58 +409,17 @@ test('deploys using existing connections without requiring or changing connectio
   }
 });
 
-test('authenticates before every Flow admin command in the same PowerShell step', () => {
-  const activationJob = deployWorkflow.split(/^  activate-and-share-flow:\s*$/m)[1];
-  assert.ok(activationJob, 'Expected a post-import activation job');
-  const adminSteps = activationJob.split(/^      - /m).filter(step =>
-    /\b(?:Get-AdminFlow(?:OwnerRole)?|Enable-AdminFlow|Set-AdminFlowOwnerRole)\b/.test(step)
-  );
-  assert.ok(adminSteps.length > 0, 'Expected activation and owner-role commands');
-  for (const step of adminSteps) {
-    assert.match(step, /shell: powershell/);
-    const login = step.search(/^\s*Add-PowerAppsAccount\b/m);
-    const firstAdminCall = step.search(/\b(?:Get-AdminFlow(?:OwnerRole)?|Enable-AdminFlow|Set-AdminFlowOwnerRole)\b/);
-    assert.ok(login !== -1 && login < firstAdminCall,
-      'A separate login step cannot authenticate the next PowerShell process');
-    assert.match(step.slice(login, firstAdminCall), /-ApplicationId \$env:PP_APP_ID[\s\S]*-ClientSecret \$env:PP_CLIENT_SECRET/);
-  }
-});
-
 test('activates and shares the imported Flow after solution deployment', () => {
   const flowId = workflowMetadata.match(/WorkflowId="\{([^}]+)\}"/)?.[1];
-  assert.ok(flowId, 'Flow metadata must declare a workflow ID');
-
-  assertMatchesAllPatterns(deployWorkflow, [
-    /FLOW_NAME:\s*CampanulaCreateConcertPlanFromTemplate/,
-    new RegExp(`FLOW_SOLUTION_WORKFLOW_ID:\\s*${flowId}`),
-    /FLOW_SHARE_PRINCIPAL_TYPE:\s*\$\{\{ vars\.FLOW_SHARE_PRINCIPAL_TYPE \}\}/,
-    /FLOW_SHARE_PRINCIPAL_OBJECT_ID:\s*\$\{\{ vars\.FLOW_SHARE_PRINCIPAL_OBJECT_ID \}\}/,
-    /FLOW_SHARE_ROLE:\s*\$\{\{ vars\.FLOW_SHARE_ROLE \}\}/,
-    /deployment_completed: \$\{\{ steps\.markDeploymentCompleted\.outputs\.deployment_completed \}\}/,
-    /environment_id: \$\{\{ steps\.markDeploymentCompleted\.outputs\.environment_id \}\}/,
-    /activate-and-share-flow:/,
-    /runs-on: windows-latest/,
+  assert.ok(flowId);
+  assert.ok(deployWorkflow.includes('FLOW_SOLUTION_WORKFLOW_ID: ' + flowId));
+  const activationJob = deployWorkflow.split(/^  activate-and-share-flow:\s*$/m)[1];
+  assertMatchesAllPatterns(activationJob, [
     /timeout-minutes: 15/,
-    /Microsoft\.PowerApps\.Administration\.PowerShell/,
-    /Add-PowerAppsAccount/,
-    /Get-AdminFlow/,
-    /-Filter \$env:FLOW_NAME/,
-    /Enable-AdminFlow/,
-    /Set-AdminFlowOwnerRole/,
-    /Get-AdminFlowOwnerRole/,
-    /-PrincipalType \$env:FLOW_SHARE_PRINCIPAL_TYPE/,
-    /-PrincipalObjectId \$env:FLOW_SHARE_PRINCIPAL_OBJECT_ID/,
-    /-RoleName \$env:FLOW_SHARE_ROLE/,
-    /FLOW_SHARE_ROLE must be CanView or CanEdit/,
-    /CanUse is a connection permission, not a Flow owner role/,
-    /\$_.DisplayName -eq \$env:FLOW_NAME/,
-    /if \(\$flowAfter\.Count -ne 1 -or -not \$flowAfter\[0\]\.Enabled\)/,
-    /\$_.RoleType -eq \$env:FLOW_SHARE_ROLE/,
-    /Resolved cloud Flow ID/,
-    /Cloud Flow enable request completed/,
-    /Cloud Flow sharing request completed/,
+    /uses: actions\/checkout@/,
+    /PP_ENVIRONMENT_URL: \$\{\{ vars\.PP_ENVIRONMENT_URL \}\}/,
+    /run: node scripts\/activate-and-share-flow\.js/,
   ]);
-  assert.doesNotMatch(deployWorkflow, /-FlowName \$env:FLOW_ID/);
 
   const flowImportIdx = deployWorkflow.indexOf('- name: Import solution to Power Platform');
   const completionIdx = deployWorkflow.indexOf('- name: Mark solution deployment complete');
