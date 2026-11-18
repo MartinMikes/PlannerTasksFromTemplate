@@ -403,6 +403,35 @@ test('maps target connections and requests Flow activation during import', () =>
   assert.match(workflowMetadata, /<StatusCode>1<\/StatusCode>/);
 });
 
+test('binds Graph actions and the solution reference to the installed connector API', () => {
+  // Dataverse connectorinternalid for the deployed campa_planner_graph component, not its OAuth redirect slug.
+  const apiName = 'shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d';
+  const apiId = `/providers/Microsoft.PowerApps/apis/${apiName}`;
+  const logicalName = 'campa_sharedcampanulaplannergraph_createconcertplan';
+  const customizations = fs.readFileSync(path.join(path.dirname(flowSolutionMetadataPath), 'Customizations.xml'), 'utf8');
+  const referenceXml = customizations.split(`connectionreferencelogicalname="${logicalName}">`)[1]?.split('</connectionreference>')[0];
+  assert.ok(referenceXml?.includes(`<connectorid>${apiId}</connectorid>`), 'Graph solution reference must use the installed API ID');
+
+  const references = flowDefinition.properties.connectionReferences;
+  const operations = Object.values(JSON.parse(fs.readFileSync(connectorDefinitionPath, 'utf8')).paths)
+    .flatMap(methods => Object.values(methods).map(operation => operation.operationId)).filter(Boolean);
+  const used = new Set();
+  function checkHosts(node) {
+    if (!node || typeof node !== 'object') return;
+    const host = node.inputs?.host;
+    if (host && operations.includes(host.operationId)) {
+      const reference = references[host.connectionName];
+      assert.equal(reference?.connection.connectionReferenceLogicalName, logicalName);
+      assert.equal(reference.api.name, apiName);
+      assert.equal(host.apiId, apiId);
+      used.add(host.operationId);
+    }
+    Object.values(node).forEach(checkHosts);
+  }
+  checkHosts(flowDefinition.properties.definition.actions);
+  assert.ok(used.size > 0, 'Expected Graph actions in the Flow');
+});
+
 test('deploys using existing connections without requiring or changing connection permissions', () => {
   for (const workflow of [deployWorkflow, connectorBootstrapWorkflow]) {
     assert.doesNotMatch(workflow, /PP_APP_OBJECT_ID|Set-AdminPowerAppConnectionRoleAssignment/);
