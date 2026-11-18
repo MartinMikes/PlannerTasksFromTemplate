@@ -279,6 +279,21 @@ configured Entra object ID and provision or identify the intended team or user
 in this environment. A 403 requires checking the deployment application's
 record access, not granting tenant administration or sharing connections.
 
+If the activation `PATCH` returns HTTP 400 with a nested
+`ConnectionAuthorizationFailed` for the Graph reference, the flow was found
+but Power Automate could not use its connection. Before changing permissions:
+
+1. As the deployment app, run `pac connection list --environment <organization-url>`.
+   Find `PP_GRAPH_CONNECTION_ID` and compare its **API Id** with the Graph
+   `apiId` in the flow package. Use the installed connector's API ID, not the
+   similarly named OAuth redirect URI. An old release ZIP retains the old ID.
+2. If **Status** is `Error`, have the connection owner
+   [repair or recreate the delegated Graph connection](DeploymentReference.md#refresh-the-graph-connection).
+   If recreated, update `PP_GRAPH_CONNECTION_ID`. Confirm the connection is
+   healthy and the deployment app can use it.
+3. Deploy a package built from the corrected source. Rerunning the failed
+   activation job alone does not replace the imported flow definition.
+
 If activation succeeds but the Flow cannot run, troubleshoot the five backing
 connections separately. Flow owner access and connection `Can use` access are
 different permissions. Also check the service-principal licensing requirement

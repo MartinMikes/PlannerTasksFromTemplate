@@ -28,13 +28,13 @@
           "name": "shared_planner"
         }
       },
-      "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d": {
+      "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d": {
         "runtimeSource": "embedded",
         "connection": {
           "connectionReferenceLogicalName": "campa_sharedcampanulaplannergraph_createconcertplan"
         },
         "api": {
-          "name": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d"
+          "name": "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d"
         }
       },
       "shared_office365": {
@@ -1410,8 +1410,8 @@
                   "body/title": "@outputs('Compose_PlannerPlanName')"
                 },
                 "host": {
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                  "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
+                  "connectionName": "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
                   "operationId": "CreatePlan"
                 },
                 "authentication": "@parameters('$authentication')",
@@ -1488,8 +1488,8 @@
                   "planId": "@body('Create_Planner_Plan')?['id']"
                 },
                 "host": {
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                  "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
+                  "connectionName": "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
                   "operationId": "GetPlanDetails"
                 },
                 "authentication": "@parameters('$authentication')"
@@ -1511,8 +1511,8 @@
                   }
                 },
                 "host": {
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                  "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
+                  "connectionName": "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
                   "operationId": "UpdatePlanDetails"
                 },
                 "authentication": "@parameters('$authentication')"
@@ -1714,8 +1714,8 @@
                       "id": "@body('Create_Planner_Task')?['id']"
                     },
                     "host": {
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                      "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
+                      "connectionName": "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
                       "operationId": "GetTask"
                     },
                     "authentication": "@parameters('$authentication')"
@@ -1757,8 +1757,8 @@
                           }
                         },
                         "host": {
-                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                          "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
+                          "connectionName": "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
                           "operationId": "UpdateTask"
                         },
                         "authentication": "@parameters('$authentication')"
@@ -1833,8 +1833,8 @@
                       "id": "@body('Create_Planner_Task')?['id']"
                     },
                     "host": {
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                      "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
+                      "connectionName": "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
                       "operationId": "GetTaskDetails"
                     },
                     "authentication": "@parameters('$authentication')"
@@ -1857,8 +1857,8 @@
                       }
                     },
                     "host": {
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
-                      "connectionName": "shared_campa-campanula-planner-graph-5f2d765a9c3b99d87d",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
+                      "connectionName": "shared_campa-5fcampanula-20planner-20graph-5f2d765a9c3b99d87d",
                       "operationId": "UpdateTaskDetails"
                     },
                     "authentication": "@parameters('$authentication')"
