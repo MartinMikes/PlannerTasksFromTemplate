@@ -7,7 +7,7 @@ for the mixed choir **Campanula**.
 ## Overview
 
 Colleagues start the process from the Czech Microsoft Form documented in
-[`docs\FormDefinition.md`](docs\FormDefinition.md). The first production Flow,
+[Form definition](docs/FormDefinition.md). The first production Flow,
 `CampanulaCreateConcertPlanFromTemplate`, is stored in the
 `CampanulaPlannerFlows` solution. The `Campanula Planner Graph` custom
 connector is maintained in the separate `CampanulaPlannerGraphConnector`
@@ -29,11 +29,11 @@ buckets, tasks, assignments, checklists, and notifications.
 │   ├── FormDefinition.md
 │   ├── ExcelTemplate.md
 │   ├── Deployment.md
+│   ├── DeploymentReference.md
 │   ├── References.md
 │   └── PowerAutomateActions\
 ├── src\
 │   ├── CampanulaPlannerFlows\
-│   │   ├── [Content_Types].xml
 │   │   ├── Other\
 │   │   └── Workflows\
 │   └── CampanulaPlannerGraphConnector\
@@ -54,7 +54,7 @@ buckets, tasks, assignments, checklists, and notifications.
 
 ## Input form
 
-[`docs\FormDefinition.md`](docs\FormDefinition.md) is the source of truth for
+[Form definition](docs/FormDefinition.md) is the source of truth for
 the Czech Microsoft Form. Keep the form labels user-facing, and map them to the
 English technical identifiers used by the Flow and Excel template.
 
@@ -71,93 +71,51 @@ English technical identifiers used by the Flow and Excel template.
 where `TemplateType` equals the selected location (`Ignác`, `Jakub`, `Kříž`,
 `Gotika`, or `Jinde`).
 
-## Quick start
+## Quick start: deploy with GitHub Actions
 
-### Prerequisites
+### First deployment
 
-- [Power Platform CLI (`pac`)](https://learn.microsoft.com/power-platform/developer/cli/introduction)
-- Power Platform Tools extension for VS Code
-- Access to a Power Platform environment with Microsoft Forms, Excel Online,
-  Planner, SharePoint, and notification connectors
-- Microsoft 365 account with sufficient permissions
+1. Prepare the target Microsoft 365 group, [Microsoft Form](docs/FormDefinition.md),
+   and SharePoint copy of the [Excel template](templates/PlannerTasksTemplate.xlsx).
+   Neither solution creates these resources.
+2. Set the [repository variables and secret](docs/Deployment.md#github-configuration)
+   under **Settings → Secrets and variables → Actions**. The workflows do not
+   read a local `.env`. `PP_APP_ID` identifies the Dataverse deployment app;
+   `PP_CONNECTOR_APP_ID` identifies the separate Entra app for delegated Graph
+   access. The workflow inserts the latter into a staged copy, not the tracked source.
+3. In an empty environment, run **Actions → Bootstrap Graph Connector**. Then
+   configure the installed connector's [OAuth settings](docs/Deployment.md#graph-connector-oauth-setup),
+   including its own client secret. Create the Graph connection by signing in
+   as a member of the Planner group with delegated `Tasks.ReadWrite` consent.
+4. Verify all five target connections: **Microsoft Forms, Excel Online Business,
+   Planner, Office 365 Outlook, and Campanula Planner Graph**. The deployment
+   app must be able to use them. Put each connection's resource ID in its
+   matching `PP_*_CONNECTION_ID` variable; do not use a connector or app ID.
+5. Run **Actions → Deploy Power Platform Solution** with **Rebuild both managed
+   solutions from current main** enabled. It imports the connector first, then
+   `CampanulaPlannerFlows` with the five connections bound.
 
-### 1. Configure environment
+**A successful import does not mean the flow is on.** Check that **Activate
+and Share Flow** also succeeds. It finds the flow by its stable solution
+workflow ID in Dataverse, activates it, and verifies the configured user or
+group team's direct record access (`CanView` or `CanEdit`). This does not grant
+access to the underlying connections. See the [deployment guide](docs/Deployment.md)
+for an end-to-end check with a test Form response.
 
-```bash
-cp .env.example .env
-# Edit .env with your environment values
-```
+### Redeployment and recovery
 
-### 2. Authenticate with Power Platform CLI
-
-```bash
-pac auth create \
-  --environment "$PP_ENVIRONMENT_URL" \
-  --applicationId "$PP_APP_ID" \
-  --clientSecret "$PP_CLIENT_SECRET" \
-  --tenant "$PP_TENANT_ID"
-```
-
-### 3. Review the Microsoft Form definition
-
-Use [`docs\FormDefinition.md`](docs\FormDefinition.md) as the source of truth
-for the Czech Microsoft Form used by colleagues. Its answers define the input
-data that `CampanulaCreateConcertPlanFromTemplate` maps to the Flow and Excel
-technical identifiers.
-
-### 4. Prepare the production solution source
-
-Build the `CampanulaCreateConcertPlanFromTemplate` Flow from
-[`docs\Overview.md`](docs/Overview.md),
-[`docs\FormDefinition.md`](docs/FormDefinition.md), and
-[`docs\ExcelTemplate.md`](docs/ExcelTemplate.md). The Flow and connector are
-maintained as separate solution sources in `src\CampanulaPlannerFlows` and
-`src\CampanulaPlannerGraphConnector`. In a new environment, run **Bootstrap
-Graph Connector** first, configure its OAuth security settings, and create the
-authenticated Graph connection before deploying the Flow solution.
-
-For local packaging, create separate managed packages:
-
-```bash
-pac solution pack \
-  --zipFile out/CampanulaPlannerFlows.zip \
-  --folder src/CampanulaPlannerFlows \
-  --packageType Managed
-pac solution pack \
-  --zipFile out/CampanulaPlannerGraphConnector.zip \
-  --folder src/CampanulaPlannerGraphConnector \
-  --packageType Managed
-```
-
-Do not import the Flow package alone into an empty environment. GitHub Actions
-uses the same managed package type and imports the connector prerequisite before
-the Flow. If a push to `main` does not publish a semantic-release release, use
-the workflow's manual **Run workflow** button for an ad hoc production deploy.
-
-The deployment workflow automatically injects the custom connector OAuth app ID
-into the connector source before packing, so the placeholder value
-`${MICROSOFT_ENTRA_APP_ID}` in
-`src\CampanulaPlannerGraphConnector\Connectors\campa_planner_graph_connectionparameters.json`
-is replaced at deploy time with the value from the `PP_CONNECTOR_APP_ID`
-GitHub Actions variable. Set `PP_CONNECTOR_APP_ID` to the application (client)
-ID of the Entra app registration dedicated to the `Campanula Planner Graph`
-connector. This registration is separate from `PP_APP_ID`, which is used by
-the PAC CLI service principal.
-
-After the connector bootstrap, create or refresh the `Campanula Planner Graph`
-connection in Power Platform. Ensure the Entra app registration used by the
-connector has delegated Microsoft Graph permission `Tasks.ReadWrite`
-configured, and grant consent in the appropriate place: permission setup and
-any admin consent are performed on the app registration, while the Power
-Platform connection creation/refresh flow performs the connection sign-in and
-user consent for that configured app. Then follow the connection-reference
-mapping steps in [`docs\Deployment.md`](docs/Deployment.md).
-
-### 5. Upload the Excel template to SharePoint
-
-Upload `templates\PlannerTasksTemplate.xlsx` to the SharePoint document library
-configured in the Flow. The repository workbook is the source of truth; the
-Flow reads the SharePoint copy at runtime.
+- **Published release:** eligible pushes to `main` deploy only when
+  semantic-release publishes a release. To redeploy the latest release
+  manually, leave the rebuild option off. Turn it on when the fix is on
+  `main` but not in the release, or when `PP_CONNECTOR_APP_ID` has changed.
+- **Graph activation failure:** if `ConnectionAuthorizationFailed` names the
+  Graph reference, compare the flow's API ID with the **installed connector's
+  API ID**, not its OAuth redirect URI. If the bound connection reports
+  `Error`, have its owner [repair or recreate it](docs/DeploymentReference.md#refresh-the-graph-connection).
+  Update `PP_GRAPH_CONNECTION_ID` if the ID changed. Deploy the corrected
+  package; retrying only the activation job leaves the old definition in place.
+- **Manual PAC recovery:** follow the [staging and packaging instructions](docs/DeploymentReference.md#stage-and-pack-managed-solutions)
+  rather than packing the connector directly from its tracked placeholder.
 
 ## Excel template
 
