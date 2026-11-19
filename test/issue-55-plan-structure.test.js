@@ -78,6 +78,12 @@ test('creates every workbook bucket sequentially with the current Planner operat
     "@outputs('List_rows_present_in_a_table_-_Buckets')?['body/value']",
   );
   assert.equal(readActionOperationId(createBucket), 'CreateBucket_V2');
+  // CreateBucket_V2 takes these three required inputs; Graph's orderHint is not one of them.
+  assert.deepEqual(createBucket.inputs.parameters, {
+    'body/name': "@item()?['Bucket']",
+    'body/groupId': "@parameters('plannerGroupId')",
+    'body/planId': "@body('Create_Planner_Plan')?['id']",
+  });
   assert.deepEqual(foreachBucket.actions.ComposeNextBucketMap.runAfter, {
     Create_Planner_Bucket: ['Succeeded'],
   });

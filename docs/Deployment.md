@@ -272,6 +272,20 @@ workflow.
 
 ### The activation or sharing job fails
 
+If activation returns `InvalidOpenApiFlow` / `WorkflowOperationParametersExtraParameter`,
+check the named input against the **connector operation** rather than the underlying
+Graph API. For example, Planner `CreateBucket_V2` takes `name`, `groupId`, and
+`planId`, not `orderHint`. Stable `CreateTask_V3` takes labels under
+`appliedCategories` but does not take `priority`; the Flow applies priority in
+its ETag-protected Graph task update. Import the corrected managed solutions
+before retrying activation.
+
+The PR workflow tests the flow definition and the activation/sharing script
+with mock Dataverse responses. It uses no deployment credentials. To verify
+real activation before production, import both candidate packages into a test
+environment with its own connections, form, workbook, and Dataverse sharing
+principal, then run [the same activation command as CI](DeploymentReference.md#enable-and-share-the-modern-flow).
+
 Check the Dataverse HTTP operation and status in the failed step. For a missing
 workflow, check the solution import and `PP_ENVIRONMENT_URL`; use the workflow
 ID, not the localized name. For a missing or ambiguous principal, verify the
