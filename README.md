@@ -104,6 +104,11 @@ for an end-to-end check with a test Form response.
 
 ### Redeployment and recovery
 
+- **Clean uninstall:** preview the two managed solutions and optionally their
+  dedicated Graph connection with the [cleanup workflow](.github/workflows/cleanup.yml).
+  Follow the [cleanup checklist](docs/Deployment.md#clean-uninstall-before-reinstalling)
+  before confirming deletion; do not remove the four standard connections.
+
 - **Published release:** eligible pushes to `main` deploy only when
   semantic-release publishes a release. To redeploy the latest release
   manually, leave the rebuild option off. Turn it on when the fix is on

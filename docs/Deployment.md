@@ -135,6 +135,55 @@ dependent Dataverse job explicitly activates it and verifies its direct share.
 
 ## Redeploy with existing connections
 
+### Clean uninstall before reinstalling
+
+Use **Actions -> Clean up Campanula solutions -> Run workflow** on `main`.
+This is a manual uninstall, not an environment reset. For a rehearsal use a
+sandbox. Before uninstalling in production:
+
+1. Retain the managed ZIPs, bindings, sharing details, and any run history
+   you need. Confirm that you can reinstall with your current connection IDs
+   (older deployment validators reject compact 32-character IDs).
+2. Check **Show dependencies** for both solutions. In Power Apps check **Apps
+   using this connection** and **Flows using this connection** for the Graph
+   connection; not all consumers are visible as Dataverse references. Stop if
+   anyone else needs the connector. Turn off the Campanula flow, let active
+   runs finish, and avoid scheduling another deployment during maintenance.
+3. Run **preview**. To also remove the delegated Graph connection, select
+   **remove_graph_connection**. Check the environment, managed versions,
+   actual Graph binding, and exact configured connection in the log. If the
+   binding differs from `PP_GRAPH_CONNECTION_ID`, optional deletion is blocked.
+   Use solutions-only cleanup first, then preview again and check which
+   connection is safe to remove; the workflow never guesses a replacement.
+4. Start a **new run**, choose **uninstall**, use the same connection option,
+   and enter the confirmation from preview. It uninstalls `CampanulaPlannerFlows`
+   first and verifies that the cloud flow and all five project connection
+   references are absent. With the extra option, it deletes the configured
+   Graph connection while its connector is still installed. It then uninstalls
+   `CampanulaPlannerGraphConnector` and verifies that the connector component
+   is gone too. Missing solutions are skipped, but their components are still
+   checked. If another solution layer retains a component, cleanup stops and
+   identifies what remains rather than force-deleting a shared component.
+   Uninstalling the connector may make any remaining connections to it unusable.
+
+The workflow uses the existing deployment app. Optional connection removal
+requires access to the Power Apps environment's admin connection API; **Can use**
+alone is not delete permission. If access or a dependency blocks cleanup, inspect
+the last verified step and run preview again. Have the owner remove the unused
+connection in **Power Apps -> Connections** if needed; do not grant tenant-wide
+roles or delete Dataverse rows to bypass a blocker. If the connector uninstall
+is blocked by the unused connection itself, remove that connection after the
+flow uninstall, then preview again.
+
+The four standard connections, Forms form, workbook, Planner group and plans,
+Entra apps, and GitHub settings are not cleanup targets. To reinstall, follow
+[First deploy to an empty environment](#first-deploy-to-an-empty-environment):
+bootstrap the connector, authenticate and share the new Graph connection,
+update `PP_GRAPH_CONNECTION_ID`, reuse the four healthy connections, then deploy
+both solutions and verify activation.
+
+### Choose the deployment mode
+
 Choose the workflow mode based on the target state:
 
 | Situation | Action |
