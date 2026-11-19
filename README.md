@@ -104,11 +104,18 @@ for an end-to-end check with a test Form response.
 
 ### Redeployment and recovery
 
+- **Clean uninstall:** preview the two managed solutions and optionally their
+  dedicated Graph connection with the [cleanup workflow](.github/workflows/cleanup.yml).
+  Follow the [cleanup checklist](docs/Deployment.md#clean-uninstall-before-reinstalling)
+  before confirming deletion; do not remove the four standard connections.
+
 - **Force redeploy both solutions (no new PR or release):** open
   [Deploy Power Platform Solution](https://github.com/MartinMikes/PlannerTasksFromTemplate/actions/workflows/deploy.yml),
   click **Run workflow**, select `main`, and enter a reason. Leave the rebuild
-  option off for the latest release; turn it on for current `main` or a changed
-  `PP_CONNECTOR_APP_ID`. Start a new run rather than re-running a skipped push.
+  option off to use the latest release; turn it on for unreleased changes on
+  `main` or a changed `PP_CONNECTOR_APP_ID`. Eligible pushes to `main` deploy
+  automatically only when semantic-release publishes a release. Start a new
+  run rather than re-running a skipped push.
 - **Graph activation failure:** if `ConnectionAuthorizationFailed` names the
   Graph reference, compare the flow's API ID with the **installed connector's
   API ID**, not its OAuth redirect URI. If the bound connection reports

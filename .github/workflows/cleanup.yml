@@ -1,0 +1,51 @@
+name: Clean up Campanula solutions
+run-name: Campanula cleanup (${{ inputs.mode }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Preview or uninstall both managed solutions and verify their components are gone
+        type: choice
+        options: [preview, uninstall]
+        default: preview
+        required: true
+      remove_graph_connection:
+        description: Also remove the exact configured Graph connection if still present and unused
+        type: boolean
+        default: false
+      confirmation:
+        description: For uninstall, enter the confirmation printed by preview after checking backups and dependencies
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: power-platform-production
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Inventory and clean up only the Campanula installation
+        env:
+          CLEANUP_MODE: ${{ inputs.mode }}
+          REMOVE_GRAPH_CONNECTION: ${{ inputs.remove_graph_connection }}
+          CLEANUP_CONFIRMATION: ${{ inputs.confirmation }}
+          PP_ENVIRONMENT_URL: ${{ vars.PP_ENVIRONMENT_URL }}
+          PP_TENANT_ID: ${{ vars.PP_TENANT_ID }}
+          PP_APP_ID: ${{ vars.PP_APP_ID }}
+          PP_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+          PP_GRAPH_CONNECTION_ID: ${{ vars.PP_GRAPH_CONNECTION_ID }}
+        run: node scripts/cleanup-solutions.js
