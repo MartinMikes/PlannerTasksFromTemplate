@@ -104,10 +104,11 @@ for an end-to-end check with a test Form response.
 
 ### Redeployment and recovery
 
-- **Published release:** eligible pushes to `main` deploy only when
-  semantic-release publishes a release. To redeploy the latest release
-  manually, leave the rebuild option off. Turn it on when the fix is on
-  `main` but not in the release, or when `PP_CONNECTOR_APP_ID` has changed.
+- **Force redeploy both solutions (no new PR or release):** open
+  [Deploy Power Platform Solution](https://github.com/MartinMikes/PlannerTasksFromTemplate/actions/workflows/deploy.yml),
+  click **Run workflow**, select `main`, and enter a reason. Leave the rebuild
+  option off for the latest release; turn it on for current `main` or a changed
+  `PP_CONNECTOR_APP_ID`. Start a new run rather than re-running a skipped push.
 - **Graph activation failure:** if `ConnectionAuthorizationFailed` names the
   Graph reference, compare the flow's API ID with the **installed connector's
   API ID**, not its OAuth redirect URI. If the bound connection reports
