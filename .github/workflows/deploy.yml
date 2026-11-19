@@ -190,7 +190,7 @@ jobs:
                 exit 1
                 ;;
             esac
-            if [[ ! "$value" =~ [0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12} ]]; then
+            if [[ ! "$value" =~ [0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12} && ! "$value" =~ ^[0-9a-fA-F]{32}$ ]]; then
               echo "::error::${name} must contain a GUID from a target Power Platform connection resource ID before deploying."
               exit 1
             fi
@@ -236,7 +236,8 @@ jobs:
             local connection_value="$2"
             local other_name="$3"
             local other_value="$4"
-            if [[ -n "$other_value" && "${connection_value,,}" == "${other_value,,}" ]]; then
+            local normalized_connection="${connection_value,,}" normalized_other="${other_value,,}"
+            if [[ -n "$other_value" && "${normalized_connection//-/}" == "${normalized_other//-/}" ]]; then
               echo "::error::${connection_name} must be the target Power Platform connection resource ID, not ${other_name}."
               exit 1
             fi
