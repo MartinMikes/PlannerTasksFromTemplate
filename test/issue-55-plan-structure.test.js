@@ -78,8 +78,11 @@ test('creates every workbook bucket sequentially with the current Planner operat
     "@outputs('List_rows_present_in_a_table_-_Buckets')?['body/value']",
   );
   assert.equal(readActionOperationId(createBucket), 'CreateBucket_V2');
-  assert.deepEqual(setBucketMap?.runAfter ?? {}, {
+  assert.deepEqual(foreachBucket.actions.ComposeNextBucketMap.runAfter, {
     Create_Planner_Bucket: ['Succeeded'],
+  });
+  assert.deepEqual(setBucketMap?.runAfter ?? {}, {
+    ComposeNextBucketMap: ['Succeeded'],
   });
 });
 

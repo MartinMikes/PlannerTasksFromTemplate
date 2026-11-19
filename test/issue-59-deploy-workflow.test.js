@@ -432,6 +432,25 @@ test('binds Graph actions and the solution reference to the installed connector 
   assert.ok(used.size > 0, 'Expected Graph actions in the Flow');
 });
 
+test('does not assign a variable using its own value, including in nested actions', () => {
+  const selfReferences = [];
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    for (const [key, action] of Object.entries(node)) {
+      if (action?.type === 'SetVariable') {
+        const { name, value } = action.inputs;
+        const reads = JSON.stringify(value).matchAll(/\bvariables\s*\(\s*'([^']+)'\s*\)/gi);
+        if ([...reads].some(([, variable]) => variable.toLowerCase() === name.toLowerCase())) {
+          selfReferences.push(`${key}: ${name}`);
+        }
+      }
+      visit(action);
+    }
+  }
+  visit(flowDefinition.properties.definition.actions);
+  assert.deepEqual(selfReferences, [], 'Power Automate rejects self-referencing SetVariable actions');
+});
+
 test('deploys using existing connections without requiring or changing connection permissions', () => {
   for (const workflow of [deployWorkflow, connectorBootstrapWorkflow]) {
     assert.doesNotMatch(workflow, /PP_APP_OBJECT_ID|Set-AdminPowerAppConnectionRoleAssignment/);

@@ -12,3 +12,9 @@ The POC demonstrates basic platform and connector behavior but is not a complete
 - Prefer PascalCase without spaces, hyphens, underscores, or diacritics wherever Power Automate permits it.
 - Preserve platform-required or generated identifiers when renaming would make the exported Flow invalid or create needless source churn.
 - The POC variables `ConcertName`, `ConcertDate`, `TemplateType`, `ConcertLocation`, and `PlanId` illustrate the preferred variable style.
+
+## Updating object variables
+
+Power Automate rejects a `SetVariable` action that reads the variable it writes.
+When accumulating an object in a loop, keep the loop sequential, compute the
+updated object in `Compose`, then assign its output after `Compose` succeeds.
