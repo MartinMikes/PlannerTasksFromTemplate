@@ -101,7 +101,7 @@ test('packages a staged managed solution artifact and imports that exact zip', (
 });
 
 test('bootstraps the connector without requiring a delegated Graph connection', () => {
-  assert.match(connectorBootstrapWorkflow, /on:\s+\n\s+workflow_dispatch:/);
+  assert.match(connectorBootstrapWorkflow, /^on:\r?\n  workflow_dispatch:/m);
   assert.match(
     connectorBootstrapWorkflow,
     /CONNECTOR_SOLUTION_FOLDER:\s*src\/CampanulaPlannerGraphConnector/,
