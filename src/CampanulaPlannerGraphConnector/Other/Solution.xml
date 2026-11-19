@@ -28,7 +28,36 @@
       <SupportingWebsiteUrl>https://martix.dev</SupportingWebsiteUrl>
       <CustomizationPrefix>campa</CustomizationPrefix>
       <CustomizationOptionValuePrefix>12345</CustomizationOptionValuePrefix>
-      <Addresses />
+      <Addresses>
+        <Address>
+          <AddressNumber>1</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City>Jihlava</City>
+          <County xsi:nil="true"></County>
+          <Country>Česko</Country>
+          <Fax />
+          <FreightTermsCode xsi:nil="true" />
+          <ImportSequenceNumber xsi:nil="true" />
+          <Latitude xsi:nil="true" />
+          <Line1>Srázná 4306/4</Line1>
+          <Line2 />
+          <Line3 />
+          <Longitude xsi:nil="true" />
+          <Name />
+          <PostalCode>58601</PostalCode>
+          <PostOfficeBox />
+          <PrimaryContactName>Martin Mikeš</PrimaryContactName>
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince>Vysočina</StateOrProvince>
+          <Telephone1>+420724917905</Telephone1>
+          <Telephone2 />
+          <Telephone3 />
+          <TimeZoneRuleVersionNumber xsi:nil="true" />
+          <UPSZone />
+          <UTCOffset xsi:nil="true" />
+          <WebSiteURL />
+        </Address>
+      </Addresses>
     </Publisher>
     <RootComponents>
       <RootComponent type="372" id="{aa5c469a-b5dd-4963-917c-66bf35639bb3}"
