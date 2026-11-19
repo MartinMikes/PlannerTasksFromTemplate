@@ -1,4 +1,5 @@
 name: Deploy Power Platform Solution
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('Force redeploy both solutions ({0})', inputs.rebuild_from_source && 'current main' || 'latest release') || github.event.head_commit.message }}
 
 on:
   push:
@@ -11,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       reason:
-        description: Reason for ad hoc production deployment
+        description: Reason to force redeploy both solutions to production (no new PR or release needed)
         required: true
         type: string
       rebuild_from_source:
@@ -263,7 +264,9 @@ jobs:
 
       - name: Skip deploy when there is no release
         if: github.event_name == 'push' && steps.semanticRelease.outputs.new_release_published != 'true'
-        run: echo "semantic-release did not publish a release, so automatic deployment is skipped."
+        run: |
+          echo "No new release; automatic deployment skipped."
+          echo "To force redeploy both solutions without a new PR, open **Deploy Power Platform Solution** and choose **Run workflow** on **main**. Re-running this push does not force deployment." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Show ad hoc deploy reason
         if: github.event_name == 'workflow_dispatch'

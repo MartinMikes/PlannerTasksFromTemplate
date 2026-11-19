@@ -135,6 +135,21 @@ dependent Dataverse job explicitly activates it and verifies its direct share.
 
 ## Redeploy with existing connections
 
+To force a production redeployment without a commit, PR, or version bump, open
+[Deploy Power Platform Solution](https://github.com/MartinMikes/PlannerTasksFromTemplate/actions/workflows/deploy.yml)
+and choose **Run workflow** on `main`. Enter a reason and select the package
+source below. To re-import the latest release after replacing a connection,
+update its GitHub variable first, then run:
+
+```shell
+gh workflow run deploy.yml --ref main -f reason="Rebind repaired Graph connection" -f rebuild_from_source=false
+```
+
+Set `rebuild_from_source=true` to pack the current `main` without looking up a
+release. Both modes import `CampanulaPlannerGraphConnector` first, then
+`CampanulaPlannerFlows`, then run **Activate and Share Flow**. Neither publishes
+a release. **Re-run jobs** on a skipped push still uses the original push event.
+
 Choose the workflow mode based on the target state:
 
 | Situation | Action |

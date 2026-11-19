@@ -259,6 +259,19 @@ test('attaches release assets only after both solution imports succeed', () => {
   assert.ok(flowImportIdx < releaseAssetIdx, 'Release assets must follow Flow import');
 });
 
+test('a manual redeploy re-imports both solutions even without a new version', () => {
+  const steps = deployWorkflow.split(/^      - name: /m);
+  for (const name of ['Import Graph connector prerequisite solution', 'Import solution to Power Platform']) {
+    const step = steps.find(text => text.split(/\r?\n/, 1)[0] === name);
+    assert.ok(step, `Missing import: ${name}`);
+    assert.match(step, /^        if: github\.event_name == 'workflow_dispatch' \|\| steps\.semanticRelease\.outputs\.new_release_published == 'true'\s*$/m);
+    assert.match(step, /--force-overwrite\b/);
+    assert.doesNotMatch(step, /--skip-lower-version\b/);
+  }
+  const release = steps.find(step => step.startsWith('Determine release version'));
+  assert.match(release, /^        if: github\.event_name == 'push'\s*$/m);
+});
+
 test('can rebuild current source for a clean target instead of reusing release assets', () => {
   assertMatchesAllPatterns(deployWorkflow, [
     /rebuild_from_source:/,
