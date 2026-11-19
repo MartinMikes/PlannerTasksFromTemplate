@@ -18,13 +18,13 @@ depending on deprecated or undocumented connector behavior?
 
 Keep the standard Planner connector for task creation. Its current stable
 `Create a task` operation (`CreateTask_V3`) accepts semicolon-separated user
-IDs or e-mail addresses, category flags `category1` through `category25`, and
-numeric priority in the same request. Use Microsoft Graph through the existing
+IDs or e-mail addresses and `appliedCategories/category1` through `category25`,
+but not numeric priority. Use Microsoft Graph through the existing
 custom connector for the gaps the standard connector does not cover with a
 fully documented, single-pass contract:
 
 1. get and patch plan details to set category display names;
-2. get and patch tasks to set exact numeric progress; and
+2. get and patch tasks to set numeric priority and progress; and
 3. get and patch task-details resources once to set descriptions and checklist
    items with independent ETag protection.
 
@@ -45,8 +45,8 @@ only within the current run, then apply progress and task details.
 | Workbook field | Validation and normalization | Planner target | Write strategy |
 | --- | --- | --- | --- |
 | `AssignedToEmails` | Split on `;`, trim, drop empty entries, compare case-insensitively, and reject blanks, duplicates, or more than 20 assignees. Every task requires at least one valid assignee. | Connector `assignments`; Graph `plannerTask.assignments` | Pass the normalized semicolon-separated addresses to `CreateTask_V3`. The connector explicitly accepts IDs or e-mail addresses. If Graph is used instead, resolve every address to a Microsoft Entra user ID first and use that ID as the open-property name with a `plannerAssignment` value and `orderHint`. |
-| `Progress` | Allow blank, `Not started`, `In progress`, or `Completed` only. Blank has the same initial result as `Not started`. | `plannerTask.percentComplete` | Project mapping: blank/`Not started` = `0`, `In progress` = `50`, `Completed` = `100`. Creation defaults to not started. Skip the follow-up write for blank/`Not started`; otherwise use Graph GET/PATCH with the task ID returned by creation. |
-| `Priority` | Require one of `Urgent`, `Important`, `Medium`, or `Low`. Do not silently turn an unknown value into Medium. | `plannerTask.priority` | Set at creation: `Urgent` = `1`, `Important` = `3`, `Medium` = `5`, `Low` = `9`. Graph and the connector accept `0` through `10`; these four values are Planner's canonical UI values. |
+| `Progress` | Allow blank, `Not started`, `In progress`, or `Completed` only. | `plannerTask.percentComplete` | A new task defaults to not started. Set `In progress` = `50` or `Completed` = `100` in the Graph patch. Preserve current progress for a priority-only update. |
+| `Priority` | Require one of `Urgent`, `Important`, `Medium`, or `Low`. | `plannerTask.priority` | Set via Graph after creation: `Urgent` = `1`, `Important` = `3`, `Medium` = `5`, `Low` = `9`. |
 | `Labels` | Split on `;`, trim, drop empty values, reject duplicates, and require an exact name in `tbLabels[Name]`. Require every referenced label row to have a valid `Label1`-`Label25` slot. | Task `appliedCategories.categoryN`; plan-details `categoryDescriptions.categoryN` | Build all 25 Boolean flags and supply the true flags to `CreateTask_V3`. Separately set each populated plan category description from `tbLabels[Name]` through Graph before task creation. |
 | `Description` | Preserve line breaks and plain URLs. Blank is allowed. | `plannerTaskDetails.description` | After task creation, GET task details and PATCH the intended description together with any missing checklist items, using the details ETag. Omitted detail properties remain unchanged. |
 | `CheckListItems` | Split on `;`, trim, drop empty entries, require no more than 20 items, and reject duplicate titles after normalization. | `plannerTaskDetails.checklist` | Generate each checklist GUID in memory, GET the new task details once, and PATCH the complete intended description and checklist once with the details ETag. Set every new item to `isChecked: false`; any write failure is a generation failure. |
@@ -123,12 +123,12 @@ Category display names and task category flags are different resources. A true
 2. Normalize assignments, map priority, and convert requested label names to
    `categoryN` flags.
 3. Call stable connector `CreateTask_V3` once with plan ID, actual group ID,
-   bucket ID, title, due date, assignments, priority, and all true category
+   bucket ID, title, due date, assignments, and category
    flags.
 4. Retain the returned task ID in the current loop iteration for secondary
    writes; do not persist a template-to-Planner identity map.
-5. For `In progress` or `Completed`, use Graph to get the task ETag, then patch
-   numeric `percentComplete` (`50` or `100`) with `If-Match`.
+5. Read the task with Graph. If priority differs or `In progress`/`Completed`
+   was requested, patch priority and progress together with `If-Match`.
 6. Generate checklist GUIDs in memory. Use Graph to get task details, retain
    the details ETag, and patch the complete intended description and checklist
    once. Any secondary-write failure is fatal for the run.
@@ -180,14 +180,9 @@ read and send the complete intended open collection for the new resource.
 
 ## Repository impact
 
-The checked-in production Flow already uses stable `CreateTask_V3` for title,
-bucket, due date, and priority, and stable `UpdateTaskDetails_V2` for
-description. It currently omits assignments, progress, task category flags,
-and plan category names. It invokes the old `CreateBucket` operation and an
-operation named `CreateChecklistItem` that is not listed in the current
-connector action reference. Those two operations should not be carried forward
-without live schema verification; use current `CreateBucket_V2` and the
-documented task-details model when rebuilding the final Flow.
+The Flow uses `CreateBucket_V2` with the bucket name, group ID, and plan ID.
+It uses stable `CreateTask_V3` for task creation and the custom Graph connector
+for plan details, task updates, and checklist/description updates.
 
 ## Documentation gaps and required live checks
 

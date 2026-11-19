@@ -169,7 +169,7 @@
       },
       "patch": {
         "summary": "Update Planner task",
-        "description": "Update Microsoft Planner task progress using a fresh ETag.",
+        "description": "Update Microsoft Planner task progress and priority using a fresh ETag.",
         "operationId": "UpdateTask",
         "x-ms-summary": "Update Planner Task",
         "x-ms-visibility": "important",
@@ -472,6 +472,10 @@
           "type": "string",
           "description": "Planner task identifier."
         },
+        "priority": {
+          "type": "integer",
+          "format": "int32"
+        },
         "percentComplete": {
           "type": "integer",
           "format": "int32",
@@ -485,6 +489,12 @@
         "percentComplete"
       ],
       "properties": {
+        "priority": {
+          "type": "integer",
+          "format": "int32",
+          "minimum": 0,
+          "maximum": 10
+        },
         "percentComplete": {
           "type": "integer",
           "format": "int32",

@@ -25,6 +25,7 @@ function scenario(responses, config = env) {
     if (new URL(url).hostname === 'login.microsoftonline.com') return Response.json({ access_token: 'mock' });
     assert.ok(responses.length, `Unexpected ${options.method} ${url}`);
     const body = responses.shift();
+    if (body instanceof Response) return body;
     return body === null ? new Response(null, { status: 204 }) : Response.json(body);
   });
   return { calls, run };
@@ -67,4 +68,11 @@ test('fails before mutation on ambiguous principals and fails closed on unverifi
   assert.ok(ambiguous.calls.slice(1).every(call => call.method === 'GET'));
   await assert.rejects(scenario([draft, team, empty, null, draft]).run, /not active/);
   await assert.rejects(scenario([active, team, empty, active, null, empty]).run, /Could not verify/);
+});
+
+test('reports activation rejection and never shares an invalid flow', async () => {
+  const error = Response.json({ error: { message: 'WorkflowOperationParametersExtraParameter: body/orderHint' } }, { status: 400 });
+  const attempt = scenario([draft, team, empty, error]);
+  await assert.rejects(attempt.run, /Dataverse PATCH .*HTTP 400.*WorkflowOperationParametersExtraParameter/);
+  assert.equal(attempt.calls.at(-1).method, 'PATCH');
 });

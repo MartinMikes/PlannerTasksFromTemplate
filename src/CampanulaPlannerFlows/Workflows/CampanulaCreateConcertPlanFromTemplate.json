@@ -1582,8 +1582,8 @@
                   "inputs": {
                     "parameters": {
                       "body/name": "@item()?['Bucket']",
-                      "body/planId": "@body('Create_Planner_Plan')?['id']",
-                      "body/orderHint": " !"
+                      "body/groupId": "@parameters('plannerGroupId')",
+                      "body/planId": "@body('Create_Planner_Plan')?['id']"
                     },
                     "host": {
                       "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
@@ -1682,32 +1682,31 @@
                       "body/title": "@item()?['TaskName']",
                       "body/assignments": "@item()?['AssignedToEmails']",
                       "body/dueDateTime": "@outputs('Compose_TaskDueDate')",
-                      "body/priority": "@outputs('Compose_PlannerPriority')",
-                      "body/category1": "@item()?['category1']",
-                      "body/category2": "@item()?['category2']",
-                      "body/category3": "@item()?['category3']",
-                      "body/category4": "@item()?['category4']",
-                      "body/category5": "@item()?['category5']",
-                      "body/category6": "@item()?['category6']",
-                      "body/category7": "@item()?['category7']",
-                      "body/category8": "@item()?['category8']",
-                      "body/category9": "@item()?['category9']",
-                      "body/category10": "@item()?['category10']",
-                      "body/category11": "@item()?['category11']",
-                      "body/category12": "@item()?['category12']",
-                      "body/category13": "@item()?['category13']",
-                      "body/category14": "@item()?['category14']",
-                      "body/category15": "@item()?['category15']",
-                      "body/category16": "@item()?['category16']",
-                      "body/category17": "@item()?['category17']",
-                      "body/category18": "@item()?['category18']",
-                      "body/category19": "@item()?['category19']",
-                      "body/category20": "@item()?['category20']",
-                      "body/category21": "@item()?['category21']",
-                      "body/category22": "@item()?['category22']",
-                      "body/category23": "@item()?['category23']",
-                      "body/category24": "@item()?['category24']",
-                      "body/category25": "@item()?['category25']"
+                      "body/appliedCategories/category1": "@item()?['category1']",
+                      "body/appliedCategories/category2": "@item()?['category2']",
+                      "body/appliedCategories/category3": "@item()?['category3']",
+                      "body/appliedCategories/category4": "@item()?['category4']",
+                      "body/appliedCategories/category5": "@item()?['category5']",
+                      "body/appliedCategories/category6": "@item()?['category6']",
+                      "body/appliedCategories/category7": "@item()?['category7']",
+                      "body/appliedCategories/category8": "@item()?['category8']",
+                      "body/appliedCategories/category9": "@item()?['category9']",
+                      "body/appliedCategories/category10": "@item()?['category10']",
+                      "body/appliedCategories/category11": "@item()?['category11']",
+                      "body/appliedCategories/category12": "@item()?['category12']",
+                      "body/appliedCategories/category13": "@item()?['category13']",
+                      "body/appliedCategories/category14": "@item()?['category14']",
+                      "body/appliedCategories/category15": "@item()?['category15']",
+                      "body/appliedCategories/category16": "@item()?['category16']",
+                      "body/appliedCategories/category17": "@item()?['category17']",
+                      "body/appliedCategories/category18": "@item()?['category18']",
+                      "body/appliedCategories/category19": "@item()?['category19']",
+                      "body/appliedCategories/category20": "@item()?['category20']",
+                      "body/appliedCategories/category21": "@item()?['category21']",
+                      "body/appliedCategories/category22": "@item()?['category22']",
+                      "body/appliedCategories/category23": "@item()?['category23']",
+                      "body/appliedCategories/category24": "@item()?['category24']",
+                      "body/appliedCategories/category25": "@item()?['category25']"
                     },
                     "host": {
                       "apiId": "/providers/Microsoft.PowerApps/apis/shared_planner",
@@ -1749,6 +1748,14 @@
                   "expression": {
                     "or": [
                       {
+                        "not": {
+                          "equals": [
+                            "@body('GetPlannerTask')?['priority']",
+                            "@outputs('Compose_PlannerPriority')"
+                          ]
+                        }
+                      },
+                      {
                         "equals": [
                           "@item()?['Progress']",
                           "In progress"
@@ -1771,7 +1778,8 @@
                           "id": "@body('Create_Planner_Task')?['id']",
                           "If-Match": "@body('GetPlannerTask')?['@odata.etag']",
                           "body": {
-                            "percentComplete": "@if(equals(item()?['Progress'], 'Completed'), 100, 50)"
+                            "priority": "@outputs('Compose_PlannerPriority')",
+                            "percentComplete": "@if(equals(item()?['Progress'], 'Completed'), 100, if(equals(item()?['Progress'], 'In progress'), 50, body('GetPlannerTask')?['percentComplete']))"
                           }
                         },
                         "host": {

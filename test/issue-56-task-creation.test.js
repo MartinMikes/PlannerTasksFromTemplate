@@ -69,6 +69,6 @@ test('normalizes selected-row ownership and label flags before sequential task c
   );
 
   for (let index = 1; index <= 25; index += 1) {
-    assertParameterMapsToItem(`body/category${index}`, `category${index}`);
+    assertParameterMapsToItem(`body/appliedCategories/category${index}`, `category${index}`);
   }
 });

@@ -20,6 +20,7 @@ test('updates Planner task progress and details through single-pass Graph reads 
   const updateTaskDetails = taskLoopActions.UpdatePlannerTaskDetails;
 
   assert.equal(readActionOperationId(createTask), 'CreateTask_V3');
+  assert.ok(!('body/priority' in createTask.inputs.parameters), 'Only the preview create operation accepts priority');
 
   assert.equal(readActionOperationId(getTask), 'GetTask');
   assert.deepEqual(getTask?.runAfter ?? {}, {
@@ -39,6 +40,9 @@ test('updates Planner task progress and details through single-pass Graph reads 
   assert.deepEqual(updateTask?.runAfter ?? {}, {});
   assert.match(readActionParameters(updateTask), /If-Match/i);
   assert.match(readActionParameters(updateTask), /percentComplete/);
+  assert.equal(updateTask.inputs.parameters.body.priority, "@outputs('Compose_PlannerPriority')");
+  assert.ok(JSON.stringify(conditionalTaskProgressUpdate.expression).includes("body('GetPlannerTask')?['priority']"));
+  assert.equal(connector.definitions.UpdateTaskRequest.properties.priority.type, 'integer');
   assert.equal(conditionalTaskProgressUpdate?.actions?.UpdatePlannerTask, updateTask);
 
   assert.deepEqual(resetTaskChecklistItems?.runAfter ?? {}, {
