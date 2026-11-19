@@ -109,10 +109,13 @@ for an end-to-end check with a test Form response.
   Follow the [cleanup checklist](docs/Deployment.md#clean-uninstall-before-reinstalling)
   before confirming deletion; do not remove the four standard connections.
 
-- **Published release:** eligible pushes to `main` deploy only when
-  semantic-release publishes a release. To redeploy the latest release
-  manually, leave the rebuild option off. Turn it on when the fix is on
-  `main` but not in the release, or when `PP_CONNECTOR_APP_ID` has changed.
+- **Force redeploy both solutions (no new PR or release):** open
+  [Deploy Power Platform Solution](https://github.com/MartinMikes/PlannerTasksFromTemplate/actions/workflows/deploy.yml),
+  click **Run workflow**, select `main`, and enter a reason. Leave the rebuild
+  option off to use the latest release; turn it on for unreleased changes on
+  `main` or a changed `PP_CONNECTOR_APP_ID`. Eligible pushes to `main` deploy
+  automatically only when semantic-release publishes a release. Start a new
+  run rather than re-running a skipped push.
 - **Graph activation failure:** if `ConnectionAuthorizationFailed` names the
   Graph reference, compare the flow's API ID with the **installed connector's
   API ID**, not its OAuth redirect URI. If the bound connection reports

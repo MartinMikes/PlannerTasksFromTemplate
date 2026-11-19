@@ -142,8 +142,7 @@ This is a manual uninstall, not an environment reset. For a rehearsal use a
 sandbox. Before uninstalling in production:
 
 1. Retain the managed ZIPs, bindings, sharing details, and any run history
-   you need. Confirm that you can reinstall with your current connection IDs
-   (older deployment validators reject compact 32-character IDs).
+   you need. Confirm that you can reinstall with your current connection IDs.
 2. Check **Show dependencies** for both solutions. In Power Apps check **Apps
    using this connection** and **Flows using this connection** for the Graph
    connection; not all consumers are visible as Dataverse references. Stop if
@@ -183,6 +182,21 @@ update `PP_GRAPH_CONNECTION_ID`, reuse the four healthy connections, then deploy
 both solutions and verify activation.
 
 ### Choose the deployment mode
+
+To force a production redeployment without a commit, PR, or version bump, open
+[Deploy Power Platform Solution](https://github.com/MartinMikes/PlannerTasksFromTemplate/actions/workflows/deploy.yml)
+and choose **Run workflow** on `main`. Enter a reason and select the package
+source below. To re-import the latest release after replacing a connection,
+update its GitHub variable first, then run:
+
+```shell
+gh workflow run deploy.yml --ref main -f reason="Rebind repaired Graph connection" -f rebuild_from_source=false
+```
+
+Set `rebuild_from_source=true` to pack the current `main` without looking up a
+release. Both modes import `CampanulaPlannerGraphConnector` first, then
+`CampanulaPlannerFlows`, then run **Activate and Share Flow**. Neither publishes
+a release. **Re-run jobs** on a skipped push still uses the original push event.
 
 Choose the workflow mode based on the target state:
 
